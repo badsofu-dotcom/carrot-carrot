@@ -1,0 +1,28 @@
+name = "carrot-carrot-api"
+main = "src/index.ts"
+compatibility_date = "2026-05-04"
+compatibility_flags = ["nodejs_compat"]
+
+# D1 — `wrangler d1 create carrot-carrot-db` 후 출력된 database_id 를 아래에 붙여넣는다.
+[[d1_databases]]
+binding = "DB"
+database_name = "carrot-carrot-db"
+database_id = "e3301435-f6ef-4e4e-a1ac-ffdc23796e62"
+migrations_dir = "migrations"
+
+# mTLS — `wrangler mtls-certificate upload --cert ... --key ... --name carrot-carrot-mtls-prod`
+# 출력된 certificate_id 를 아래에 붙여넣는다. cert 파일은 .secrets/ 에만 둔다.
+[[mtls_certificates]]
+binding = "TOSS_MTLS"
+certificate_id = "c3d09edc-7bce-4e3c-b5ce-f629ed847821"
+
+# 비밀이 아닌 환경변수 — Apps in Toss / Worker 공통 식별자.
+# 시크릿(APPS_IN_TOSS_DECRYPTION_KEY, JWT_SECRET) 은 `wrangler secret put` 으로만 등록한다.
+[vars]
+APPS_IN_TOSS_APP_NAME = "carrot-carrot"
+APPS_IN_TOSS_API_BASE = "https://apps-in-toss-api.toss.im"
+APPS_IN_TOSS_DECRYPTION_AAD = "TOSS"
+ALLOW_MOCK_LOGIN = "false"
+
+[observability]
+enabled = true

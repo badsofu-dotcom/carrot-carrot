@@ -1,0 +1,32 @@
+{
+  "name": "버니타임:집중타이머",
+  "short_name": "버니타임",
+  "description": "악동 토끼와 함께하는 25분 집중 타이머 🥕 — 집중하면 토끼가 당근을 먹고, 도망가면 토끼가 운다.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF8E7",
+  "theme_color": "#FF9940",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/icons/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

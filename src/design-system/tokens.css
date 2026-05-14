@@ -1,0 +1,215 @@
+/* 버니타임 디자인 시스템 v2 — 토큰
+ * 악동·음흉·따뜻한 토끼 무드. 앱스토어 피처드급 모바일 톤.
+ * 라이트/다크 듀얼 테마. data-theme 속성으로 전환.
+ */
+
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+
+:root,
+[data-theme="light"] {
+  /* Surface — Phase 7.9 polish: 노란기 줄여 warm off-white 톤으로 premium 화. */
+  --bg-primary: #fbf6ee;
+  --bg-elevated: #ffffff;
+  --bg-sunken: #efeadc;
+
+  /* Accent */
+  --accent-carrot: #ff6b35;
+  --accent-carrot-soft: #ffe4d6;
+  --accent-devil: #c73e1d;
+  --accent-gold: #d4a017;
+
+  /* Text */
+  --text-primary: #1f1a15;
+  --text-secondary: #6b5e4d;
+  --text-tertiary: #a99c87;
+  /* Phase 7: white on #ff6b35 는 WCAG AA (4.5:1) 미팔.
+   * 고대비 다크 브라운으로 전환해 5.4:1 확보. */
+  --text-on-accent: #1a0a02;
+
+  /* Border / divider */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-medium: rgba(0, 0, 0, 0.1);
+
+  /* Rarity */
+  --rarity-common: #94a3b8;
+  --rarity-rare: #4f9cff;
+  --rarity-sr: #b46cff;
+  --rarity-ssr: #ff6bb6;
+  --rarity-legendary: #d4a017;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(28, 16, 0, 0.05), 0 1px 3px rgba(28, 16, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(28, 16, 0, 0.08), 0 2px 4px rgba(28, 16, 0, 0.04);
+  --shadow-lg: 0 16px 32px rgba(28, 16, 0, 0.1), 0 4px 12px rgba(28, 16, 0, 0.06);
+  --shadow-glow-carrot: 0 12px 32px rgba(255, 107, 53, 0.32),
+    0 4px 14px rgba(255, 107, 53, 0.24);
+
+  /* Glow & gradient */
+  --gradient-hero:
+    radial-gradient(120% 90% at 50% 10%, #ffe4d6 0%, #fff8e7 60%, #f5edd3 100%);
+  --gradient-night:
+    radial-gradient(120% 90% at 50% 10%, #2a201a 0%, #1a1410 60%, #100c08 100%);
+
+  /* 히어로 mesh — 크림/오렌지/골드 (purple blob 금지) */
+  --gradient-mesh:
+    radial-gradient(38% 55% at 18% 22%, rgba(255, 178, 130, 0.55) 0%, transparent 70%),
+    radial-gradient(34% 48% at 82% 12%, rgba(255, 220, 150, 0.50) 0%, transparent 72%),
+    radial-gradient(46% 52% at 60% 90%, rgba(255, 196, 120, 0.45) 0%, transparent 75%),
+    linear-gradient(180deg, #fff3df 0%, #fde6c7 100%);
+
+  --backdrop-blur: blur(24px) saturate(160%);
+
+  /* Phase 7.9.2 polish — chat bubble 은 항상 반대 테마 배경/글자색을 사용해
+   * 배경에서 또렷이 떠 보이게. 라이트 테마 → 다크 톤 bubble. */
+  --bubble-bg: #2a201a;
+  --bubble-bg-soft: #382a22;
+  --bubble-fg: #fff8e7;
+  --bubble-border: rgba(255, 248, 231, 0.12);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1410;
+  --bg-elevated: #2a201a;
+  --bg-sunken: #100c08;
+
+  --accent-carrot: #ff8555;
+  --accent-carrot-soft: #3a2418;
+  --accent-devil: #e15639;
+  --accent-gold: #e8b829;
+
+  --text-primary: #fff8e7;
+  --text-secondary: #c9bba6;
+  --text-tertiary: #807260;
+  --text-on-accent: #1a1410;
+
+  --border-subtle: rgba(255, 248, 231, 0.08);
+  --border-medium: rgba(255, 248, 231, 0.14);
+
+  --rarity-common: #7a8696;
+  --rarity-rare: #6dafff;
+  --rarity-sr: #c489ff;
+  --rarity-ssr: #ff89c9;
+  --rarity-legendary: #e8b829;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-glow-carrot: 0 12px 36px rgba(255, 133, 85, 0.36),
+    0 4px 14px rgba(255, 133, 85, 0.28);
+
+  --gradient-hero: var(--gradient-night);
+  --gradient-mesh:
+    radial-gradient(38% 55% at 18% 22%, rgba(255, 150, 95, 0.20) 0%, transparent 70%),
+    radial-gradient(34% 48% at 82% 12%, rgba(232, 184, 41, 0.18) 0%, transparent 72%),
+    radial-gradient(46% 52% at 60% 90%, rgba(255, 133, 85, 0.18) 0%, transparent 75%),
+    linear-gradient(180deg, #221a14 0%, #15100c 100%);
+
+  /* Phase 7.9.2 — 다크 테마에서 bubble 은 라이트 톤 으로 반전. */
+  --bubble-bg: #ffffff;
+  --bubble-bg-soft: #f7f0e2;
+  --bubble-fg: #1f1a15;
+  --bubble-border: rgba(0, 0, 0, 0.08);
+}
+
+/* Auto dark — 시스템이 dark 인데 data-theme 미지정일 때 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-primary: #1a1410;
+    --bg-elevated: #2a201a;
+    --bg-sunken: #100c08;
+
+    --accent-carrot: #ff8555;
+    --accent-carrot-soft: #3a2418;
+    --accent-devil: #e15639;
+    --accent-gold: #e8b829;
+
+    --text-primary: #fff8e7;
+    --text-secondary: #c9bba6;
+    --text-tertiary: #807260;
+    --text-on-accent: #1a1410;
+
+    --border-subtle: rgba(255, 248, 231, 0.08);
+    --border-medium: rgba(255, 248, 231, 0.14);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.35);
+    --shadow-glow-carrot: 0 12px 36px rgba(255, 133, 85, 0.36),
+      0 4px 14px rgba(255, 133, 85, 0.28);
+
+    --gradient-hero: var(--gradient-night);
+
+    --bubble-bg: #ffffff;
+    --bubble-bg-soft: #f7f0e2;
+    --bubble-fg: #1f1a15;
+    --bubble-border: rgba(0, 0, 0, 0.08);
+  }
+}
+
+:root {
+  /* Typography */
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont,
+    system-ui, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* Type scale (px / weight / tracking) */
+  --text-display: 32px;
+  --text-display-weight: 800;
+  --text-display-tracking: -0.03em;
+
+  --text-h1: 24px;
+  --text-h1-weight: 700;
+  --text-h1-tracking: -0.02em;
+
+  --text-h2: 18px;
+  --text-h2-weight: 700;
+  --text-h2-tracking: -0.01em;
+
+  --text-body: 15px;
+  --text-body-weight: 500;
+
+  --text-caption: 13px;
+  --text-caption-weight: 500;
+
+  --text-micro: 11px;
+  --text-micro-weight: 600;
+
+  /* Spacing — 4px base */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-14: 56px;
+  --space-20: 80px;
+
+  /* Radius */
+  --radius-button: 16px;
+  --radius-card: 24px;
+  --radius-bunny: 32px;
+  --radius-pill: 999px;
+
+  /* Motion — easing & duration tokens */
+  --ease-smooth: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring-soft: cubic-bezier(0.34, 1.32, 0.64, 1);
+  --ease-spring-bounce: cubic-bezier(0.34, 1.74, 0.5, 1);
+
+  --dur-fast: 0.18s;
+  --dur-base: 0.3s;
+  --dur-slow: 0.6s;
+
+  /* App layout */
+  --app-max-width: 480px;
+  --tabbar-height: 68px;
+  --tabbar-offset: 16px;
+  /* Total reserved space at the bottom for the floating nav (height + offsets) */
+  --tabbar-reserved: calc(var(--tabbar-height) + var(--tabbar-offset) * 2);
+  /* Scrim height above the tab bar so content fades into the bg before sliding under */
+  --tabbar-scrim: 56px;
+}

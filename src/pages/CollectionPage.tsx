@@ -1,0 +1,1078 @@
+import { useMemo, useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bunny } from "../components/Bunny";
+import { bunnyImages } from "../assets/characters";
+import {
+  BottomSheet,
+  Button,
+  Card,
+  Chip,
+  ProgressRing,
+  toast,
+} from "../design-system/ui";
+import { haptic } from "../design-system/haptic";
+import { FarmHub } from "../features/collection/FarmHub";
+import { useFarmStore } from "../features/collection/farmStore";
+import { FarmOnboarding } from "../features/collection/FarmOnboarding";
+import { RewardsPanel } from "../components/Farm/RewardsPanel";
+import { InventoryModal } from "../components/Inventory/InventoryModal";
+import { useItemsStore } from "../features/collection/itemsStore";
+import { useRewardsStore } from "../features/collection/rewardsStore";
+import {
+  RARITY_COLOR,
+  RARITY_LABEL,
+  SLOTS,
+  TOTAL_SLOTS,
+  type CharacterDef,
+  type Rarity,
+  type SlotDef,
+} from "../features/collection/collectionData";
+import {
+  useCollectionStore,
+  useOwnedByRarity,
+  useOwnedSet,
+} from "../features/collection/collectionStore";
+
+const ALL_FILTERS: ("all" | Rarity)[] = [
+  "all",
+  "common",
+  "rare",
+  "sr",
+  "ssr",
+  "legendary",
+];
+
+interface DisplaySlot extends SlotDef {
+  obtained: boolean;
+  obtainedAt?: string;
+}
+
+export function CollectionPage() {
+  const ownedSet = useOwnedSet();
+  const ownedAt = useCollectionStore((s) => s.ownedAt);
+  const ownedByRarity = useOwnedByRarity();
+
+  const slots: DisplaySlot[] = useMemo(
+    () =>
+      SLOTS.map((sl) => {
+        const obtained =
+          !!sl.character && ownedSet.has(sl.character.id);
+        return {
+          ...sl,
+          obtained,
+          obtainedAt:
+            obtained && sl.character ? ownedAt[sl.character.id] : undefined,
+        };
+      }),
+    [ownedSet, ownedAt],
+  );
+
+  const [filter, setFilter] = useState<(typeof ALL_FILTERS)[number]>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 농장 hub vs 기존 도감 그리드. 기본값은 농장 hub.
+  const [view, setView] = useState<"farm" | "dogam">("farm");
+
+  const filtered = filter === "all" ? slots : slots.filter((s) => s.rarity === filter);
+  const obtainedCount = ownedSet.size;
+  const progress = obtainedCount / TOTAL_SLOTS;
+
+  const selected = selectedId ? slots.find((s) => s.id === selectedId) : null;
+
+  if (view === "farm") {
+    return <FarmView
+      onOpenDogam={() => { haptic("light"); setView("dogam"); }}
+      obtainedCount={obtainedCount}
+    />;
+  }
+
+  return (
+    <main
+      className="app-screen"
+      data-testid="page-collection"
+      style={{ paddingTop: 24 }}
+    >
+      <header
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            haptic("light");
+            setView("farm");
+          }}
+          aria-label="농장으로 돌아가기"
+          data-testid="dogam-back-to-farm"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 36,
+            height: 36,
+            borderRadius: 999,
+            border: "1px solid var(--border-subtle, rgba(0,0,0,0.08))",
+            background: "var(--surface-1, #fff)",
+            cursor: "pointer",
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+            <path
+              d="M15 6l-6 6 6 6"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <div>
+          <p className="t-micro" style={{ marginBottom: 6 }}>
+            나의 도감
+          </p>
+          <h1 className="t-display" style={{ margin: 0 }}>
+            토끼 도감
+          </h1>
+        </div>
+      </header>
+
+      {/* Progress card */}
+      <Card
+        elevated
+        padded
+        style={{
+          marginBottom: 18,
+          display: "flex",
+          gap: 16,
+          alignItems: "center",
+          background: "var(--gradient-mesh)",
+          borderRadius: 26,
+        }}
+      >
+        <ProgressRing
+          size={92}
+          stroke={9}
+          progress={progress}
+          color="var(--accent-carrot)"
+          ariaLabel={`수집 진행률 ${Math.round(progress * 100)}%`}
+        >
+          <div style={{ textAlign: "center" }}>
+            <div
+              className="t-display-num"
+              style={{ fontSize: 24, color: "var(--text-primary)" }}
+            >
+              {obtainedCount}
+            </div>
+            <div
+              className="t-micro"
+              style={{ marginTop: 2, color: "var(--text-tertiary)" }}
+            >
+              / {TOTAL_SLOTS}
+            </div>
+          </div>
+        </ProgressRing>
+        <div style={{ flex: 1 }}>
+          <p className="t-micro" style={{ margin: 0, marginBottom: 4 }}>
+            수집 진행
+          </p>
+          <h2 className="t-h2" style={{ margin: 0, marginBottom: 6 }}>
+            {obtainedCount} / {TOTAL_SLOTS} 마리
+          </h2>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(["legendary", "ssr", "sr", "rare"] as Rarity[]).map((r) => {
+              const count = ownedByRarity[r];
+              if (count === 0) return null;
+              return (
+                <span
+                  key={r}
+                  className="t-micro"
+                  style={{
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    background:
+                      "color-mix(in oklab, " +
+                      RARITY_COLOR[r] +
+                      " 15%, transparent)",
+                    color: RARITY_COLOR[r],
+                    border: `1px solid ${RARITY_COLOR[r]}40`,
+                  }}
+                >
+                  {RARITY_LABEL[r]} {count}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </Card>
+
+      {/* Filter chips */}
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          overflowX: "auto",
+          paddingBottom: 6,
+          marginBottom: 14,
+          marginInline: -4,
+          paddingInline: 4,
+          scrollbarWidth: "none",
+        }}
+        aria-label="희귀도 필터"
+        role="tablist"
+      >
+        {ALL_FILTERS.map((f) => (
+          <Chip
+            key={f}
+            active={filter === f}
+            tone="carrot"
+            onClick={() => setFilter(f)}
+            role="tab"
+            aria-selected={filter === f}
+            data-testid={`chip-filter-${f}`}
+          >
+            {f === "all" ? "전체" : RARITY_LABEL[f]}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Grid */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: 10,
+        }}
+      >
+        {filtered.map((slot, i) => (
+          <SlotCard
+            key={slot.id}
+            slot={slot}
+            index={i}
+            onOpen={() => {
+              if (slot.obtained) {
+                haptic("medium");
+                setSelectedId(slot.id);
+              } else {
+                haptic("light");
+                toast("아직 못 만났어. 집중 한 판 더 가자 흐흐");
+              }
+            }}
+          />
+        ))}
+      </section>
+
+      <BottomSheet
+        open={!!selected}
+        onClose={() => setSelectedId(null)}
+        title={selected?.character?.name ?? "???"}
+      >
+        {selected?.character && selected.obtained && (
+          <CharacterSheetContent
+            character={selected.character}
+            obtainedAt={selected.obtainedAt}
+          />
+        )}
+      </BottomSheet>
+    </main>
+  );
+}
+
+interface CharacterSheetContentProps {
+  character: CharacterDef;
+  obtainedAt?: string;
+}
+
+function CharacterSheetContent({ character, obtainedAt }: CharacterSheetContentProps) {
+  // 대사 cycling — 5초마다 다음 대사
+  const [quoteIdx, setQuoteIdx] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setQuoteIdx((i) => (i + 1) % character.quotes.length);
+    }, 5200);
+    return () => window.clearInterval(id);
+  }, [character.quotes.length]);
+
+  const isLegendary = character.rarity === "legendary";
+
+  return (
+    <div data-testid={`sheet-character-${character.id}`}>
+      <div
+        style={{
+          position: "relative",
+          display: "grid",
+          placeItems: "center",
+          margin: "8px 0 16px",
+        }}
+      >
+        {isLegendary && (
+          <span
+            aria-hidden
+            style={{
+              position: "absolute",
+              width: 232,
+              height: 232,
+              borderRadius: "50%",
+              background:
+                "conic-gradient(from 0deg at 50% 50%, rgba(255,215,90,0.25), rgba(180,130,255,0.25), rgba(255,150,200,0.22), rgba(120,200,255,0.22), rgba(255,215,90,0.25))",
+              animation: "legendary-spin 7s linear infinite",
+              mixBlendMode: "overlay",
+              pointerEvents: "none",
+              WebkitMaskImage:
+                "radial-gradient(circle, #000 55%, rgba(0,0,0,0) 80%)",
+              maskImage:
+                "radial-gradient(circle, #000 55%, rgba(0,0,0,0) 80%)",
+            }}
+          />
+        )}
+        <Bunny
+          variant={character.bunnyKey}
+          size={200}
+          frame="rounded"
+          glow={isLegendary}
+          eager
+          alt={character.name}
+        />
+      </div>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 12,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <span
+          className="t-micro"
+          style={{
+            padding: "4px 10px",
+            borderRadius: 999,
+            background:
+              "color-mix(in oklab, " +
+              RARITY_COLOR[character.rarity] +
+              " 18%, transparent)",
+            color: RARITY_COLOR[character.rarity],
+            border: `1px solid ${RARITY_COLOR[character.rarity]}55`,
+            fontWeight: 700,
+          }}
+        >
+          {RARITY_LABEL[character.rarity]}
+        </span>
+        <span
+          className="t-caption"
+          style={{ color: "var(--text-tertiary)" }}
+        >
+          {character.unlockHint}
+        </span>
+        {obtainedAt && (
+          <span
+            className="t-caption"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            · {obtainedAt} 획득
+          </span>
+        )}
+      </div>
+
+      {/* cycling quote */}
+      <div
+        style={{
+          minHeight: 64,
+          padding: 14,
+          borderRadius: 14,
+          background: "var(--bg-sunken)",
+          marginBottom: 16,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={quoteIdx}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            className="t-body"
+            style={{
+              margin: 0,
+              fontStyle: "italic",
+              fontWeight: 600,
+              color: "var(--text-primary)",
+            }}
+            data-testid="character-quote"
+          >
+            “{character.quotes[quoteIdx]}”
+          </motion.p>
+        </AnimatePresence>
+        {character.quotes.length > 1 && (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              right: 10,
+              bottom: 8,
+              display: "flex",
+              gap: 3,
+            }}
+          >
+            {character.quotes.map((_, i) => (
+              <span
+                key={i}
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background:
+                    i === quoteIdx
+                      ? "var(--accent-carrot)"
+                      : "var(--border-medium)",
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <Button
+        variant="primary"
+        fullWidth
+        size="lg"
+        onClick={() => saveBunnyImage(character)}
+        data-testid="button-save-bunny"
+      >
+        이미지 저장
+      </Button>
+    </div>
+  );
+}
+
+async function saveBunnyImage(character: CharacterDef) {
+  haptic("medium");
+  try {
+    const asset = bunnyImages[character.bunnyKey];
+    const res = await fetch(asset.src);
+    const blob = await res.blob();
+    const fileName = `${character.id}.webp`;
+    const file = new File([blob], fileName, { type: blob.type || "image/webp" });
+
+    // 내부 구현은 OS native file save (Web Share Level 2 with files) 우선,
+    // 미지원이면 anchor download 로 fallback. 사용자 UI 에는 "공유" / "다운로드" /
+    // "갤러리" / "파일함" 같은 시스템 용어를 노출하지 않고 결과만 "저장 완료" 로 표시.
+    const nav = navigator as Navigator & {
+      canShare?: (data: ShareData & { files?: File[] }) => boolean;
+      share?: (data: ShareData & { files?: File[] }) => Promise<void>;
+    };
+    if (
+      typeof nav.share === "function" &&
+      typeof nav.canShare === "function" &&
+      nav.canShare({ files: [file] })
+    ) {
+      try {
+        await nav.share({ files: [file], title: character.name });
+        toast("저장 완료");
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast("저장 완료");
+  } catch {
+    toast("저장 실패");
+  }
+}
+
+interface SlotCardProps {
+  slot: DisplaySlot;
+  index: number;
+  onOpen: () => void;
+}
+
+const LOCKED_WHISPERS = [
+  "흐흐... 아직이야",
+  "비밀이지롱 킥킥",
+  "좀 더 모아봐",
+  "엿보지 마",
+  "곧 만날 수 있어",
+];
+
+function SlotCard({ slot, index, onOpen }: SlotCardProps) {
+  const isLegendary = slot.rarity === "legendary";
+  const [whisper, setWhisper] = useState<string | null>(null);
+  const whisperText = useMemo(
+    () =>
+      LOCKED_WHISPERS[
+        Math.abs(slot.id.charCodeAt(slot.id.length - 1)) %
+          LOCKED_WHISPERS.length
+      ],
+    [slot.id],
+  );
+
+  const showWhisper = () => {
+    if (slot.obtained) return;
+    setWhisper(whisperText);
+    window.setTimeout(() => setWhisper(null), 1600);
+  };
+
+  const labelName = slot.obtained && slot.character ? slot.character.name : "???";
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onOpen}
+      onMouseEnter={showWhisper}
+      onFocus={showWhisper}
+      whileTap={{ scale: 0.95 }}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.018, 0.3), duration: 0.32 }}
+      style={{
+        position: "relative",
+        aspectRatio: "1 / 1.18",
+        padding: 8,
+        background: slot.obtained
+          ? "var(--bg-elevated)"
+          : "var(--bg-sunken)",
+        border: slot.obtained
+          ? `1px solid ${
+              isLegendary
+                ? RARITY_COLOR.legendary + "66"
+                : "var(--border-subtle)"
+            }`
+          : "1px dashed var(--border-medium)",
+        borderRadius: slot.obtained ? 18 : 14,
+        boxShadow: slot.obtained
+          ? isLegendary
+            ? `var(--shadow-md), 0 0 18px ${RARITY_COLOR.legendary}33`
+            : "var(--shadow-sm)"
+          : "none",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 4,
+        overflow: "visible",
+        cursor: "pointer",
+      }}
+      aria-label={
+        slot.obtained
+          ? labelName
+          : `미획득 ${RARITY_LABEL[slot.rarity]}`
+      }
+      data-testid={`slot-${slot.id}`}
+    >
+      {isLegendary && slot.obtained && (
+        <span
+          aria-hidden
+          className="holo"
+          style={{ position: "absolute", inset: 0, borderRadius: 18 }}
+        />
+      )}
+      <AnimatePresence>
+        {whisper && (
+          <motion.span
+            key="whisper"
+            initial={{ opacity: 0, scale: 0.7, y: 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 520, damping: 24 }}
+            role="status"
+            style={{
+              position: "absolute",
+              top: -28,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "var(--text-primary)",
+              color: "var(--bg-primary)",
+              padding: "5px 10px",
+              borderRadius: 12,
+              fontSize: 11,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              boxShadow: "var(--shadow-md)",
+              pointerEvents: "none",
+              zIndex: 10,
+            }}
+          >
+            {whisper}
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <div
+        style={{
+          flex: 1,
+          width: "100%",
+          display: "grid",
+          placeItems: "center",
+          background: slot.obtained ? "transparent" : "var(--bg-sunken)",
+          borderRadius: 12,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {slot.obtained && slot.character ? (
+          <Bunny
+            variant={slot.character.bunnyKey}
+            size={86}
+            breathe={false}
+            frame="rounded"
+            // 첫 viewport (대략 9칸) 안의 unlocked 카드는 eager 로 로드해
+            // 그리드가 비어 보이는 시간을 최소화한다.
+            eager={index < 9}
+            alt={slot.character.name}
+          />
+        ) : (
+          <LockedSilhouette rarity={slot.rarity} />
+        )}
+      </div>
+      <div style={{ width: "100%", textAlign: "center" }}>
+        <p
+          className="t-micro"
+          style={{
+            margin: 0,
+            color: RARITY_COLOR[slot.rarity],
+            opacity: slot.obtained ? 1 : 0.5,
+          }}
+        >
+          {RARITY_LABEL[slot.rarity]}
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 12,
+            fontWeight: 700,
+            color: slot.obtained
+              ? "var(--text-primary)"
+              : "var(--text-tertiary)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {labelName}
+        </p>
+      </div>
+      {!slot.obtained && (
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            width: 20,
+            height: 20,
+            borderRadius: 999,
+            background: "var(--bg-sunken)",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 10,
+            color: "var(--text-tertiary)",
+          }}
+        >
+          🔒
+        </span>
+      )}
+    </motion.button>
+  );
+}
+
+/* ----------------------- LockedSilhouette ----------------------- */
+/**
+ * Phase 7.9 polish — locked card silhouette.
+ *
+ * 이전 버전은 토끼 webp 를 blur+darken 한 사각 `<img>` 로 깔았는데, 이게
+ * "회색 사각 블록" 으로 읽혀서 AI-broken UI 처럼 보였다. 사각 가장자리 자체를
+ * 제거하기 위해 이미지/blur 없이 순수 CSS 로 — 부드러운 cream tan radial vignette
+ * 위에 ? 글리프 — 그린다. 어떤 사각 boundary 도 존재할 수 없다.
+ * rarity glow 는 유지해 legendary/ssr 슬롯의 hint 만 살짝 남긴다.
+ */
+function rarityGlow(rarity: Rarity): string | null {
+  switch (rarity) {
+    case "legendary":
+      return "0 0 16px rgba(255, 107, 53, 0.45), inset 0 0 16px rgba(255, 153, 64, 0.18)";
+    case "ssr":
+      return "0 0 14px rgba(167, 139, 250, 0.45), inset 0 0 14px rgba(167, 139, 250, 0.16)";
+    default:
+      return null;
+  }
+}
+
+function LockedSilhouette({ rarity }: { rarity: Rarity }) {
+  const glow = rarityGlow(rarity);
+  return (
+    <>
+      {/* 부드러운 vignette — slot 의 bg-sunken 위에 한 톤 어두운 circle. 사각형 X */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "78%",
+          height: "78%",
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle at 50% 45%, rgba(31, 26, 21, 0.18) 0%, rgba(31, 26, 21, 0.10) 55%, rgba(31, 26, 21, 0) 100%)",
+          pointerEvents: "none",
+        }}
+      />
+      {glow && (
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 12,
+            boxShadow: glow,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      <span
+        aria-hidden
+        style={{
+          position: "relative",
+          fontSize: 32,
+          fontWeight: 900,
+          color: "var(--text-tertiary)",
+          letterSpacing: "-0.04em",
+          zIndex: 1,
+        }}
+      >
+        ?
+      </span>
+    </>
+  );
+}
+
+/**
+ * FarmView — compact farm landing.
+ *
+ * Layout requirements:
+ *   - 8px top padding under the Toss header.
+ *   - One compact header row: left chips (carrots / planted / ripe),
+ *     right dogam button. No eyebrow ("나의 농장") or h1 ("농장").
+ *   - FarmHub fills the remaining vertical space above BottomNav so the
+ *     plots are visible without scrolling on ≈568px tall devices.
+ *   - Max width clamp 480px (the existing --app-max-width shell already
+ *     enforces this, but we belt-and-braces it).
+ */
+function FarmView({
+  onOpenDogam,
+  obtainedCount,
+}: {
+  onOpenDogam: () => void;
+  obtainedCount: number;
+}) {
+  const stages = useFarmStore((s) => s.stages);
+  const carrots = useFarmStore((s) => s.carrots);
+  const candyCarrots = useFarmStore((s) => s.candyCarrots);
+  const goldenCarrots = useFarmStore((s) => s.goldenCarrots);
+  const plantedCount = stages.filter((s) => s >= 1 && s <= 3).length;
+  const readyCount = stages.filter((s) => s === 4).length;
+  const [, navigate] = useLocation();
+  const [rewardsOpen, setRewardsOpen] = useState(false);
+  const [bagOpen, setBagOpen] = useState(false);
+  const itemCounts = useItemsStore((s) => s.counts);
+  const speciesOwned = (() => {
+    let n = 0;
+    for (const v of Object.values(itemCounts)) if (v > 0) n++;
+    return n;
+  })();
+  const unlockMedal = useRewardsStore((s) => s.unlockMedal);
+
+  // Dogam threshold medals (25/50/75/100). Re-evaluated whenever the
+  // unlock count crosses a boundary. unlockMedal() is idempotent.
+  useEffect(() => {
+    if (obtainedCount >= 25) unlockMedal("dogam_25");
+    if (obtainedCount >= 50) unlockMedal("dogam_50");
+    if (obtainedCount >= 75) unlockMedal("dogam_75");
+    if (obtainedCount >= 100) unlockMedal("dogam_100");
+  }, [obtainedCount, unlockMedal]);
+
+  // Lock body overflow only while the farm view is mounted. Other tabs
+  // (Settings, Report) still scroll normally. CSS rule in base.css.
+  useEffect(() => {
+    document.body.setAttribute("data-farm-view", "1");
+    return () => {
+      document.body.removeAttribute("data-farm-view");
+    };
+  }, []);
+
+  return (
+    <main
+      className="app-screen"
+      data-testid="page-collection"
+      style={{
+        padding: "8px 12px 0",
+        display: "flex",
+        flexDirection: "column",
+        // Take the full viewport minus the safe-area top and the
+        // tab bar reservation, so the farm card has a known cap to size
+        // against. dvh handles iOS dynamic toolbar.
+        height:
+          "calc(100dvh - env(safe-area-inset-top) - var(--tabbar-reserved, 84px))",
+        maxWidth: 480,
+        margin: "0 auto",
+      }}
+    >
+      <header
+        data-testid="farm-compact-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          minHeight: 36,
+          marginBottom: 6,
+          fontSize: 14,
+          fontWeight: 600,
+          color: "var(--text-primary, #2b2b2b)",
+        }}
+      >
+        <div
+          data-testid="farm-inventory"
+          aria-label={`당근 ${carrots}개, 캔디당근 ${candyCarrots}개, 황금당근 ${goldenCarrots}개. (정보: 새싹 ${plantedCount}개, 익은 밭 ${readyCount}개)`}
+          style={{ display: "flex", alignItems: "center", gap: 10 }}
+        >
+          <CurrencyChip
+            icon={`${import.meta.env.BASE_URL}assets/farm/currency/carrot.png`}
+            emoji="🥕"
+            label="당근"
+            count={carrots}
+            testId="chip-carrot"
+          />
+          <CurrencyChip
+            icon={`${import.meta.env.BASE_URL}assets/farm/currency/candy_carrot.png`}
+            emoji="🍬"
+            label="캔디"
+            count={candyCarrots}
+            testId="chip-candy"
+            muted
+          />
+          <CurrencyChip
+            icon={`${import.meta.env.BASE_URL}assets/farm/currency/golden_carrot.png`}
+            emoji="✨"
+            label="황금"
+            count={goldenCarrots}
+            testId="chip-golden"
+            muted
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button
+            type="button"
+            data-testid="farm-header-dogam"
+            aria-label="도감 열기"
+            onClick={onOpenDogam}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 10px",
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.04)",
+              color: "var(--text-primary, #2b2b2b)",
+              border: "none",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            📖 도감 {obtainedCount}/{TOTAL_SLOTS}
+          </button>
+          <button
+            type="button"
+            data-testid="farm-header-rewards"
+            aria-label="보상함 열기"
+            onClick={() => {
+              haptic("light");
+              setRewardsOpen(true);
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.04)",
+              border: "none",
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            🎁
+          </button>
+          <button
+            type="button"
+            data-testid="farm-header-bag"
+            aria-label="가방 열기"
+            onClick={() => {
+              haptic("light");
+              setBagOpen(true);
+            }}
+            style={{
+              position: "relative",
+              width: 32,
+              height: 32,
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.04)",
+              border: "none",
+              cursor: "pointer",
+              overflow: "visible",
+            }}
+          >
+            <img
+              src={`${import.meta.env.BASE_URL}assets/farm/items/item_bag.png`}
+              alt=""
+              width={32}
+              height={32}
+              style={{ objectFit: "contain" }}
+            />
+            {speciesOwned > 0 && (
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  top: -3,
+                  right: -3,
+                  minWidth: 16,
+                  height: 14,
+                  borderRadius: 999,
+                  background: "#FF7B61",
+                  color: "#fff",
+                  fontSize: 9,
+                  fontWeight: 800,
+                  padding: "0 4px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #fff",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+                }}
+              >
+                {speciesOwned}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            data-testid="farm-header-settings"
+            aria-label="설정 열기"
+            onClick={() => {
+              haptic("light");
+              navigate("/me");
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.04)",
+              border: "none",
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            ⚙
+          </button>
+        </div>
+      </header>
+
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "stretch",
+        }}
+      >
+        <FarmHub
+          onOpenDogam={onOpenDogam}
+          obtainedCount={obtainedCount}
+          totalCount={TOTAL_SLOTS}
+        />
+      </div>
+
+      <FarmOnboarding />
+      <RewardsPanel open={rewardsOpen} onClose={() => setRewardsOpen(false)} />
+      <InventoryModal open={bagOpen} onClose={() => setBagOpen(false)} />
+    </main>
+  );
+}
+
+/**
+ * Single header currency chip.
+ *
+ * Uses an asset image when `icon` resolves; if the PNG fails to load
+ * (e.g. nested-proxy host strips a deep path), the chip falls back to
+ * the supplied emoji glyph so the header never collapses.
+ */
+function CurrencyChip({
+  icon,
+  emoji,
+  label,
+  count,
+  testId,
+  muted = false,
+}: {
+  icon: string;
+  emoji: string;
+  label: string;
+  count: number;
+  testId: string;
+  muted?: boolean;
+}) {
+  const [imgOk, setImgOk] = useState(true);
+  return (
+    <span
+      data-testid={testId}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        color: muted ? "var(--text-secondary, #5a5a5a)" : undefined,
+      }}
+    >
+      {imgOk ? (
+        <img
+          src={icon}
+          alt=""
+          width={18}
+          height={18}
+          onError={() => setImgOk(false)}
+          style={{ display: "inline-block", objectFit: "contain", flexShrink: 0 }}
+        />
+      ) : (
+        <span aria-hidden style={{ fontSize: 14 }}>{emoji}</span>
+      )}
+      <span>{label} {count}</span>
+    </span>
+  );
+}

@@ -1,0 +1,48 @@
+{
+  "name": "carrot-carrot",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:preview": "tsc -b && vite build --mode preview --outDir dist-preview",
+    "preview:serve": "vite preview --mode preview --outDir dist-preview --host 0.0.0.0 --port 4173",
+    "build:submit": "node scripts/check-build-env.mjs && node scripts/build-submit.mjs",
+    "build:ait": "node scripts/check-build-env.mjs && node scripts/run-ait-build.mjs",
+    "ait:build": "node scripts/check-build-env.mjs && node scripts/run-ait-build.mjs",
+    "ait:deploy": "ait deploy",
+    "package:source": "node scripts/package-source.mjs",
+    "icons": "node scripts/export-icons.mjs",
+    "assets:optimize": "node scripts/optimize-assets.mjs",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@apps-in-toss/web-framework": "^2.4.7",
+    "framer-motion": "^12.38.0",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^1.14.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "wouter": "^3.9.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.10"
+  }
+}
