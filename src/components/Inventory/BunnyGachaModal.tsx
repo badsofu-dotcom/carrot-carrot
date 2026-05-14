@@ -18,6 +18,7 @@ import {
   RARITY_LABEL,
   type CharacterDef,
 } from "../../features/collection/collectionData";
+import { bunnyImages } from "../../assets/characters";
 
 const BASE = import.meta.env.BASE_URL;
 const FX_RING = `${BASE}assets/farm/fx/fx_level_up_ring.png`;
@@ -129,7 +130,8 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
               }}
             >
               <img
-                src={bunny.imageSrc}
+                src={bunnyImages[bunny.bunnyKey].src}
+                srcSet={bunnyImages[bunny.bunnyKey].srcSet}
                 alt=""
                 width={140}
                 height={140}
@@ -158,7 +160,7 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
                 color: "#555",
               }}
             >
-              {bunny.bio ?? "도감에 새로운 토끼가 추가되었어요."}
+              {bunny.quotes[0] ?? "도감에 새로운 토끼가 추가되었어요."}
             </p>
             <button
               type="button"

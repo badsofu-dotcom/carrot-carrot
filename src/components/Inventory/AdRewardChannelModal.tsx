@@ -16,7 +16,7 @@
  * Daily cap: at most one ad reward per channel per KST day. Tracked
  * locally in safeStorage with the day key as suffix.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToolStore } from "../../features/collection/toolStore";
 import { useRewardsStore } from "../../features/collection/rewardsStore";

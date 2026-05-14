@@ -4,6 +4,7 @@ import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { useFarmStore, type CropStage } from "./farmStore";
 import { useToolStore, type ToolId } from "./toolStore";
+import { useItemsStore } from "./itemsStore";
 import { safeStorage } from "../../lib/safeStorage";
 import {
   FARM_BG_AUTO_KEY,
@@ -180,12 +181,14 @@ export function FarmHub({
   const harvest = useFarmStore((s) => s.harvest);
   const cycleDebug = useFarmStore((s) => s.cycleDebug);
   const hydrate = useFarmStore((s) => s.hydrate);
+  const hydrateItems = useItemsStore((s) => s.hydrate);
 
-  // Pull canonical farm state from the server on mount. No-op for
-  // guest/mock — `hydrate` resolves silently when API base / token missing.
+  // Pull canonical farm + inventory state from the server on mount. No-op
+  // for guest/mock — both resolve silently when API base / token missing.
   useEffect(() => {
     void hydrate();
-  }, [hydrate]);
+    void hydrateItems();
+  }, [hydrate, hydrateItems]);
 
   // Time-of-day background. Recomputes at mount, on tab focus (`visibilitychange`),
   // and at the next KST hour boundary so dawn → morning → day etc. flip

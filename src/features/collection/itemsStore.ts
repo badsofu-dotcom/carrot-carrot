@@ -13,6 +13,12 @@
  */
 import { create } from "zustand";
 import { safeStorage } from "../../lib/safeStorage";
+import {
+  countsFromRemote,
+  loadInventory,
+  useItemOnServer,
+  type ItemsSyncResult,
+} from "./itemsSync";
 
 /**
  * The 13 inventory item codes shown in the bag, grouped by tab.
@@ -221,14 +227,41 @@ function saveCounts(counts: Record<ItemCode, number>) {
 
 interface ItemsState {
   counts: Record<ItemCode, number>;
+  /** True once an initial hydrate attempt has resolved (ok or noop). */
+  hydrated: boolean;
   add: (code: ItemCode, n?: number) => void;
   consume: (code: ItemCode, n?: number) => boolean;
   speciesOwned: () => number;
   reset: () => void;
+  /**
+   * Pull canonical inventory from the worker (`/items/inventory`).
+   * No-op for guest/mock. Server is SoT for codes it returns; codes
+   * absent from the response keep their local count (worker may not
+   * yet persist every code — local pre-0006 inventory shouldn't get
+   * zeroed).
+   */
+  hydrate: () => Promise<void>;
+}
+
+const ITEM_CODES: readonly ItemCode[] = ITEMS.map((i) => i.code);
+
+function applySingleRemote(
+  set: (p: Partial<ItemsState>) => void,
+  get: () => ItemsState,
+  r: ItemsSyncResult,
+) {
+  if (!r.ok || r.mode !== "remote" || !("item" in r)) return;
+  const code = r.item.code;
+  if (!ITEM_CODES.includes(code as ItemCode)) return;
+  const next = { ...get().counts };
+  next[code as ItemCode] = Math.max(0, Math.floor(r.item.count));
+  saveCounts(next);
+  set({ counts: next });
 }
 
 export const useItemsStore = create<ItemsState>((set, get) => ({
   counts: loadCounts(),
+  hydrated: false,
 
   add: (code, n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
@@ -245,6 +278,12 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
     next[code] = cur - Math.floor(n);
     saveCounts(next);
     set({ counts: next });
+    // Mirror to server (fire-and-forget). For n>1 we issue n calls so
+    // each consumption is auditable on the worker side. Today every
+    // call site consumes 1, so this is usually a single POST.
+    for (let i = 0; i < Math.floor(n); i++) {
+      void useItemOnServer(code).then((r) => applySingleRemote(set, get, r));
+    }
     return true;
   },
 
@@ -261,5 +300,21 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
     >;
     saveCounts(blank);
     set({ counts: blank });
+  },
+
+  hydrate: async () => {
+    const r = await loadInventory();
+    if (r.ok && r.mode === "remote" && "inventory" in r) {
+      const remote = countsFromRemote(r.inventory, ITEM_CODES);
+      const next = { ...get().counts };
+      for (const [code, count] of Object.entries(remote)) {
+        if (typeof count === "number") {
+          next[code as ItemCode] = Math.max(0, Math.floor(count));
+        }
+      }
+      saveCounts(next);
+      set({ counts: next });
+    }
+    set({ hydrated: true });
   },
 }));
