@@ -9,6 +9,8 @@ import unlinkRoute from "./routes/unlink.js";
 import farmRoute from "./routes/farm.js";
 import economyRoute from "./routes/economy.js";
 import toolsRoute from "./routes/tools.js";
+import itemsRoute from "./routes/items.js";
+import boxesRoute from "./routes/boxes.js";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -55,6 +57,8 @@ app.route("/unlink", unlinkRoute);
 app.route("/farm", farmRoute);
 app.route("/economy", economyRoute);
 app.route("/tools", toolsRoute);
+app.route("/items", itemsRoute);
+app.route("/boxes", boxesRoute);
 
 app.notFound((c) =>
   c.json({ ok: false, error: { code: "NOT_FOUND", message: c.req.path } }, 404),
