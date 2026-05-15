@@ -17,7 +17,18 @@ binding = "TOSS_MTLS"
 certificate_id = "c3d09edc-7bce-4e3c-b5ce-f629ed847821"
 
 # 비밀이 아닌 환경변수 — Apps in Toss / Worker 공통 식별자.
-# 시크릿(APPS_IN_TOSS_DECRYPTION_KEY, JWT_SECRET) 은 `wrangler secret put` 으로만 등록한다.
+# 시크릿은 모두 `wrangler secret put` 으로만 등록한다 (이 파일에 값 기재 금지).
+#
+# 등록해야 하는 시크릿 목록:
+#   APPS_IN_TOSS_DECRYPTION_KEY    # Toss CI/DI 복호화 키 (로그인)
+#   JWT_SECRET                      # 본 워커 발급 JWT 서명 키
+#   TOSS_PROMOTION_API_BASE         # 보상금/프로모션 API base URL (PR-2)
+#   TOSS_PROMOTION_API_KEY          # 보상금 API Bearer (PR-2)
+#   TOSS_AD_VERIFY_KEY              # 광고 시청 토큰 HMAC-SHA256 검증 키 (PR-2)
+#
+# TOSS_PROMOTION_* 미설정 → /economy/withdraw 가 503 CONFIG_REQUIRED 반환.
+# TOSS_AD_VERIFY_KEY 미설정 → /tools/refill, /items/use 가 nonce-only
+#   idempotency 모드로 동작 (preview/staging 한정).
 [vars]
 APPS_IN_TOSS_APP_NAME = "carrot-carrot"
 APPS_IN_TOSS_API_BASE = "https://apps-in-toss-api.toss.im"

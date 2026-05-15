@@ -46,7 +46,13 @@ export interface UpstreamError {
   upstream: UpstreamDiag;
 }
 
+export interface PromotionUpstreamError {
+  error: "PROMOTION_FAILED" | "PROMOTION_RESPONSE_INVALID" | "PROMOTION_CONFIG_REQUIRED";
+  upstream: UpstreamDiag;
+}
+
 export type TossError = MtlsHandshakeError | UpstreamError;
+export type PromotionError = MtlsHandshakeError | PromotionUpstreamError;
 
 export function isTossError(v: unknown): v is TossError {
   if (!v || typeof v !== "object") return false;
@@ -57,6 +63,17 @@ export function isTossError(v: unknown): v is TossError {
     e === "USERINFO_FAILED" ||
     e === "TOKEN_RESPONSE_INVALID" ||
     e === "USERINFO_RESPONSE_INVALID"
+  );
+}
+
+export function isPromotionError(v: unknown): v is PromotionError {
+  if (!v || typeof v !== "object") return false;
+  const e = (v as { error?: unknown }).error;
+  return (
+    e === "MTLS_HANDSHAKE_FAILED" ||
+    e === "PROMOTION_FAILED" ||
+    e === "PROMOTION_RESPONSE_INVALID" ||
+    e === "PROMOTION_CONFIG_REQUIRED"
   );
 }
 
@@ -300,6 +317,101 @@ export async function fetchLoginMe(
     };
   }
   return payload;
+}
+
+/**
+ * Toss executePromotion — server-to-server payout request.
+ *
+ * Endpoint contract (per Apps in Toss Promotion / 보상금 API):
+ *   POST  ${TOSS_PROMOTION_API_BASE}/api-partner/v1/promotions/execute
+ *   Headers:
+ *     authorization:  Bearer ${TOSS_PROMOTION_API_KEY}
+ *     content-type:   application/json
+ *     Idempotency-Key: <idempotencyKey>
+ *   Body: { userKey, amount, idempotencyKey }
+ *   Response (success): { resultType: "SUCCESS", success: { transactionId, status } }
+ *   Response (fail):    { resultType: "FAIL",    error: {...} }
+ *
+ * IMPORTANT — money path:
+ *   - This function is NEVER called from a cron or autoplay path. Only
+ *     `/economy/withdraw` invokes it, after a CAS decrement of
+ *     pending_points. Caller must guarantee the idempotencyKey is
+ *     stable for the same logical attempt (we use the
+ *     promotion_withdrawals row id as `cc-w-<id>`).
+ *   - If the two env vars are not configured the function returns
+ *     PROMOTION_CONFIG_REQUIRED without touching the network. The
+ *     route layer normally checks this first; the guard here is
+ *     defense-in-depth.
+ */
+export interface PromotionExecutionResult {
+  txid: string;
+  status: "succeeded" | "pending" | "failed";
+}
+
+export interface PromotionExecuteEnv {
+  TOSS_PROMOTION_API_BASE?: string;
+  TOSS_PROMOTION_API_KEY?: string;
+  TOSS_MTLS: Fetcher;
+}
+
+export async function executePromotion(
+  env: PromotionExecuteEnv,
+  userKey: string,
+  amountP: number,
+  idempotencyKey: string,
+): Promise<PromotionExecutionResult | PromotionError> {
+  if (!env.TOSS_PROMOTION_API_BASE || !env.TOSS_PROMOTION_API_KEY) {
+    return {
+      error: "PROMOTION_CONFIG_REQUIRED",
+      upstream: { status: 0, bodySnippet: "missing TOSS_PROMOTION_API_BASE/KEY" },
+    };
+  }
+  const url = `${env.TOSS_PROMOTION_API_BASE}/api-partner/v1/promotions/execute`;
+  let res: Response;
+  try {
+    res = await env.TOSS_MTLS.fetch(url, {
+      method: "POST",
+      headers: jsonHeaders({
+        authorization: `Bearer ${env.TOSS_PROMOTION_API_KEY}`,
+        "Idempotency-Key": idempotencyKey,
+      }),
+      body: JSON.stringify({ userKey, amount: amountP, idempotencyKey }),
+    });
+  } catch (e) {
+    return {
+      error: "MTLS_HANDSHAKE_FAILED",
+      message: e instanceof Error ? e.message : "fetch threw",
+    };
+  }
+  const text = await readBodyText(res);
+  if (!res.ok) {
+    return {
+      error: "PROMOTION_FAILED",
+      upstream: { status: res.status, bodySnippet: redactSnippet(text) },
+    };
+  }
+  const parsed = tryParseJson<unknown>(text);
+  const unwrapped = unwrapEnvelope(parsed);
+  if (unwrapped.fail) {
+    return {
+      error: "PROMOTION_FAILED",
+      upstream: { status: res.status, bodySnippet: redactSnippet(text) },
+    };
+  }
+  const payload = unwrapped.payload as
+    | { transactionId?: unknown; status?: unknown }
+    | null;
+  if (!payload || typeof payload.transactionId !== "string") {
+    return {
+      error: "PROMOTION_RESPONSE_INVALID",
+      upstream: { status: res.status, bodySnippet: safeShapeFromText(text) },
+    };
+  }
+  const status: PromotionExecutionResult["status"] =
+    payload.status === "succeeded" || payload.status === "pending" || payload.status === "failed"
+      ? payload.status
+      : "pending";
+  return { txid: payload.transactionId, status };
 }
 
 export async function refreshAccessToken(

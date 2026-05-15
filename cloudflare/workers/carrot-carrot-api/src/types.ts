@@ -7,6 +7,12 @@ export interface Env {
   ALLOW_MOCK_LOGIN: string;
   APPS_IN_TOSS_DECRYPTION_KEY: string;
   JWT_SECRET: string;
+  /** Toss 보상금/프로모션 API base (e.g. https://apps-in-toss-api.toss.im). */
+  TOSS_PROMOTION_API_BASE?: string;
+  /** Toss 보상금 API bearer key — `wrangler secret put TOSS_PROMOTION_API_KEY`. */
+  TOSS_PROMOTION_API_KEY?: string;
+  /** HMAC-SHA256 key used to verify ad-watched signedToken — `wrangler secret put TOSS_AD_VERIFY_KEY`. */
+  TOSS_AD_VERIFY_KEY?: string;
 }
 
 export type AppErrorCode =
