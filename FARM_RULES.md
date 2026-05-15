@@ -85,8 +85,28 @@ npx wrangler d1 migrations apply <DB_NAME> --remote   # production
 | 30–49 min | +2 stages | +2 | unchanged | "작물이 2단계 자랐어요 · 씨앗 +2" |
 | 50+ min | +3 stages | +3 | unchanged | "작물이 3단계 자랐어요 · 씨앗 +3" |
 
+## 친구 방문 — visitor bunny (v1, PR-5)
+
+A single visitor bunny appears on the farm card once per KST day. Tap to wave → +1 heart (recorded in the bag's `heart` item slot). At most one wave per day, enforced server-side.
+
+| Aspect | Value |
+| --- | --- |
+| Visitor pick | Deterministic FNV-1a hash of `${user_key}:${ymd}` mod `VISITOR_POOL` (worker `lib/visitorRng.ts`). Same user + day → same visitor. |
+| Pool | `idle / focus / eat25 / eat50 / eat75 / sleep / success / rare-ninja / rare-king` — common + rare tiers only. Legendary visitors stay rare-by-luck via the regular gacha. |
+| Reward | +1 heart per wave. Future PRs can wire heart consumption. |
+| Day reset | KST midnight. PK `(user_key, ymd)` on `friend_visits` enforces idempotency. |
+| Privacy | **No real social graph.** No PII, no friend list, no follow. v1 is a daily decorative drop. |
+| Sprite lifetime | 6 s pop on FarmHub mount; auto-dismisses if untapped. Hidden while the SkyView overlay is open so they don't compete visually. |
+
+Routes:
+- `GET /friends/today` — returns today's visitor + waved state. Idempotent.
+- `POST /friends/wave` — inserts the row (PK collision → `already_waved: true`), grants the heart via `user_items.code = 'heart'` upsert.
+
+Tests: `node --test src/lib/visitorRng.test.mjs` covers determinism, day rotation, cross-user divergence, hash distribution over 1k samples, and empty-pool null return.
+
 ## Future / out of scope
 
 - Worker-side seed persistence (needs new `user_seeds` column or table — separate PR).
 - Toss-point conversion for seeds (lives in the economy worker, also separate PR).
 - Tier copy / numbers are subject to product tweaks — change `STEPS`-style tables in `farmRules.ts` only; UI auto-reflects.
+- Heart consumption: PR-5 grants hearts but does not spend them. A follow-up PR can wire a friend-related action that consumes hearts (gifting back, unlocking visitor variants, etc.).
