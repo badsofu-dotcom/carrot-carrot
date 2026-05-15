@@ -73,7 +73,15 @@ When dedicated seasonal art lands, update the table in `src/lib/seasonalBunny.ts
 
 ## Sounds
 
-Existing `public/sounds/*.mp3` only contains ambient soundscapes; no `dig.mp3`, `water.mp3`, or `harvest.mp3`. Tool-action SFX are out of scope; the helper plays no sound when an mp3 is absent.
+Existing `public/sounds/*.mp3` only contains ambient soundscapes; no `dig.mp3`, `water.mp3`, or `harvest.mp3`. **PR-4 lands the `playSfx` wrapper** (`src/lib/soundFx.ts`) that targets these filenames and silently no-ops on 404 so the tool-action flow keeps working. Drop short (≤ 0.6 s) MP3 cues at:
+
+- `public/sounds/dig.mp3`
+- `public/sounds/water.mp3`
+- `public/sounds/harvest.mp3`
+
+Target encoding: 96 kbps mono, ≤ 50 KB each. No additional code change needed once the files land — `playSfx` resolves them via `${import.meta.env.BASE_URL}sounds/<name>.mp3`, picks up the first successful load, and respects the `useSoundStore.sfxMuted` + master-volume gates.
+
+Ambient farm BGM (`bgm_day.mp3` / `bgm_night.mp3` / `bgm_rainy.mp3`) is **deferred** — the existing background-soundscape player (`useSoundPlayer`) already covers ambient looping for focus sessions, so a parallel farm-only BGM track has not been wired.
 
 ## Summary
 

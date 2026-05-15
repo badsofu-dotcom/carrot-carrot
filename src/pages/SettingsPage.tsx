@@ -26,6 +26,7 @@ import { useCollectionStore, useOwnedCount } from "../features/collection/collec
 import { CHARACTERS } from "../features/collection/collectionData";
 import { UnlockOverlay } from "../features/collection/UnlockOverlay";
 import { safeStorage } from "../lib/safeStorage";
+import { useSoundStore } from "../store/soundStore";
 import { ONBOARDING_KEY } from "../features/collection/FarmOnboarding";
 import { reopenOnboarding } from "../features/collection/BunnyOnboardingModal";
 import { FARM_BG_AUTO_KEY, autoFromStorageValue } from "../lib/farmBackground";
@@ -482,10 +483,37 @@ function PushSettingsGroup() {
             label="햅틱 진동"
           />
         }
-        last
         testId="row-haptic-toggle"
       />
+      <SfxMutedRow />
     </SettingsGroup>
+  );
+}
+
+function SfxMutedRow() {
+  const sfxMuted = useSoundStore((s) => s.sfxMuted);
+  const setSfxMuted = useSoundStore((s) => s.setSfxMuted);
+  const toggle = (next: boolean) => {
+    // `next` is whether the row Switch is checked.  Row label asks the
+    // user "효과음" (= "play SFX") — checked = on, unchecked = muted.
+    setSfxMuted(!next);
+    haptic(next ? "light" : "warning");
+    toast(next ? "효과음 켬" : "효과음 끔");
+  };
+  return (
+    <Row
+      label="농장 효과음"
+      sub="씨앗·물뿌리개·바구니 탭 사운드 — 마스터 볼륨에 곱해져 재생"
+      right={
+        <Switch
+          checked={!sfxMuted}
+          onChange={toggle}
+          label="농장 효과음"
+        />
+      }
+      last
+      testId="row-sfx-toggle"
+    />
   );
 }
 

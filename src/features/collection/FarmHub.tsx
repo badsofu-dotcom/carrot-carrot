@@ -19,6 +19,8 @@ import {
 } from "../../lib/seasonalBunny";
 import { drawBunny, HARVEST_BUNNY_CHANCE } from "../../lib/bunnyGacha";
 import { drawBunnyOnServer, loadBunnyCollection } from "./bunniesSync";
+import { playSfx } from "../../lib/soundFx";
+import { useSoundStore } from "../../store/soundStore";
 import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
@@ -184,6 +186,8 @@ export function FarmHub({
   const hydrate = useFarmStore((s) => s.hydrate);
   const hydrateItems = useItemsStore((s) => s.hydrate);
   const hydrateBunnies = useCollectionStore((s) => s.hydrateBunniesFromRemote);
+  const sfxMuted = useSoundStore((s) => s.sfxMuted);
+  const masterVolume = useSoundStore((s) => s.volume);
 
   // Pull canonical farm + inventory + bunny ownership from the server on
   // mount. No-op for guest/mock — every adapter resolves silently when
@@ -353,6 +357,7 @@ export function FarmHub({
         if (tool === null) selectTool("shovel");
         plant(id);
         haptic("light");
+        playSfx("dig", { muted: sfxMuted, masterVolume });
         pushFx("dirt_burst", bounds);
         toast("씨앗을 심었어요");
       } else if (tool === "watering_can") {
@@ -371,6 +376,7 @@ export function FarmHub({
         // table (see src/lib/seasonalBunny.ts).
         harvest(id);
         haptic("medium");
+        playSfx("harvest", { muted: sfxMuted, masterVolume });
         const outcome = rollHarvestGacha();
         if (outcome.kind === "candy") {
           incCandyCarrots(1);
@@ -437,6 +443,7 @@ export function FarmHub({
         // id — Date.now() guarantees this watering tap is counted.
         growAllPlanted(1, Date.now(), 0);
         haptic("light");
+        playSfx("water", { muted: sfxMuted, masterVolume });
         pushFx("water_splash", bounds);
         toast("물을 주었어요");
       } else {
