@@ -12,6 +12,7 @@ import toolsRoute from "./routes/tools.js";
 import itemsRoute from "./routes/items.js";
 import boxesRoute from "./routes/boxes.js";
 import bunniesRoute from "./routes/bunnies.js";
+import friendsRoute from "./routes/friends.js";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -61,6 +62,7 @@ app.route("/tools", toolsRoute);
 app.route("/items", itemsRoute);
 app.route("/boxes", boxesRoute);
 app.route("/bunnies", bunniesRoute);
+app.route("/friends", friendsRoute);
 
 app.notFound((c) =>
   c.json({ ok: false, error: { code: "NOT_FOUND", message: c.req.path } }, 404),
