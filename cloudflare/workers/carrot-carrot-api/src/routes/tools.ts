@@ -12,10 +12,13 @@
  * pre-0005 deploy returns `{ ok: false, code: "SCHEMA_NOT_READY" }`
  * rather than 500 — the client falls back to its local toolStore.
  *
- * No external ad SDK is verified here yet. `/tools/refill` accepts the
- * client's claim that the ad finished and only enforces the 3/day cap.
- * TODO: integrate Apps-in-Toss ad-token verification in a follow-up
- * PR; until then this route is suitable for preview/staging only.
+ * `/tools/refill` accepts an optional `{ nonce, signedToken }` pair.
+ *   - When `env.TOSS_AD_VERIFY_KEY` is set (production), the pair is
+ *     REQUIRED and verified via `verifyAdToken` — see lib/adToken.ts.
+ *   - When the key is NOT set (preview/staging), a nonce alone is used
+ *     as an idempotency token; signedToken is optional.
+ *   - When neither is sent, the route falls back to the legacy
+ *     trust-the-client mode and only the 3/day cap applies.
  */
 
 import { Hono } from "hono";
@@ -28,6 +31,7 @@ import {
   harvestPlot,
   plantPlot,
 } from "../lib/db.js";
+import { verifyAdToken, type AdTokenChannel } from "../lib/adToken.js";
 
 const MAX_DAILY = 10;
 const MAX_AD_REFILLS = 3;
@@ -190,9 +194,11 @@ app.post("/use", async (c) => {
   if (st.watering_can_left <= 0) {
     return c.json(
       {
-        ok: false,
+        ok: false as const,
         error: { code: "WATERING_EMPTY", message: "watering can empty" },
-        ...shape(st),
+        watering_can_left: st.watering_can_left,
+        watering_can_resets_at: st.watering_can_resets_at,
+        ad_refills_today: st.ad_refills_today,
       },
       409,
     );
@@ -217,17 +223,55 @@ app.post("/use", async (c) => {
 app.post("/refill", async (c) => {
   const sub = await requireUser(c);
   if (typeof sub !== "string") return sub;
-  // TODO: verify Apps-in-Toss ad-watched token from the request body.
-  // For now the route trusts the client and only enforces the 3/day
-  // cap — appropriate for preview but NOT production until verified.
+
+  let body: { nonce?: unknown; signedToken?: unknown } = {};
+  try {
+    body = (await c.req.json()) as { nonce?: unknown; signedToken?: unknown };
+  } catch {
+    /* tolerate empty body */
+  }
+  const nonce = typeof body.nonce === "string" ? body.nonce : undefined;
+  const signedToken =
+    typeof body.signedToken === "string" ? body.signedToken : undefined;
+  const verifyKey = c.env.TOSS_AD_VERIFY_KEY;
+
+  // Production: verifyKey is configured ⇒ nonce + signedToken are required.
+  // Preview: nonce alone (if provided) is used as an idempotency check.
+  if (verifyKey || nonce) {
+    const ad = await verifyAdToken({
+      db: c.env.DB,
+      userKey: sub,
+      channel: "watering" satisfies AdTokenChannel,
+      nonce,
+      signedToken,
+      verifyKey,
+    });
+    if (!ad.ok) {
+      const status =
+        ad.error === "DUPLICATE_NONCE"
+          ? 409
+          : ad.error === "INVALID_SIG"
+            ? 401
+            : ad.error === "MISSING_NONCE"
+              ? 400
+              : 409;
+      return c.json(
+        { ok: false, error: { code: ad.error, message: ad.message } },
+        status,
+      );
+    }
+  }
+
   const st = await ensureToolState(c.env.DB, sub);
   if (!st) return c.json(shape(null), 409);
   if (st.ad_refills_today >= MAX_AD_REFILLS) {
     return c.json(
       {
-        ok: false,
+        ok: false as const,
         error: { code: "AD_REFILL_CAP", message: "max ad refills today" },
-        ...shape(st),
+        watering_can_left: st.watering_can_left,
+        watering_can_resets_at: st.watering_can_resets_at,
+        ad_refills_today: st.ad_refills_today,
       },
       409,
     );

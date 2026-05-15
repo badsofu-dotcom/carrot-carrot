@@ -12,17 +12,25 @@
  *                                              returns the resulting
  *                                              inventory row.
  *
- * TODO before production:
- *   - tighten the `code` whitelist to the literal ItemCode union
- *     (mirror lib/itemsStore.ts) so unknown rows can't be created.
- *   - join with `ad_redeem_nonces` when /items/use is triggered by an
- *     ad-watch redeem (bolt / juice etc.).
+ * Ad-token verification:
+ *   - When the client opts in (passes `nonce` in the POST body) or
+ *     `env.TOSS_AD_VERIFY_KEY` is set, `verifyAdToken` runs first. A
+ *     duplicate / invalid nonce blocks the consumption. This protects
+ *     ad-rewarded redeems (bolt / juice / etc.). For bag-internal item
+ *     consumption (no ad involved) the client simply omits `nonce` and
+ *     this layer is skipped — unless verifyKey is configured globally.
+ *
+ * Code whitelist — for now the route trusts any string `code` and only
+ * enforces "row must exist with count > 0". This is safe because UPDATE
+ * never creates a row. A future PR can tighten this to the literal
+ * ItemCode union.
  */
 
 import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Env } from "../types.js";
 import { bearerToken, verifyAppJwt } from "../lib/jwt.js";
+import { verifyAdToken } from "../lib/adToken.js";
 
 type AppContext = Context<{ Bindings: Env }>;
 
@@ -88,9 +96,13 @@ app.get("/inventory", async (c) => {
 app.post("/use", async (c) => {
   const sub = await requireUser(c);
   if (typeof sub !== "string") return sub;
-  let body: { code?: unknown; nonce?: unknown } = {};
+  let body: { code?: unknown; nonce?: unknown; signedToken?: unknown } = {};
   try {
-    body = (await c.req.json()) as { code?: unknown; nonce?: unknown };
+    body = (await c.req.json()) as {
+      code?: unknown;
+      nonce?: unknown;
+      signedToken?: unknown;
+    };
   } catch {
     /* tolerate empty */
   }
@@ -101,7 +113,40 @@ app.post("/use", async (c) => {
       400,
     );
   }
-  // TODO: validate `code` against a whitelist mirroring ItemCode.
+
+  const nonce = typeof body.nonce === "string" ? body.nonce : undefined;
+  const signedToken =
+    typeof body.signedToken === "string" ? body.signedToken : undefined;
+  const verifyKey = c.env.TOSS_AD_VERIFY_KEY;
+
+  // Only run ad-token check when the client opted in (sent a nonce) or
+  // when production verifyKey is configured globally. Bag-internal item
+  // consumption stays trust-on-auth.
+  if (verifyKey || nonce) {
+    const ad = await verifyAdToken({
+      db: c.env.DB,
+      userKey: sub,
+      channel: "item_use",
+      nonce,
+      signedToken,
+      verifyKey,
+    });
+    if (!ad.ok) {
+      const status =
+        ad.error === "DUPLICATE_NONCE"
+          ? 409
+          : ad.error === "INVALID_SIG"
+            ? 401
+            : ad.error === "MISSING_NONCE"
+              ? 400
+              : 409;
+      return c.json(
+        { ok: false, error: { code: ad.error, message: ad.message } },
+        status,
+      );
+    }
+  }
+
   try {
     const res = await c.env.DB
       .prepare(
