@@ -20,6 +20,7 @@ const KEY_VOLUME = "cc.sound.volume.v1";
 const KEY_PASS = "cc.sound.passExpiresAt.v1";
 const KEY_PERM = "cc.sound.permanent.v1";
 const KEY_AD_DISMISS = "cc.sound.adDismissedDate.v1";
+const KEY_SFX_MUTED = "cc.sound.sfxMuted.v1";
 
 // 신규 사용자는 매우 부드러운 백색소음(저주파 HVAC) 사운드로 시작.
 // 기존 사용자는 storage 값 우선 → 마지막 선택 보존.
@@ -100,6 +101,18 @@ function savePermanent(v: string[]) {
   }
 }
 
+function loadSfxMuted(): boolean {
+  const raw = safeStorage.get(KEY_SFX_MUTED);
+  return raw === "1";
+}
+function saveSfxMuted(v: boolean) {
+  try {
+    safeStorage.set(KEY_SFX_MUTED, v ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
 export function loadAdPromptDismissedDate(): string | null {
   return safeStorage.get(KEY_AD_DISMISS);
 }
@@ -133,6 +146,8 @@ interface SoundState {
   /** 활성 패스 만료. <= Date.now() 면 만료된 것으로 취급. */
   soundPassExpiresAt: number;
   permanentUnlocks: string[];
+  /** 농장 도구 SFX (dig/water/harvest) 음소거 플래그. BGM 과 독립. */
+  sfxMuted: boolean;
 
   setSound: (id: string) => void;
   setVolume: (v: number) => void;
@@ -142,6 +157,8 @@ interface SoundState {
   activateSoundPass: () => void;
   /** 특정 premium id 영구 해제. */
   unlockPermanent: (id: string) => void;
+  /** 효과음 음소거 토글. */
+  setSfxMuted: (v: boolean) => void;
 }
 
 export const useSoundStore = create<SoundState>((set, get) => {
@@ -153,6 +170,7 @@ export const useSoundStore = create<SoundState>((set, get) => {
   isPlaying: false,
   soundPassExpiresAt: initialPass,
   permanentUnlocks: initialPerm,
+  sfxMuted: loadSfxMuted(),
 
   setSound: (id) => {
     const def = findSound(id);
@@ -196,6 +214,11 @@ export const useSoundStore = create<SoundState>((set, get) => {
     const next = [...s.permanentUnlocks, id];
     savePermanent(next);
     set({ permanentUnlocks: next });
+  },
+
+  setSfxMuted: (v) => {
+    saveSfxMuted(v);
+    set({ sfxMuted: v });
   },
   };
 });
