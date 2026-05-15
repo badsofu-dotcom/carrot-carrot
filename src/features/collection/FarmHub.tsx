@@ -29,6 +29,8 @@ import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { FxLayer, type FxEvent, type FxKind } from "../../components/Farm/Effects";
 import { Atmosphere, variantForSlot } from "../../components/Farm/Atmosphere";
 import { SkyView } from "../../components/Farm/SkyView";
+import { VisitorBunny } from "../../components/Farm/VisitorBunny";
+import { useFriendsStore } from "./friendsStore";
 
 // vite `base: "./"` 빌드 호환을 위해 절대 root 경로 (`/assets/...`) 대신
 // `import.meta.env.BASE_URL` prefix 를 쓴다. 일반 호스팅은 BASE_URL 이 `/`,
@@ -186,22 +188,24 @@ export function FarmHub({
   const hydrate = useFarmStore((s) => s.hydrate);
   const hydrateItems = useItemsStore((s) => s.hydrate);
   const hydrateBunnies = useCollectionStore((s) => s.hydrateBunniesFromRemote);
+  const hydrateFriends = useFriendsStore((s) => s.hydrate);
   const sfxMuted = useSoundStore((s) => s.sfxMuted);
   const masterVolume = useSoundStore((s) => s.volume);
 
-  // Pull canonical farm + inventory + bunny ownership from the server on
-  // mount. No-op for guest/mock — every adapter resolves silently when
-  // the API base / token is missing.
+  // Pull canonical farm + inventory + bunny ownership + today's visitor
+  // from the server on mount. No-op for guest/mock — every adapter
+  // resolves silently when the API base / token is missing.
   useEffect(() => {
     void hydrate();
     void hydrateItems();
+    void hydrateFriends();
     void (async () => {
       const r = await loadBunnyCollection();
       if (r.ok && "collection" in r) {
         hydrateBunnies(r.collection.bunnies.map((b) => b.bunny_id));
       }
     })();
-  }, [hydrate, hydrateItems, hydrateBunnies]);
+  }, [hydrate, hydrateItems, hydrateBunnies, hydrateFriends]);
 
   // Time-of-day background. Recomputes at mount, on tab focus (`visibilitychange`),
   // and at the next KST hour boundary so dawn → morning → day etc. flip
@@ -681,6 +685,12 @@ export function FarmHub({
           the help-copy chip. Selecting a tool dispatches the
           cc:tool:selected event read by onPlotClick. */}
       <ToolDock />
+
+      {/* Visitor bunny — 6s pop on mount, dismisses on tap or timeout.
+          The only place an idle bunny is allowed on the farm card
+          (CLAUDE.md). Sky overlay being open suppresses the visitor so
+          it doesn't compete with the sky scene. */}
+      <VisitorBunny visible={!skyOpen} />
 
       {/* Fullscreen sky overlay. Renders only when skyOpen. */}
       <SkyView open={skyOpen} slot={bgSlot} onClose={() => setSkyOpen(false)} />

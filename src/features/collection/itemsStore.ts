@@ -188,9 +188,9 @@ export const ITEMS: readonly ItemDef[] = [
     ko: "하트",
     tab: "collection",
     iconRel: "assets/farm/icons/icon_heart_hp.png",
-    effect: "미구현 — 차후 친구 시스템",
+    effect: "이웃 토끼가 하루 한 번 두고 가는 인사 표시",
     usable: false,
-    acquisition: "미구현",
+    acquisition: "농장에 방문한 이웃 토끼에게 인사하기 (하루 1회)",
   },
 ];
 
