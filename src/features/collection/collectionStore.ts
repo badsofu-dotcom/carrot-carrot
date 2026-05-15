@@ -102,6 +102,8 @@ interface CollectionState extends PersistShape {
   resetAll: () => void;
   /** dev 용 — 강제 owned 추가 후 unlock id 반환. */
   forceUnlock: (id: string) => string | null;
+  /** /bunnies/collection 응답을 로컬 ownedCharacters 와 union. 새로 추가된 id 만 반환. */
+  hydrateBunniesFromRemote: (ids: readonly string[]) => string[];
 }
 
 /** 두 YYYY-MM-DD 가 연속된 날인지. (b 가 a+1일?) */
@@ -261,6 +263,32 @@ export const useCollectionStore = create<CollectionState>((set, get) => ({
     set(next);
     savePersist(next);
     return id;
+  },
+
+  hydrateBunniesFromRemote: (ids) => {
+    const s = get();
+    const ownedSet = new Set(s.ownedCharacters);
+    const added: string[] = [];
+    const nextOwnedAt = { ...s.ownedAt };
+    const today = todayLocal();
+    for (const id of ids) {
+      if (typeof id !== "string" || ownedSet.has(id)) continue;
+      // Only hydrate ids the client knows about; an unknown bunny id
+      // from the server is recorded for analytics but ignored locally.
+      if (!CHARACTER_BY_ID[id]) continue;
+      ownedSet.add(id);
+      added.push(id);
+      if (!nextOwnedAt[id]) nextOwnedAt[id] = today;
+    }
+    if (added.length === 0) return [];
+    const next: PersistShape = {
+      ...s,
+      ownedCharacters: Array.from(ownedSet),
+      ownedAt: nextOwnedAt,
+    };
+    set(next);
+    savePersist(next);
+    return added;
   },
 }));
 

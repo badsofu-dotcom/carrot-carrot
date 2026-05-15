@@ -18,6 +18,7 @@ import {
   rollHarvestGacha,
 } from "../../lib/seasonalBunny";
 import { drawBunny, HARVEST_BUNNY_CHANCE } from "../../lib/bunnyGacha";
+import { drawBunnyOnServer, loadBunnyCollection } from "./bunniesSync";
 import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
@@ -182,13 +183,21 @@ export function FarmHub({
   const cycleDebug = useFarmStore((s) => s.cycleDebug);
   const hydrate = useFarmStore((s) => s.hydrate);
   const hydrateItems = useItemsStore((s) => s.hydrate);
+  const hydrateBunnies = useCollectionStore((s) => s.hydrateBunniesFromRemote);
 
-  // Pull canonical farm + inventory state from the server on mount. No-op
-  // for guest/mock — both resolve silently when API base / token missing.
+  // Pull canonical farm + inventory + bunny ownership from the server on
+  // mount. No-op for guest/mock — every adapter resolves silently when
+  // the API base / token is missing.
   useEffect(() => {
     void hydrate();
     void hydrateItems();
-  }, [hydrate, hydrateItems]);
+    void (async () => {
+      const r = await loadBunnyCollection();
+      if (r.ok && "collection" in r) {
+        hydrateBunnies(r.collection.bunnies.map((b) => b.bunny_id));
+      }
+    })();
+  }, [hydrate, hydrateItems, hydrateBunnies]);
 
   // Time-of-day background. Recomputes at mount, on tab focus (`visibilitychange`),
   // and at the next KST hour boundary so dawn → morning → day etc. flip
@@ -381,18 +390,39 @@ export function FarmHub({
         // useFarmStore.carrots is the SoT; using getState() to avoid
         // re-subscribing for this one-shot check.
         if (useFarmStore.getState().carrots >= 5) unlockMedal("five_carrots");
-        // Rare 0.5% bunny pull from harvest (legendary excluded). When
-        // an un-owned bunny is found we route it through the dogam
-        // unlock store + show the BunnyGachaModal.
+        // Rare 0.5% bunny pull from harvest (legendary excluded). The
+        // 0.5% gate runs client-side so we don't burn a network round-
+        // trip on every harvest; on a hit, the server makes the
+        // authoritative pick + records ownership. Offline or noop
+        // (preview / guest / missing migration) falls back to the
+        // local `drawBunny` so the dogam stays interactive.
         if (Math.random() < HARVEST_BUNNY_CHANCE) {
-          const result = drawBunny({
-            ownedIds: new Set(ownedIdsArr),
-            excludeLegendary: true,
-          });
-          if (result.bunnyId) {
-            forceUnlock(result.bunnyId);
-            setGachaBunnyId(result.bunnyId);
-          }
+          void (async () => {
+            let bunnyId: string | null = null;
+            try {
+              const server = await drawBunnyOnServer(true);
+              if (
+                server.ok &&
+                "draw" in server &&
+                server.draw?.bunny?.bunny_id
+              ) {
+                bunnyId = server.draw.bunny.bunny_id;
+              }
+            } catch {
+              /* fall through to local pick */
+            }
+            if (!bunnyId) {
+              const result = drawBunny({
+                ownedIds: new Set(ownedIdsArr),
+                excludeLegendary: true,
+              });
+              bunnyId = result.bunnyId;
+            }
+            if (bunnyId) {
+              forceUnlock(bunnyId);
+              setGachaBunnyId(bunnyId);
+            }
+          })();
         }
       } else if (tool === "watering_can") {
         toast("이미 다 자랐어요 — 바구니로 수확하세요");
