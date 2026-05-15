@@ -4,10 +4,18 @@ This document captures the BunnyTime v2 reward economy: how a focus
 session converts into Toss points, what caps and audit trails protect
 us against abuse, and what is currently **live** vs **scaffolded**.
 
-> Status: **scaffold only**. No real payouts run. Migration
-> `cloudflare/workers/carrot-carrot-api/migrations/0003_economy.sql`
-> is committed but **not** applied. `wrangler d1 migrations apply`
-> must be run by a human with the staging DB bound.
+> Status: **live (gated by secrets)**.
+> The `executePromotion` call path is wired in `routes/economy.ts` →
+> `/economy/withdraw` (PR-2). It activates only when both
+> `TOSS_PROMOTION_API_BASE` and `TOSS_PROMOTION_API_KEY` are registered
+> via `wrangler secret put`. Until those secrets exist the route
+> short-circuits with 503 CONFIG_REQUIRED — same surface as before, so
+> the frontend keeps showing the "준비 중" placeholder.
+>
+> Migrations `0003_economy.sql` (pending_points + audit ledger) and
+> `0006_items.sql` (ad_redeem_nonces) must both be applied before the
+> path can succeed end-to-end. See the apply checklist at the bottom
+> of this doc — only a human runs `wrangler d1 migrations apply`.
 
 ## Conversion table
 
@@ -69,12 +77,25 @@ All endpoints require Bearer JWT auth (`requireUser`). See
 - **`GET /economy/balance`** — `{ pending, lifetimeTotal, withdrawEnabled }`.
   Falls back to `0` if migration not applied, so the frontend never
   errors out.
-- **`POST /economy/withdraw`** — invokes Toss `executePromotion` once
-  configured.
+- **`POST /economy/withdraw`** — invokes Toss `executePromotion`. Body:
+  `{ amount: number }` (P). Flow:
+  1. Snapshot `pending_points` row (`pending`, `updated_at`).
+  2. CAS decrement: `UPDATE … WHERE pending >= amount AND updated_at = <snapshot>`. 0 rows → 409 `CONCURRENT_UPDATE`; retry.
+  3. Insert `promotion_withdrawals (status='pending')` to obtain a stable id; use `cc-w-<id>` as `Idempotency-Key`.
+  4. Call `executePromotion(env, sub, amount, idemKey)` — mTLS POST to `${TOSS_PROMOTION_API_BASE}/api-partner/v1/promotions/execute`.
+  5. On success update the row with `toss_txid` + `status`; on failure refund pending + mark row `failed` with a redacted snippet.
   - Returns `503 CONFIG_REQUIRED` if `TOSS_PROMOTION_API_BASE` or
-    `TOSS_PROMOTION_API_KEY` is missing.
-  - Returns `501 NOT_IMPLEMENTED` once configured, until the real call
-    is wired in.
+    `TOSS_PROMOTION_API_KEY` is missing. Returns `400 BELOW_MIN`,
+    `409 INSUFFICIENT`, `409 CONCURRENT_UPDATE`, `409 SCHEMA_NOT_READY`,
+    or `502 UPSTREAM_FAILED` otherwise.
+
+- **`POST /tools/refill`** and **`POST /items/use`** — accept optional
+  `{ nonce, signedToken }`. When `TOSS_AD_VERIFY_KEY` is configured the
+  pair is required; the route runs `verifyAdToken` first
+  (`cloudflare/.../lib/adToken.ts`). Duplicate / invalid / missing →
+  `409 DUPLICATE_NONCE` / `401 INVALID_SIG` / `400 MISSING_NONCE`. When
+  the verify key is NOT set, a nonce alone serves as best-effort
+  idempotency — suitable for preview only.
 - **`POST /economy/ad-view`** — `{ placement, status, network }`. ALL
   attempts are logged. A reward is granted only when status =
   `completed` AND a signed callback from the ad network has been
@@ -96,8 +117,10 @@ The frontend renders the economy UI defensively:
 
 ## Out of scope for this PR
 
-- Real `executePromotion` integration (needs Toss merchant
-  credentials).
+- Live activation of `executePromotion` — requires the maintainer to
+  `wrangler secret put TOSS_PROMOTION_API_BASE`, `… API_KEY`, and (for
+  ad-token verification) `TOSS_AD_VERIFY_KEY`. Without those the call
+  path stays dormant.
 - Ad SDK selection (TossAds vs AdMob). Right now we ship a stub
   network=`mock` that always reports `dismissed`.
 - Fraud detection beyond per-day caps. Future: device fingerprinting,
@@ -106,11 +129,19 @@ The frontend renders the economy UI defensively:
 ## Migration apply checklist (human-only)
 
 1. Confirm staging DB bound: `wrangler d1 list`.
-2. Dry-run: `wrangler d1 migrations apply DB --remote --dry-run`.
-3. Apply: `wrangler d1 migrations apply DB --remote`.
-4. Verify tables exist: `wrangler d1 execute DB --remote --command="SELECT name FROM sqlite_master WHERE type='table'"`.
-5. Bump `wrangler.toml` env vars `TOSS_PROMOTION_API_BASE` /
-   `TOSS_PROMOTION_API_KEY` once Toss issues credentials.
+2. Dry-run: `wrangler d1 migrations apply carrot-carrot-db --remote --dry-run`.
+3. Apply migrations in order: 0003, 0004, 0005, 0006 (all idempotent):
+   `wrangler d1 migrations apply carrot-carrot-db --remote`.
+4. Verify tables exist:
+   `wrangler d1 execute carrot-carrot-db --remote --command="SELECT name FROM sqlite_master WHERE type='table'"`.
+5. Register Toss secrets (NEVER commit values):
+   ```
+   wrangler secret put TOSS_PROMOTION_API_BASE   # e.g. https://apps-in-toss-api.toss.im
+   wrangler secret put TOSS_PROMOTION_API_KEY    # Bearer token from Toss merchant console
+   wrangler secret put TOSS_AD_VERIFY_KEY        # HMAC-SHA256 secret shared with ad SDK callback
+   ```
+6. First-promotion smoke test (see `DEPLOY.md → Smoke test: first
+   promotion`).
 
 **Do not** run `wrangler deploy` from CI or from an autonomous agent.
 The reward economy touches money — every deploy is a human action.

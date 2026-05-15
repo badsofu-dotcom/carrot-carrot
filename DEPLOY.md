@@ -136,3 +136,56 @@ Worker 의 허용 목록과 preflight 테스트 명령은 [`docs/SETUP_FOR_USER.
 
 `network_error` / `worker_fetch_failed` 라벨이 게이트에 떠도 더 이상
 `UNKNOWN` 으로 묶이지 않고 `NETWORK_ERROR · worker_fetch_failed` 로 표시된다.
+
+## 10. Smoke test: first promotion
+
+`POST /economy/withdraw` 가 실제 Toss `executePromotion` 을 호출하기 직전,
+사전 점검은 다음 순서로 — **반드시 staging 에서 1회 통과 후 production**.
+
+전제:
+- D1 migrations 0003 + 0006 적용 완료 (`ECONOMY_DESIGN.md` 마이그레이션 체크리스트 참고).
+- `wrangler secret put` 으로 `TOSS_PROMOTION_API_BASE` / `TOSS_PROMOTION_API_KEY` / `TOSS_AD_VERIFY_KEY` 등록.
+- 워커 배포 (`wrangler deploy` — 사람만 실행).
+
+1. **잔액 확인** — 로그인 후:
+   ```bash
+   curl -s -H "authorization: Bearer $JWT" \
+     https://carrot-carrot-api.<acct>.workers.dev/economy/balance
+   # 기대: { ok: true, data: { pending: N, lifetimeTotal: N, withdrawEnabled: true, minPayout: 50 } }
+   ```
+   `withdrawEnabled:false` 면 시크릿 미등록 — 다시 확인.
+
+2. **MIN_PAYOUT (50P) 보유** — 광고 시청 / 당근 수확으로 50P 이상 누적. 미달이면
+   /withdraw 가 400 BELOW_MIN.
+
+3. **withdraw 호출**:
+   ```bash
+   curl -s -X POST -H "authorization: Bearer $JWT" \
+     -H "content-type: application/json" \
+     -d '{"amount":50}' \
+     https://carrot-carrot-api.<acct>.workers.dev/economy/withdraw
+   # 기대: { ok: true, data: { txid: "...", status: "succeeded"|"pending", newPending: N-50 } }
+   ```
+
+4. **감사 로그 확인** — D1:
+   ```bash
+   wrangler d1 execute carrot-carrot-db --remote \
+     --command="SELECT id, user_key, amount, toss_txid, status, settled_at \
+                FROM promotion_withdrawals ORDER BY id DESC LIMIT 5"
+   ```
+   status 가 `pending` 이면 Toss 비동기 처리 중 — 동일 idempotencyKey 로 재시도하지 말 것 (Toss 가 dedupe).
+
+5. **/refill ad-token 경로 검증** — `TOSS_AD_VERIFY_KEY` 등록 후:
+   ```bash
+   # signedToken 미동봉 → 401
+   curl -s -X POST -H "authorization: Bearer $JWT" \
+     -H "content-type: application/json" \
+     -d '{"nonce":"deadbeefdeadbeef"}' \
+     https://carrot-carrot-api.<acct>.workers.dev/tools/refill
+   # 기대: { ok: false, error: { code: "INVALID_SIG", message: "signedToken required" } }
+   ```
+
+6. **nonce 재사용 차단** — 같은 nonce 로 두 번째 호출 시 409 DUPLICATE_NONCE.
+
+실패 시 절대 자동 재시도 금지. 잔액 환불 로직이 워커 안에 있지만 (`refundPending`),
+upstream timeout 등 모호한 케이스는 사람이 promotion_withdrawals 로그를 보고 결정.
