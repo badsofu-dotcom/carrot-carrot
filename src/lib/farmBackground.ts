@@ -18,7 +18,12 @@
  * and at the next hour boundary.
  */
 
-const BASE = import.meta.env.BASE_URL;
+// Defensive guard so the module loads cleanly under `node --test` (no
+// Vite; `import.meta.env` is undefined). Vite's prod build replaces
+// `import.meta.env.BASE_URL` with the configured base at compile time;
+// in dev / runtime this still resolves to a string.
+const BASE: string =
+  (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
 const url = (filename: string) => `${BASE}assets/farm/${filename}`;
 
 /** Files we *want*. Missing ones fall back to bg_day.webp. */
@@ -78,7 +83,8 @@ export interface PickFarmBackgroundOpts {
 }
 
 const ENV_AUTO_DEFAULT = (() => {
-  const v = (import.meta.env as Record<string, unknown>)["VITE_FARM_BG_AUTO"];
+  const env = (import.meta as { env?: Record<string, unknown> }).env;
+  const v = env?.["VITE_FARM_BG_AUTO"];
   if (typeof v === "string") return v !== "false";
   return true;
 })();
