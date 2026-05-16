@@ -53,7 +53,8 @@ test("playSfx: masterVolume=0 → no play", () => {
 test("playSfx: normal call invokes Audio.play once with sounds path", () => {
   playSfx("water", { muted: false, masterVolume: 100 });
   assert.equal(PLAYS.length, 1);
-  assert.match(PLAYS[0].src, /sounds\/water\.mp3$/);
+  // PR-13 renamed files with sfx_ prefix to namespace alongside bgm_*.
+  assert.match(PLAYS[0].src, /sounds\/sfx_water\.mp3$/);
 });
 
 test("playSfx: volume capped to ≤ 0.45 of master", () => {

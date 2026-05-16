@@ -21,6 +21,9 @@ const KEY_PASS = "cc.sound.passExpiresAt.v1";
 const KEY_PERM = "cc.sound.permanent.v1";
 const KEY_AD_DISMISS = "cc.sound.adDismissedDate.v1";
 const KEY_SFX_MUTED = "cc.sound.sfxMuted.v1";
+const KEY_SFX_VOLUME = "cc.sound.sfxVolume.v1";
+const KEY_FARM_BGM_ENABLED = "cc.sound.farmBgmEnabled.v1";
+const KEY_FARM_BGM_VOLUME = "cc.sound.farmBgmVolume.v1";
 
 // 신규 사용자는 매우 부드러운 백색소음(저주파 HVAC) 사운드로 시작.
 // 기존 사용자는 storage 값 우선 → 마지막 선택 보존.
@@ -113,6 +116,36 @@ function saveSfxMuted(v: boolean) {
   }
 }
 
+// PR-13 — SFX volume + farm BGM (toggle + volume) persisted alongside
+// the existing white-noise sound config. Defaults: SFX 70 (audible),
+// farm BGM enabled (silent until mp3 shipped), farm BGM volume 50.
+function loadIntInRange(key: string, def: number, lo: number, hi: number): number {
+  const raw = safeStorage.get(key);
+  if (!raw) return def;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return def;
+  return Math.max(lo, Math.min(hi, Math.round(n)));
+}
+function saveInt(key: string, v: number) {
+  try {
+    safeStorage.set(key, String(v));
+  } catch {
+    /* ignore */
+  }
+}
+function loadBoolDefaultTrue(key: string): boolean {
+  const raw = safeStorage.get(key);
+  if (raw === null || raw === undefined) return true;
+  return raw === "1";
+}
+function saveBool(key: string, v: boolean) {
+  try {
+    safeStorage.set(key, v ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+}
+
 export function loadAdPromptDismissedDate(): string | null {
   return safeStorage.get(KEY_AD_DISMISS);
 }
@@ -146,8 +179,14 @@ interface SoundState {
   /** 활성 패스 만료. <= Date.now() 면 만료된 것으로 취급. */
   soundPassExpiresAt: number;
   permanentUnlocks: string[];
-  /** 농장 도구 SFX (dig/water/harvest) 음소거 플래그. BGM 과 독립. */
+  /** 농장 도구 SFX (dig/water/harvest/combo/bunny/levelup/giftbox) 음소거 플래그. */
   sfxMuted: boolean;
+  /** SFX volume 0..100. 효과음 전용 슬라이더. */
+  sfxVolume: number;
+  /** 농장 BGM (PR-13) 활성 플래그. 기본 true. mp3 없으면 silent. */
+  farmBgmEnabled: boolean;
+  /** 농장 BGM 볼륨 0..100. */
+  farmBgmVolume: number;
 
   setSound: (id: string) => void;
   setVolume: (v: number) => void;
@@ -159,6 +198,9 @@ interface SoundState {
   unlockPermanent: (id: string) => void;
   /** 효과음 음소거 토글. */
   setSfxMuted: (v: boolean) => void;
+  setSfxVolume: (v: number) => void;
+  setFarmBgmEnabled: (v: boolean) => void;
+  setFarmBgmVolume: (v: number) => void;
 }
 
 export const useSoundStore = create<SoundState>((set, get) => {
@@ -171,6 +213,9 @@ export const useSoundStore = create<SoundState>((set, get) => {
   soundPassExpiresAt: initialPass,
   permanentUnlocks: initialPerm,
   sfxMuted: loadSfxMuted(),
+  sfxVolume: loadIntInRange(KEY_SFX_VOLUME, 70, 0, 100),
+  farmBgmEnabled: loadBoolDefaultTrue(KEY_FARM_BGM_ENABLED),
+  farmBgmVolume: loadIntInRange(KEY_FARM_BGM_VOLUME, 50, 0, 100),
 
   setSound: (id) => {
     const def = findSound(id);
@@ -219,6 +264,23 @@ export const useSoundStore = create<SoundState>((set, get) => {
   setSfxMuted: (v) => {
     saveSfxMuted(v);
     set({ sfxMuted: v });
+  },
+
+  setSfxVolume: (v) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(v)));
+    saveInt(KEY_SFX_VOLUME, clamped);
+    set({ sfxVolume: clamped });
+  },
+
+  setFarmBgmEnabled: (v) => {
+    saveBool(KEY_FARM_BGM_ENABLED, v);
+    set({ farmBgmEnabled: v });
+  },
+
+  setFarmBgmVolume: (v) => {
+    const clamped = Math.max(0, Math.min(100, Math.round(v)));
+    saveInt(KEY_FARM_BGM_VOLUME, clamped);
+    set({ farmBgmVolume: clamped });
   },
   };
 });
