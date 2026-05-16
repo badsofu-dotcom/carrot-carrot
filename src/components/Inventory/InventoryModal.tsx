@@ -10,13 +10,16 @@
  *     locked items render dim with an acquisition hint.
  *
  * Use buttons
- *   - Tool-tab items with `usable: true` show a "사용" button when
- *     count > 0. Local effects:
+ *   - Tool-tab items with `usable: true` show "사용" when
+ *     count >= minToUse (default 1). Local effects:
  *       hourglass → growAllPlanted(1, snapshot)
- *       bolt      → toolStore.refillFromAd-equivalent (+3 wateringCan)
- *       juice/soup/cake → preview-only flags + toast (see TODO)
- *   - Worker route `/items/use` will replace the local mutation once
- *     migration 0006 is applied.
+ *       bolt      → toolStore.refillFromAd (+3 wateringCan, +1 if soup)
+ *       juice     → buffsStore.activate("juice")  next-harvest candy +5%p
+ *       soup      → buffsStore.activate("soup")   next-refill +1 charge
+ *       cake      → buffsStore.activate("cake")   next-focus seed +1
+ *       gem       → consume 5 → growAllPlanted seed +1
+ *   - Worker route `/items/use` mirrors the count decrement (or skips
+ *     when guest/preview). The buff flags themselves are client-only.
  */
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -115,7 +118,8 @@ export function InventoryModal({ open, onClose }: Props) {
         toast("🍲 다음 물뿌리개 충전 +1");
         break;
       case "cake":
-        toast("🍰 다음 포커스 완료 시 씨앗 +1 (미구현)");
+        useBuffsStore.getState().activate("cake");
+        toast("🍰 다음 포커스 완료 시 씨앗 +1");
         break;
       case "gem":
         // 5 gems trade for 1 seed. Reuses growAllPlanted's seed-delta

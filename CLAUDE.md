@@ -206,17 +206,20 @@ Every PR Claude opens must:
 
 ## 9. Known TODO / 미구현 (truth, not aspiration)
 
-Search hits for `TODO` / `미구현` in the working tree (2026-05-14):
+Search hits for `TODO` / `미구현` in the working tree (2026-05-16):
 
 | File:line | Description |
 | --- | --- |
-| `src/components/Inventory/AdRewardChannelModal.tsx:112` | TODO — post nonce + channel to worker `/economy/ad-view` once ad-token verification is wired. |
-| `src/components/Inventory/InventoryModal.tsx:17` | TODO — juice/soup/cake are preview-only flag toasts. |
-| `src/components/Inventory/InventoryModal.tsx:101,104,107` | `(미구현)` shown to user. |
-| `src/features/collection/itemsStore.ts:176,178` | `gem` 미구현 — 차후 상점 화폐. |
-| `src/features/collection/itemsStore.ts:185,187` | `heart` 미구현 — 차후 친구 시스템. |
+| `src/components/Inventory/AdRewardChannelModal.tsx:113` | TODO — post nonce + channel to worker `/economy/ad-view` once ad-token verification is wired. |
 | `cloudflare/.../routes/tools.ts:17,220` | TODO — Apps-in-Toss ad-token verification. |
 | `cloudflare/.../routes/items.ts:15,104` | TODO — code whitelist + ad-nonce join. |
+
+Items previously listed and now resolved:
+- `heart` — PR-5 (친구 방문 + wave grant).
+- `gem` — PR-7 (오늘의 선물상자 2 % drop + 5→1 seed sink).
+- `juice` — PR-8 (다음 수확 +5 %p candy buff).
+- `soup` — PR-9 (다음 ad-refill +1 charge buff).
+- `cake` — PR-10 (다음 포커스 완료 시 seed +1).
 
 See `PROJECT_STATE.md` § E for the full "implemented vs 미구현" matrix.
 

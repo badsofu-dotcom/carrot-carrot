@@ -37,6 +37,7 @@ import { loginWithToss } from "../services/authService";
 import { useSoundStore, isPassActive } from "../store/soundStore";
 import { PREMIUM_SOUNDS } from "../data/sounds";
 import { useFarmStore } from "../features/collection/farmStore";
+import { useBuffsStore } from "../features/collection/buffsStore";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
 
 const LOGIN_PROMPT_KEY = "cc.hasSeenLoginPrompt";
@@ -177,12 +178,18 @@ export function HomePage() {
           }
         }
 
-        // Reward 4: 농장 — duration-tier 적용.
+        // Reward 4: 농장 — duration-tier 적용. Cake buff (PR-10) adds
+        // +1 seed on top of the tier seedDelta. Consume only on a valid
+        // focus (this branch) so a sub-5-min abandon doesn't burn it.
+        const cakeActive = useBuffsStore.getState().consume("cake");
+        const totalSeedDelta = reward.seedDelta + (cakeActive ? 1 : 0);
         const grown = useFarmStore
           .getState()
-          .growAllPlanted(reward.growSteps, lastSnapshot.at, reward.seedDelta);
-        if (grown > 0 || reward.seedDelta > 0) {
-          toast(reward.message);
+          .growAllPlanted(reward.growSteps, lastSnapshot.at, totalSeedDelta);
+        if (grown > 0 || totalSeedDelta > 0) {
+          toast(
+            cakeActive ? `${reward.message} · 🍰 케이크 효과 씨앗 +1` : reward.message,
+          );
         }
       }
 
