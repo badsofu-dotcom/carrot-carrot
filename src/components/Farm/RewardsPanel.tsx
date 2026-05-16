@@ -16,11 +16,9 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFarmStore } from "../../features/collection/farmStore";
 import {
-  MEDAL_LABELS,
   useRewardsStore,
   WEEKLY_TREASURE_GOAL,
   type GiftReward,
-  type MedalId,
 } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { canWithdraw, MIN_PAYOUT, totalPoints } from "../../lib/points";
@@ -32,23 +30,7 @@ import { useSoundStore } from "../../store/soundStore";
 
 const BASE = import.meta.env.BASE_URL;
 
-// PR-22 — display every defined medal (was 6 of 11). Dogam progression
-// + quiet_sky are tracked elsewhere; now visible here too. Ordering:
-// session/farm milestones first, then rare drops, then dogam ladder,
-// then quiet_sky.
-const MEDAL_ORDER: readonly MedalId[] = [
-  "first_session",
-  "first_harvest",
-  "five_carrots",
-  "perfect_combo",
-  "first_candy",
-  "first_golden",
-  "dogam_25",
-  "dogam_50",
-  "dogam_75",
-  "dogam_100",
-  "quiet_sky",
-];
+// PR-26 — MEDAL_ORDER 가 AchievementsCard (도감 페이지) 로 이동.
 
 interface Props {
   open: boolean;
@@ -68,7 +50,6 @@ export function RewardsPanel({ open, onClose }: Props) {
 
   const claimedDay = useRewardsStore((s) => s.giftClaimedDay);
   const claimDailyGift = useRewardsStore((s) => s.claimDailyGift);
-  const medals = useRewardsStore((s) => s.medals);
   const treasureProgress = useRewardsStore((s) => s.treasureProgress);
   const openTreasureChest = useRewardsStore((s) => s.openTreasureChest);
 
@@ -564,60 +545,9 @@ export function RewardsPanel({ open, onClose }: Props) {
               </div>
             </Section>
 
-            {/* Medals */}
-            <Section title="훈장">
-              <div
-                style={{
-                  display: "grid",
-                  // PR-22 — auto-fit so more medals (11 now) flow across
-                  // multiple rows without forcing a fixed column count.
-                  gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))",
-                  gap: 10,
-                }}
-              >
-                {MEDAL_ORDER.map((id) => {
-                  const unlocked = medals.has(id);
-                  return (
-                    <div
-                      key={id}
-                      data-testid={`medal-${id}`}
-                      style={{
-                        background: "#fff",
-                        borderRadius: 14,
-                        padding: "10px 6px",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                        opacity: unlocked ? 1 : 0.45,
-                      }}
-                    >
-                      <img
-                        src={`${BASE}assets/farm/rewards/${medalAsset(id)}.png`}
-                        alt=""
-                        width={36}
-                        height={36}
-                        style={{
-                          objectFit: "contain",
-                          filter: unlocked ? "none" : "grayscale(0.85)",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          textAlign: "center",
-                          color: unlocked ? "#2b2b2b" : "#888",
-                        }}
-                      >
-                        {MEDAL_LABELS[id]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
+            {/* PR-26 — 훈장 섹션이 도감 페이지 (CollectionPage 의
+                AchievementsCard) 로 이동. RewardsPanel 은 광고/포인트
+                허브 (토스포인트 + 오늘의 선물 + 주간 보물) 만 남김. */}
             </div>
           </motion.div>
         </>
@@ -626,26 +556,7 @@ export function RewardsPanel({ open, onClose }: Props) {
   );
 }
 
-function medalAsset(id: MedalId): string {
-  // Gold for the harder achievements, silver for mid, bronze for entry.
-  switch (id) {
-    case "perfect_combo":
-    case "first_golden":
-    case "dogam_100":
-      return "medal_gold";
-    case "five_carrots":
-    case "first_candy":
-    case "dogam_50":
-    case "dogam_75":
-    case "quiet_sky":
-      return "medal_silver";
-    case "first_harvest":
-    case "first_session":
-    case "dogam_25":
-    default:
-      return "medal_bronze";
-  }
-}
+// PR-26 — medalAsset 이 AchievementsCard 로 이동.
 
 function giftToText(g: GiftReward): string {
   switch (g.kind) {

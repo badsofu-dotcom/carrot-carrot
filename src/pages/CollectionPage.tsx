@@ -17,6 +17,7 @@ import { FarmOnboarding } from "../features/collection/FarmOnboarding";
 import { RewardsPanel } from "../components/Farm/RewardsPanel";
 import { InventoryModal } from "../components/Inventory/InventoryModal";
 import { useRewardsStore } from "../features/collection/rewardsStore";
+import { AchievementsCard } from "../features/collection/AchievementsCard";
 import { useSoundStore } from "../store/soundStore";
 import { bgmEngine } from "../lib/bgmEngine";
 import { playSfx } from "../lib/soundFx";
@@ -210,6 +211,11 @@ export function CollectionPage() {
           </div>
         </div>
       </Card>
+
+      {/* PR-26 — 도전 과제 (구 RewardsPanel 훈장 섹션). 도감 페이지의
+          진행도 카드 바로 아래에 자연스럽게 자리. RewardsPanel 은
+          광고/포인트 허브로 재정의. */}
+      <AchievementsCard />
 
       {/* Filter chips */}
       <div
