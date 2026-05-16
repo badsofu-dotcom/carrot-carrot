@@ -23,6 +23,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ITEMS, useItemsStore, type ItemCode, type ItemTab } from "../../features/collection/itemsStore";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useToolStore, TOOL_CONSTANTS } from "../../features/collection/toolStore";
+import { useBuffsStore } from "../../features/collection/buffsStore";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 
@@ -100,7 +101,8 @@ export function InventoryModal({ open, onClose }: Props) {
         break;
       }
       case "juice":
-        toast("🥤 다음 수확까지 캔디 확률 +5%p (미구현)");
+        useBuffsStore.getState().activate("juice");
+        toast("🥤 다음 수확 캔디 확률 +5%p");
         break;
       case "soup":
         toast("🍲 다음 충전까지 물뿌리개 +1 (미구현)");

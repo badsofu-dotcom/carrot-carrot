@@ -5,6 +5,7 @@ import { toast } from "../../design-system/ui";
 import { useFarmStore, type CropStage } from "./farmStore";
 import { useToolStore, type ToolId } from "./toolStore";
 import { useItemsStore } from "./itemsStore";
+import { useBuffsStore } from "./buffsStore";
 import { safeStorage } from "../../lib/safeStorage";
 import {
   FARM_BG_AUTO_KEY,
@@ -381,7 +382,11 @@ export function FarmHub({
         harvest(id);
         haptic("medium");
         playSfx("harvest", { muted: sfxMuted, masterVolume });
-        const outcome = rollHarvestGacha();
+        // Consume the juice buff (당근 주스) for this single roll if
+        // active. PR-8: one-shot +5%p candy on top of the existing
+        // base / boost / batch bonuses.
+        const juiceActive = useBuffsStore.getState().consume("juice");
+        const outcome = rollHarvestGacha({ juiceActive });
         if (outcome.kind === "candy") {
           incCandyCarrots(1);
           pushFx("sparkle", bounds);

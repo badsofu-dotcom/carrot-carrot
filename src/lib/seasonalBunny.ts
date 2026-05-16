@@ -23,6 +23,7 @@ export const HARVEST_BOOST_CANDY = 0.12; // active while perfect-combo
 export const HARVEST_BUNNY_RATE = 0.005; // 0.5%
 export const HARVEST_GOLD = 0.01; // 1% golden carrot (5x value)
 export const COMBO_BATCH_BONUS = 0.01; // +1%p per harvest while combo ≥ 5
+export const JUICE_CANDY_BONUS = 0.05; // +5%p next harvest after 당근 주스 사용
 
 export interface HarvestOutcome {
   kind: "carrot" | "candy" | "golden" | "bunny";
@@ -41,6 +42,13 @@ export interface RollOpts {
   perfectCombo?: boolean;
   /** Current combo streak length (last N consecutive harvests). */
   comboStreak?: number;
+  /**
+   * True iff a `juice` (당근 주스) buff is active. Adds
+   * `JUICE_CANDY_BONUS` (+5%p) to the candy band on top of any
+   * perfect-combo / batch boost. Caller is responsible for clearing
+   * the buff after a single roll.
+   */
+  juiceActive?: boolean;
 }
 
 /**
@@ -102,8 +110,10 @@ export function rollHarvestGacha(opts: RollOpts = {}): HarvestOutcome {
   }
 
   // 3) Candy carrot — boosted while perfect-combo or mid-batch.
+  //    Juice buff stacks on top of whichever base / boost is active.
   let candyP = opts.perfectCombo ? HARVEST_BOOST_CANDY : HARVEST_BASE_CANDY;
   if ((opts.comboStreak ?? 0) >= 5) candyP += COMBO_BATCH_BONUS;
+  if (opts.juiceActive) candyP += JUICE_CANDY_BONUS;
   if (r < HARVEST_BUNNY_RATE + HARVEST_GOLD + candyP) {
     return { kind: "candy" };
   }
