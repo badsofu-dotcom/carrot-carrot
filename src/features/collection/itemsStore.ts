@@ -25,30 +25,48 @@ import {
  * `resources` shows alongside the header chips (read-only). `tools`
  * are usable buffs. `collection` is keepsake currency (medals/stars).
  */
+// PR-31 — 자원 분류 재정의.
+//   currency: P 직접 변환 (carrot/candy/golden)
+//   soft_currency: 게임내 재화 (seed/carrot_coin)
+//   consumable: 도구 아이템 (hourglass/bolt/juice/soup/cake)
+//   token: 특수 토큰 (star/gem/heart)
+// (medal 11종 honor 는 rewardsStore.medals Set — itemsStore 가 아님.
+//  bunny 25종 dex 는 collectionStore — itemsStore 가 아님.)
+export type ItemCategory =
+  | "currency"
+  | "soft_currency"
+  | "consumable"
+  | "token";
+
 export type ItemCode =
-  // resources
+  // resources (currency + soft_currency)
   | "carrot"
   | "candy"
   | "golden"
+  | "seed"
   | "carrot_coin"
-  // tool items (usable)
+  // tool items (consumable)
   | "hourglass"
   | "bolt"
   | "juice"
   | "soup"
   | "cake"
-  // collection (keepsake)
-  | "medal"
+  // tokens
   | "star"
   | "gem"
   | "heart";
 
-export type ItemTab = "resources" | "tools" | "collection";
+// PR-31 — InventoryModal 탭. "collection" 명칭은 도감/메달 surfaces 와
+// 혼동되므로 "tokens" 로 변경. medal 11 honor + bunny 25 dex 는 도감
+// 페이지 (AchievementsCard + bunny grid) 에서 따로 노출.
+export type ItemTab = "resources" | "tools" | "tokens";
 
 interface ItemDef {
   code: ItemCode;
   ko: string;
   tab: ItemTab;
+  /** PR-31 — semantic classification (independent of `tab` UI grouping). */
+  category: ItemCategory;
   /** Public/asset path resolved via BASE_URL at render time. */
   iconRel: string;
   /** What does using/owning this item do? Used in IMPLEMENTATION_REPORT.md. */
@@ -72,11 +90,12 @@ interface ItemDef {
 }
 
 export const ITEMS: readonly ItemDef[] = [
-  // resources
+  // ── resources (currency + soft_currency) ────────────────────────
   {
     code: "carrot",
     ko: "당근",
     tab: "resources",
+    category: "currency",
     iconRel: "assets/farm/currency/carrot.png",
     effect: "1 P (수확 시 자동 증가)",
     usable: false,
@@ -86,8 +105,9 @@ export const ITEMS: readonly ItemDef[] = [
     code: "candy",
     ko: "캔디 당근",
     tab: "resources",
+    category: "currency",
     iconRel: "assets/farm/currency/candy_carrot.png",
-    effect: "5 P (수확 가챠 4% 또는 콤보 12%)",
+    effect: "5 P (수확 가챠 7%)",
     usable: false,
     acquisition: "수확 가챠",
   },
@@ -95,110 +115,125 @@ export const ITEMS: readonly ItemDef[] = [
     code: "golden",
     ko: "황금 당근",
     tab: "resources",
+    category: "currency",
     iconRel: "assets/farm/currency/golden_carrot.png",
-    effect: "10 P (수확 가챠 1%)",
+    effect: "10 P (수확 가챠 0.6%)",
     usable: false,
     acquisition: "수확 가챠",
+  },
+  {
+    code: "seed",
+    ko: "씨앗",
+    tab: "resources",
+    category: "soft_currency",
+    iconRel: "assets/farm/crops/crop_stage1_seed.webp",
+    // PR-31 — soft currency. 현재 sink 없음 (씨뿌리기는 무료).
+    // PR-32 calibration 에서 씨뿌리기 -1 seed 룰 추가 검토.
+    effect: "농장 씨뿌리기 자원 (현재 무료, 향후 sink 예정)",
+    usable: false,
+    acquisition: "daily-gift / focus-tier / cake / weekly-treasure / gem 5→9",
   },
   {
     code: "carrot_coin",
     ko: "당근 코인",
     tab: "resources",
+    category: "soft_currency",
     iconRel: "assets/farm/icons/icon_coin.png",
     // PR-24 — 광고 채널 보상 통화. 50 coin → 캔디 당근 1 교환.
-    effect: "50개 사용 시 캔디 당근 1개",
+    effect: "50개 사용 시 캔디 당근 1개 (또는 토끼 가챠 비용)",
     usable: true,
     minToUse: 50,
     acquisition: "광고 보상 (채널당 +5 coin)",
   },
 
-  // tool items (usable)
+  // ── tools (consumable, all usable) ──────────────────────────────
   {
     code: "hourglass",
     ko: "모래시계",
     tab: "tools",
+    category: "consumable",
     iconRel: "assets/farm/icons/icon_timer.png",
     effect: "심은 작물 1단계 성장 (1회)",
     usable: true,
-    acquisition: "주간 보물상자",
+    acquisition: "주간 보물상자 / 농장 드랍",
   },
   {
     code: "bolt",
     ko: "번개",
     tab: "tools",
+    category: "consumable",
     iconRel: "assets/farm/icons/icon_energy.png",
     effect: "물뿌리개 +3 충전 (1회)",
     usable: true,
-    acquisition: "광고 보상",
+    acquisition: "광고 보상 / 농장 드랍",
   },
   {
     code: "juice",
     ko: "당근 주스",
     tab: "tools",
+    category: "consumable",
     iconRel: "assets/farm/foods/food_carrot_juice.png",
     effect: "다음 수확 캔디 확률 +5%p (1회, 다음 수확까지)",
     usable: true,
-    acquisition: "오늘의 선물상자",
+    acquisition: "오늘의 선물상자 / 농장 드랍",
   },
   {
     code: "soup",
     ko: "당근 수프",
     tab: "tools",
+    category: "consumable",
     iconRel: "assets/farm/foods/food_carrot_soup.png",
     effect: "물뿌리개 사용 횟수 +1 (1회, 다음 충전까지)",
     usable: true,
-    acquisition: "오늘의 선물상자",
+    acquisition: "오늘의 선물상자 / 농장 드랍",
   },
   {
     code: "cake",
     ko: "당근 케이크",
     tab: "tools",
+    category: "consumable",
     iconRel: "assets/farm/foods/food_carrot_cake.png",
     effect: "포커스 완료 시 씨앗 +1 (1회)",
     usable: true,
-    acquisition: "오늘의 선물상자",
+    acquisition: "오늘의 선물상자 / 농장 드랍",
   },
 
-  // collection
-  {
-    code: "medal",
-    ko: "훈장",
-    tab: "collection",
-    iconRel: "assets/farm/rewards/medal_gold.png",
-    effect: "도감/이정표 달성으로 적립",
-    usable: false,
-    acquisition: "이정표 달성",
-  },
+  // ── tokens (special, ad-watch / shop currency) ──────────────────
   {
     code: "star",
     ko: "별",
-    tab: "collection",
+    tab: "tokens",
+    category: "token",
     iconRel: "assets/farm/icons/icon_xp_star.png",
     effect: "100개 모으면 레전더리 토끼 1마리",
     usable: false,
-    acquisition: "수확 가챠 / 보물상자",
+    acquisition: "수확 가챠 / 보물상자 / 농장 드랍",
   },
   {
     code: "gem",
     ko: "보석",
-    tab: "collection",
+    tab: "tokens",
+    category: "token",
     iconRel: "assets/farm/icons/icon_gem.png",
-    effect: "5개 사용 시 씨앗 1개 추가",
+    // PR-33 — 가성비 재조정. 보석 사용 모달이 5 옵션 (씨앗/성장/세션/
+    // 황금/레전더리) 제공. 본 PR 은 분류만 변경; 옵션 wiring 은 PR-33.
+    effect: "5개 사용 시 씨앗 9개 (또는 다른 옵션, PR-33)",
     usable: true,
-    acquisition: "오늘의 선물상자 (2% 확률)",
+    acquisition: "오늘의 선물상자 (2%) / 농장 드랍 (rare)",
     minToUse: 5,
   },
   {
     code: "heart",
     ko: "하트",
-    tab: "collection",
+    tab: "tokens",
+    category: "token",
     iconRel: "assets/farm/icons/icon_heart_hp.png",
     // PR-24 — 광고 시청 토큰. KST 자정 리필 (현재 < 3 이면 3 으로
     // 채움, 이상이면 유지). 친구 wave +1 (cap 5). AdRewardChannel
     // claim 시 1 consume.
     effect: "광고 시청 토큰 (max 5, 자정 리필 3개)",
     usable: false,
-    acquisition: "자정 리필 + 이웃 토끼 wave",
+    acquisition: "자정 리필 + 이웃 토끼 wave / 농장 드랍",
     maxStack: 5,
   },
 ];

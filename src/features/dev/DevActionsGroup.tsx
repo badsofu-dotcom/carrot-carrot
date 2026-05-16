@@ -157,10 +157,11 @@ export function DevActionsGroup() {
     addItem("juice", 99);
     addItem("soup", 99);
     addItem("cake", 99);
-    addItem("medal", 99);
+    // PR-31 — medal item code 폐기. 명예 (medal achievement) 는
+    // rewardsStore.medals Set 으로 unlockMedal × 11 IDs (아래) 가 채움.
     addItem("star", 999);
     addItem("gem", 999);
-    addItem("heart", 99);
+    addItem("heart", 99); // maxStack 5 로 clamp 됨
     // Tools — watering can to max
     refillFromAd(TOOL_CONSTANTS.MAX_DAILY);
     // Medals — every defined ID

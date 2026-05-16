@@ -32,10 +32,13 @@ import { haptic } from "../../design-system/haptic";
 
 const BASE = import.meta.env.BASE_URL;
 
+// PR-31 — 3 탭: 자원 (currency+soft) / 도구 (consumable) / 토큰 (token).
+// "컬렉션" 명은 도감 페이지의 AchievementsCard + bunny grid 와 혼동
+// 되므로 폐기.
 const TAB_LABELS: Record<ItemTab, string> = {
   resources: "자원",
   tools: "도구 아이템",
-  collection: "컬렉션",
+  tokens: "토큰",
 };
 
 interface Props {
@@ -54,17 +57,17 @@ export function InventoryModal({ open, onClose }: Props) {
   const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
   const refillFromAd = useToolStore((s) => s.refillFromAd);
 
-  // Resource counts come from useFarmStore, not the items store. The
-  // bag is the read-out surface; the canonical source stays in
-  // farmStore so harvest / focus rewards keep working unchanged.
-  // PR-12 removed `carrot_bag` (당근 주머니) — it was a self-recursive
-  // entry (the bag listing itself, opened from the very same bag's
-  // dock slot). Bag count surfaces on the dock badge, not the grid.
+  // Resource counts come from useFarmStore for the four farm
+  // currencies (carrot/candy/golden/seed) and from itemsStore for
+  // everything else. The bag is just the read-out surface; the
+  // canonical source stays in farmStore so harvest / focus / tier
+  // rewards keep working unchanged. PR-31 added seed mirror.
   const liveResourceCount = (code: ItemCode): number => {
     switch (code) {
       case "carrot": return carrots;
       case "candy": return candy;
       case "golden": return golden;
+      case "seed": return seeds;
       case "carrot_coin": return counts.carrot_coin;
       default: return counts[code] ?? 0;
     }
