@@ -130,6 +130,16 @@ Worker side: `/items/use` already covers the consume on the inventory side; the 
 
 Unit tests in `src/lib/seasonalBunny.test.mjs` (`juiceActive` band widening, stacking with perfect-combo, no spillover into bunny/golden bands).
 
+## 당근 수프 (soup) — PR-9
+
+One-shot consumable. Activation: 가방 → 도구 아이템 → 당근 수프 "사용" → `buffsStore.soupActive = true`. The next ad-refill (광고 보상 모달의 watering 채널 **또는** bag 의 bolt 아이템) grants +4 charges instead of +3, AND the daily ceiling lifts by 1 (so the can can sit at 11/10 momentarily).
+
+Pre-consume pattern at the call site: `useBuffsStore.consume("soup")` runs before `refillFromAd(extra)`. If the refill itself bounces (e.g. `MAX_AD_REFILLS` already at 3) the caller re-activates the buff so the player doesn't lose it to a no-op.
+
+`toolStore.refillFromAd(extraCharges?: number)` is the new signature — the bonus applies to BOTH the grant AND the per-refill ceiling (`MAX_DAILY + bonus`). Day rollover still resets to `MAX_DAILY` (10), so a soup-boosted 11/10 trims to 10 on KST midnight if untouched.
+
+Worker side: no migration. Tools refill is client-only state today.
+
 ## Future / out of scope
 
 - Worker-side seed persistence (needs new `user_seeds` column or table — separate PR).
