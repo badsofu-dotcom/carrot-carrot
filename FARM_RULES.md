@@ -140,6 +140,14 @@ Pre-consume pattern at the call site: `useBuffsStore.consume("soup")` runs befor
 
 Worker side: no migration. Tools refill is client-only state today.
 
+## 당근 케이크 (cake) — PR-10
+
+One-shot buff. Activation: 가방 → 도구 아이템 → 당근 케이크 "사용" → `buffsStore.cakeActive = true`. The next valid focus completion (≥ 5 분 게이트 통과) grants +1 seed on top of the duration-tier `seedDelta`. Sub-5-min abandons do **not** consume the buff — the buff is parked in `buffsStore` (safeStorage) until a valid focus actually triggers it.
+
+Consumption site: `HomePage.tsx` 의 `lastSnapshot.type === "complete"` AND `reward.valid` 분기 — `useBuffsStore.consume("cake")` 가 read+clear, totalSeedDelta = `reward.seedDelta + (cakeActive ? 1 : 0)`. 토스트는 `${reward.message} · 🍰 케이크 효과 씨앗 +1` 로 보강.
+
+Worker side: focus 결과의 seedDelta 는 `growOnServer` 로 mirror 되므로, 케이크 +1 도 서버에 정상 반영됨 (별도 처리 불요).
+
 ## Future / out of scope
 
 - Worker-side seed persistence (needs new `user_seeds` column or table — separate PR).
