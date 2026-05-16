@@ -123,21 +123,23 @@ GemTradeModal — 보석 사용 5 옵션:
 | golden | 20 gem | 황금당근 +1 | 10 P → 0.5 P/gem |
 | legend | 50 gem | 레전더리 토끼 (보유 시 환불) | 도감 unlock |
 
-## 농장 드랍 (PR-34)
+## 농장 드랍 (PR-34 + PR-47)
 
-`FarmDropLayer` — 15~60 초 random spawn, 5 초 표시. 일일 max 30 (KST 리셋).
+`FarmDropLayer` — 15~60 초 random spawn. **무한 잔존** (탭으로만 사라짐) + 일일 cap 12 + 동시 표시 cap 3 (PR-47). KST 자정 모두 제거.
 
 | Drop | weight | 확률 |
 | --- | --- | --- |
-| gem | 25 | 27.2 % |
-| bolt | 20 | 21.7 % |
-| heart | 15 | 16.3 % |
-| hourglass | 10 | 10.9 % |
-| juice / soup / cake / seed | 각 5 | 각 5.4 % |
-| golden | 1 | 1.1 % |
-| hidden_bunny | 1 | 1.1 % |
+| gem | 30 | 30 % |
+| bolt | 22 | 22 % |
+| heart | 15 | 15 % |
+| hourglass | 10 | 10 % |
+| juice / soup / cake / seed | 각 4 | 각 4 % |
+| golden | 2 | 2 % |
+| hidden_bunny | 1 | 1 % |
 
-체류 유도 메커닉. 클라 카운터만 (anti-abuse 자연 차단).
+체류 유도 메커닉. sessionStorage `cc.farmDrop.active.v1` 으로 페이지 라우팅 / 탭 전환 후에도 활성 drop 유지. 클라 카운터만 (anti-abuse 자연 차단).
+
+위치 클러스터 (PR-45): fence-inside 30 / fence-outside 25 / mushroom-house 15 / tree-base 15 / well 10 / random-low 5.
 
 ## 히든 토끼 (PR-35)
 

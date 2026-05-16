@@ -57,16 +57,17 @@ interface DropSpec {
 }
 
 const DROPS: readonly DropSpec[] = [
+  // PR-47 — 일일 cap 30 → 12 감소로 가치 보존. weights 재조정.
   {
     kind: "gem",
-    weight: 25,
+    weight: 30,
     emoji: "💎",
     iconRel: "assets/farm/icons/icon_gem.png",
     toast: "💎 보석 +1",
   },
   {
     kind: "bolt",
-    weight: 20,
+    weight: 22,
     emoji: "⚡",
     iconRel: "assets/farm/icons/icon_energy.png",
     toast: "⚡ 번개 +1",
@@ -87,35 +88,35 @@ const DROPS: readonly DropSpec[] = [
   },
   {
     kind: "juice",
-    weight: 5,
+    weight: 4,
     emoji: "🥤",
     iconRel: "assets/farm/foods/food_carrot_juice.png",
     toast: "🥤 주스 +1",
   },
   {
     kind: "soup",
-    weight: 5,
+    weight: 4,
     emoji: "🍲",
     iconRel: "assets/farm/foods/food_carrot_soup.png",
     toast: "🍲 수프 +1",
   },
   {
     kind: "cake",
-    weight: 5,
+    weight: 4,
     emoji: "🍰",
     iconRel: "assets/farm/foods/food_carrot_cake.png",
     toast: "🍰 케이크 +1",
   },
   {
     kind: "seed",
-    weight: 5,
+    weight: 4,
     emoji: "🌱",
     iconRel: "assets/farm/crops/crop_stage1_seed.webp",
     toast: "🌱 씨앗 +1",
   },
   {
     kind: "golden",
-    weight: 1,
+    weight: 2,
     emoji: "✨",
     iconRel: "assets/farm/currency/golden_carrot.png",
     toast: "✨ 황금당근 +1 (+10 P)",
@@ -143,8 +144,9 @@ function pickDrop(rng: () => number): DropSpec {
 
 const MIN_SPAWN_MS = 15_000;
 const MAX_SPAWN_MS = 60_000;
-const VISIBLE_MS = 5_000;
-const DAILY_CAP = 30;
+const DAILY_CAP = 12; // PR-47: 30 → 12 (가치 보존)
+const CONCURRENT_CAP = 3; // PR-47: 동시 표시 max 3
+const SESSION_STORE_KEY = "cc.farmDrop.active.v1"; // PR-47 persistence
 
 // PR-45 — 드랍 spawn 위치 클러스터. 산 라인 아래 (top ≥ 45%) 의
 // 농장 활동 영역. 각 클러스터에 weight + (top%/left%) 박스 정의.
@@ -203,33 +205,81 @@ function writeCount(day: string, n: number): void {
   }
 }
 
+// PR-47 — 동시 다수 표시 + sessionStorage persistence 위해 spec 자체
+// 대신 kindIdx 보관 (직렬화 안전). DropSpec 은 closure 에서 lookup.
 interface ActiveDrop {
   id: number;
-  spec: DropSpec;
+  kindIdx: number;
   topPct: number;
   leftPct: number;
 }
 
+interface PersistedState {
+  day: string;
+  nextId: number;
+  drops: ActiveDrop[];
+}
+
+function loadPersisted(): PersistedState | null {
+  try {
+    if (typeof sessionStorage === "undefined") return null;
+    const raw = sessionStorage.getItem(SESSION_STORE_KEY);
+    if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<PersistedState>;
+    if (typeof v.day !== "string" || !Array.isArray(v.drops)) return null;
+    return {
+      day: v.day,
+      nextId: typeof v.nextId === "number" ? v.nextId : 0,
+      drops: v.drops as ActiveDrop[],
+    };
+  } catch {
+    return null;
+  }
+}
+
+function savePersisted(state: PersistedState): void {
+  try {
+    if (typeof sessionStorage === "undefined") return;
+    sessionStorage.setItem(SESSION_STORE_KEY, JSON.stringify(state));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function FarmDropLayer() {
-  const [drop, setDrop] = useState<ActiveDrop | null>(null);
+  const [drops, setDrops] = useState<ActiveDrop[]>(() => {
+    const persisted = loadPersisted();
+    if (!persisted) return [];
+    if (persisted.day !== kstDayKey()) return [];
+    return persisted.drops;
+  });
   const idCounter = useRef(0);
+  // 초기 id counter — persisted 의 nextId 가 있으면 그걸로.
+  useEffect(() => {
+    const p = loadPersisted();
+    if (p && p.day === kstDayKey()) idCounter.current = p.nextId;
+  }, []);
   const spawnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addItem = useItemsStore((s) => s.add);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
   const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
 
-  // SFX 호출용 — getState 로 1회 dispatch 시 read.
   const playDropSfx = () => {
     const s = useSoundStore.getState();
     playSfx("giftbox", { muted: s.sfxMuted, masterVolume: s.sfxVolume });
   };
 
+  const persist = (nextDrops: ActiveDrop[]) => {
+    savePersisted({
+      day: kstDayKey(),
+      nextId: idCounter.current,
+      drops: nextDrops,
+    });
+  };
+
   const clearTimers = () => {
     if (spawnTimer.current) clearTimeout(spawnTimer.current);
-    if (fadeTimer.current) clearTimeout(fadeTimer.current);
     spawnTimer.current = null;
-    fadeTimer.current = null;
   };
 
   const scheduleNext = () => {
@@ -240,40 +290,46 @@ export function FarmDropLayer() {
   };
 
   const spawn = () => {
-    if (typeof document !== "undefined" && document.hidden) {
-      // tab 숨겨졌으면 visibilitychange 가 재가동
-      return;
-    }
+    if (typeof document !== "undefined" && document.hidden) return;
     const day = kstDayKey();
     if (readCount(day) >= DAILY_CAP) {
-      // 일일 한도 초과 — 다음 KST 자정까지 spawn 정지. 다음 visible
-      // 또는 자정 후 visibilitychange 가 다시 try.
       scheduleNext();
       return;
     }
-    const spec = pickDrop(Math.random);
-    // PR-45 — spawn 위치 클러스터. 산 라인 아래 (top 45-85%) 의 농장
-    // 활동 영역. 클러스터별 weighted random + 클러스터 안에서 uniform.
-    const cluster = pickSpot(Math.random);
-    const top =
-      cluster.topMin + Math.random() * (cluster.topMax - cluster.topMin);
-    const left =
-      cluster.leftMin + Math.random() * (cluster.leftMax - cluster.leftMin);
-    const id = ++idCounter.current;
-    setDrop({ id, spec, topPct: top, leftPct: left });
-    if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    fadeTimer.current = setTimeout(() => {
-      setDrop((cur) => (cur?.id === id ? null : cur));
+    setDrops((cur) => {
+      if (cur.length >= CONCURRENT_CAP) {
+        scheduleNext();
+        return cur;
+      }
+      const spec = pickDrop(Math.random);
+      const cluster = pickSpot(Math.random);
+      const top =
+        cluster.topMin + Math.random() * (cluster.topMax - cluster.topMin);
+      const left =
+        cluster.leftMin + Math.random() * (cluster.leftMax - cluster.leftMin);
+      const kindIdx = DROPS.indexOf(spec);
+      idCounter.current += 1;
+      const newDrop: ActiveDrop = {
+        id: idCounter.current,
+        kindIdx,
+        topPct: top,
+        leftPct: left,
+      };
+      const next = [...cur, newDrop];
+      persist(next);
       scheduleNext();
-    }, VISIBLE_MS);
+      return next;
+    });
   };
 
   const grant = (active: ActiveDrop) => {
+    const spec = DROPS[active.kindIdx];
+    if (!spec) return;
     const day = kstDayKey();
     writeCount(day, readCount(day) + 1);
     haptic("success");
     playDropSfx();
-    const k = active.spec.kind;
+    const k = spec.kind;
     switch (k) {
       case "gem":
       case "bolt":
@@ -291,25 +347,31 @@ export function FarmDropLayer() {
         incGolden(1);
         break;
       case "hidden_bunny":
-        // PR-35 가 실제 unlock 경로 wire. 본 PR 은 +5 gem 보너스로 대체.
         addItem("gem", 5);
         break;
     }
-    toast(active.spec.toast);
-    setDrop(null);
-    if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    scheduleNext();
+    toast(spec.toast);
+    setDrops((cur) => {
+      const next = cur.filter((d) => d.id !== active.id);
+      persist(next);
+      return next;
+    });
   };
 
   useEffect(() => {
-    // mount: 첫 spawn 예약 (즉시 X — 사용자가 화면 진입 후 자연스럽게)
     scheduleNext();
     const onVisible = () => {
       if (document.hidden) {
         clearTimers();
       } else {
-        // 다시 보이면 spawn 재개. drop 이 활성 상태면 fade timer 재예약.
-        if (!drop) scheduleNext();
+        // KST 자정 넘어갔으면 모든 drops 폐기 (다른 날 데이터).
+        const persisted = loadPersisted();
+        if (persisted && persisted.day !== kstDayKey()) {
+          setDrops([]);
+          idCounter.current = 0;
+          savePersisted({ day: kstDayKey(), nextId: 0, drops: [] });
+        }
+        scheduleNext();
       }
     };
     document.addEventListener("visibilitychange", onVisible);
@@ -322,54 +384,77 @@ export function FarmDropLayer() {
 
   return (
     <AnimatePresence>
-      {drop && (
-        <motion.button
-          type="button"
-          key={drop.id}
-          data-testid={`farm-drop-${drop.spec.kind}`}
-          aria-label={drop.spec.toast.replace(/^[^\s]+\s/, "")}
-          onClick={() => grant(drop)}
-          initial={{ opacity: 0, scale: 0.5, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.6, y: 10 }}
-          transition={{ type: "spring", stiffness: 320, damping: 22 }}
-          style={{
-            position: "absolute",
-            top: `${drop.topPct}%`,
-            left: `${drop.leftPct}%`,
-            width: 48,
-            height: 48,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "none",
-            background:
-              "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 60%, rgba(255,255,255,0) 100%)",
-            cursor: "pointer",
-            padding: 0,
-            zIndex: 6,
-            filter:
-              "drop-shadow(0 2px 6px rgba(0,0,0,0.18)) drop-shadow(0 0 12px rgba(255,200,100,0.45))",
-          }}
-        >
-          {drop.spec.iconRel ? (
-            <img
-              src={`${BASE}${drop.spec.iconRel}`}
-              alt=""
-              draggable={false}
-              style={{
-                width: 36,
-                height: 36,
-                objectFit: "contain",
-              }}
-            />
-          ) : (
-            <span aria-hidden style={{ fontSize: 28 }}>
-              {drop.spec.emoji}
-            </span>
-          )}
-        </motion.button>
-      )}
+      {drops.map((d) => {
+        const spec = DROPS[d.kindIdx];
+        if (!spec) return null;
+        return (
+          <DropSprite key={d.id} drop={d} spec={spec} onTap={() => grant(d)} />
+        );
+      })}
     </AnimatePresence>
+  );
+}
+
+/**
+ * 개별 drop sprite. PR-47 분리, PR-46 에서 sparkle/float/bounce 효과
+ * 강화 예정.
+ */
+function DropSprite({
+  drop,
+  spec,
+  onTap,
+}: {
+  drop: ActiveDrop;
+  spec: DropSpec;
+  onTap: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      data-testid={`farm-drop-${spec.kind}`}
+      aria-label={spec.toast.replace(/^[^\s]+\s/, "")}
+      onClick={onTap}
+      initial={{ opacity: 0, scale: 0.5, y: -10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.6, y: 10 }}
+      transition={{ type: "spring", stiffness: 320, damping: 22 }}
+      style={{
+        position: "absolute",
+        top: `${drop.topPct}%`,
+        left: `${drop.leftPct}%`,
+        width: 48,
+        height: 48,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "none",
+        background:
+          "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 60%, rgba(255,255,255,0) 100%)",
+        cursor: "pointer",
+        padding: 0,
+        zIndex: 6,
+        filter:
+          "drop-shadow(0 2px 6px rgba(0,0,0,0.18)) drop-shadow(0 0 12px rgba(255,200,100,0.45))",
+      }}
+    >
+      {spec.iconRel ? (
+        <img
+          src={`${BASE}${spec.iconRel}`}
+          alt=""
+          draggable={false}
+          style={{
+            width: 36,
+            height: 36,
+            maxWidth: 36,
+            maxHeight: 36,
+            objectFit: "contain",
+          }}
+        />
+      ) : (
+        <span aria-hidden style={{ fontSize: 28 }}>
+          {spec.emoji}
+        </span>
+      )}
+    </motion.button>
   );
 }
