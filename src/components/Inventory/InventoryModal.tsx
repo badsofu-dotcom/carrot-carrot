@@ -206,7 +206,11 @@ export function InventoryModal({ open, onClose }: Props) {
               zIndex: 1061,
               width: "100%",
               maxWidth: "var(--app-max-width, 480px)",
-              height: "70vh",
+              // PR-56 — height 70vh 고정 → maxHeight 90vh. 모달이 컨텐츠
+              // 크기에 따라 자라며 작은 viewport (iPhone SE 568) 에서도
+              // DetailPanel 본문 잘림 없음. RewardsPanel (PR-22) 와
+              // 동일 패턴.
+              maxHeight: "90vh",
               background: "#FFF8EE",
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
@@ -302,7 +306,15 @@ export function InventoryModal({ open, onClose }: Props) {
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 10,
+                // PR-56 — 2행 시 빈 컬럼 자리로 row 가 늘어나는 것 차단.
+                // gridAutoRows: min-content 로 각 행이 cell 내재 사이즈
+                // (aspectRatio 1/1 = column width) 만 차지하도록 강제.
+                // alignContent: start 가 grid 컨테이너가 비었을 때
+                // (또는 컨텐츠가 작을 때) row 들이 상단에 pin.
+                gridAutoRows: "min-content",
+                alignContent: "start",
+                rowGap: 10,
+                columnGap: 10,
                 overflowY: "auto",
                 paddingBottom: 8,
                 flex: 1,
@@ -469,7 +481,7 @@ function DetailPanel({
       style={{
         flexShrink: 0,
         marginTop: 10,
-        padding: "12px 14px",
+        padding: "12px 14px 16px",
         background: "#fff",
         border: "1px solid rgba(255,123,97,0.25)",
         borderRadius: 14,
@@ -477,6 +489,12 @@ function DetailPanel({
         display: "flex",
         alignItems: "flex-start",
         gap: 12,
+        // PR-56 — DetailPanel 본문 잘림 차단. 긴 description 이 작은
+        // viewport (iPhone SE) 에서 modal 하단 padding 안으로 잘리던
+        // 회귀 fix. maxHeight + overflowY auto 로 본문 자체 스크롤.
+        maxHeight: "min(280px, 45vh)",
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
       }}
     >
       <img
