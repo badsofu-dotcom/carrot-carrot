@@ -30,7 +30,6 @@ export type ItemCode =
   | "carrot"
   | "candy"
   | "golden"
-  | "carrot_bag"
   | "carrot_coin"
   // tool items (usable)
   | "hourglass"
@@ -94,15 +93,6 @@ export const ITEMS: readonly ItemDef[] = [
     effect: "10 P (수확 가챠 1%)",
     usable: false,
     acquisition: "수확 가챠",
-  },
-  {
-    code: "carrot_bag",
-    ko: "당근 주머니",
-    tab: "resources",
-    iconRel: "assets/farm/items/item_bag.png",
-    effect: "가방 자체 — 보유 종 개수만큼 헤더 뱃지에 표시",
-    usable: false,
-    acquisition: "기본 지급",
   },
   {
     code: "carrot_coin",

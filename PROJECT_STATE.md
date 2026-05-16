@@ -105,7 +105,7 @@ Legend: ✅ implemented & shipping · 🟡 partially implemented · ❌ 미구�
 | 9-polygon farm geometry (id3/id5 corrected) | ✅ | `FarmHub.tsx:27 PLOT_POLYGONS` |
 | Compact farm header (carrot / candy / golden chips + dogam + gift + settings) | ✅ | `CollectionPage.tsx FarmView` |
 | Bag button + InventoryModal | 🟡 | UI exists; uses `itemsStore` local state only. Worker `/items` route file exists but is **not mounted**. |
-| 13-item inventory (resources × 5 / tools × 5 / collection × 3) | 🟡 | All 13 defined in `itemsStore.ts`; `juice / soup / cake` use-effects are toast-only `(미구현)`. `gem` / `heart` are placeholder slots. |
+| 13-item inventory (resources × 4 / tools × 5 / collection × 4) | ✅ | All 13 defined in `itemsStore.ts`; PR-5/7/8/9/10 wired heart / gem / juice / soup / cake live. PR-12 removed self-recursive `carrot_bag`. |
 | 5-minute focus gate + duration tier | ✅ | `farmRules.ts` + `HomePage.tsx:174` |
 | Harvest tool flow (shovel plant / watering_can / basket harvest) | ✅ | `FarmHub.tsx onPlotClick` |
 | ToolDock 3 slots @ 64 px | ✅ | `ToolDock.tsx` |

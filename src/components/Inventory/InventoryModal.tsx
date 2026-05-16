@@ -57,12 +57,14 @@ export function InventoryModal({ open, onClose }: Props) {
   // Resource counts come from useFarmStore, not the items store. The
   // bag is the read-out surface; the canonical source stays in
   // farmStore so harvest / focus rewards keep working unchanged.
+  // PR-12 removed `carrot_bag` (당근 주머니) — it was a self-recursive
+  // entry (the bag listing itself, opened from the very same bag's
+  // dock slot). Bag count surfaces on the dock badge, not the grid.
   const liveResourceCount = (code: ItemCode): number => {
     switch (code) {
       case "carrot": return carrots;
       case "candy": return candy;
       case "golden": return golden;
-      case "carrot_bag": return useItemsStore.getState().speciesOwned();
       case "carrot_coin": return counts.carrot_coin;
       default: return counts[code] ?? 0;
     }
