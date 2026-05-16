@@ -140,11 +140,43 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
         }
         toast("🎁 오늘의 선물 받았어요");
         break;
-      case "treasure":
-        addItem("star", 1);
+      case "treasure": {
+        // PR-48 — 보물 진행 +1 + 랜덤 보상 풀 1개.
         useRewardsStore.getState().addTreasureProgress(1);
-        toast("🌟 보물 진행 +1 (별 +1)");
+        const rewards = [
+          { p: 0.35, label: "⭐ 별 +1", apply: () => addItem("star", 1) },
+          { p: 0.25, label: "💎 보석 +1", apply: () => addItem("gem", 1) },
+          {
+            p: 0.15,
+            label: "🌱 씨앗 +3",
+            apply: () => useFarmStore.getState().growAllPlanted(0, null, 3),
+          },
+          {
+            p: 0.1,
+            label: "🍬 캔디당근 +1 (+5 P)",
+            apply: () => useFarmStore.getState().incCandyCarrots(1),
+          },
+          { p: 0.1, label: "⚡ 번개 +1", apply: () => addItem("bolt", 1) },
+          {
+            p: 0.05,
+            label: "✨ 황금당근 +1 (+10 P)",
+            apply: () => useFarmStore.getState().incGoldenCarrots(1),
+          },
+        ];
+        const r = Math.random();
+        let acc = 0;
+        let pickedLabel = rewards[0].label;
+        for (const reward of rewards) {
+          acc += reward.p;
+          if (r < acc) {
+            reward.apply();
+            pickedLabel = reward.label;
+            break;
+          }
+        }
+        toast(`🎁 보물 진행 +1 · ${pickedLabel}`);
         break;
+      }
     }
     // PR-24 — heart consume + carrot_coin grant on success path.
     items.consume("heart", 1);
@@ -282,8 +314,8 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               />
               <ChannelRow
                 icon={`${BASE}assets/farm/rewards/treasure_chest.png`}
-                label="보물 진행 +1 (별 +1)"
-                hint="주간 보물상자에 한 발 더"
+                label="보물 진행 +1 (랜덤 보상)"
+                hint="별/보석/씨앗/캔디/번개/황금 중 1종"
                 disabled={alreadyClaimed("treasure")}
                 onClick={() => claim("treasure")}
                 testId="ad-channel-treasure"

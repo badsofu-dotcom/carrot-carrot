@@ -60,6 +60,21 @@ Header chips render the PNG icon at 18×18 with `object-fit: contain`. If the as
 | `reward_points_total` (포인트 합계) | **100** | EV 110 P, anti-abuse 자연 차단 (PR-32 보정 50 → 100) |
 | `ad_views_today` (광고 시청 횟수) | 10 | 5회 P 보상 + 5회 토큰 보상 |
 
+## 광고 채널 — 보물 진행 랜덤 보상 (PR-48)
+
+`AdRewardChannelModal` 의 "보물" 채널 claim 마다 진행도 +1 + 랜덤 보상 풀 1 개:
+
+| 보상 | 확률 | P 가치 |
+| --- | --- | --- |
+| ⭐ 별 +1 | 35 % | 0 |
+| 💎 보석 +1 | 25 % | 0 |
+| 🌱 씨앗 +3 | 15 % | 0 |
+| 🍬 캔디 당근 +1 | 10 % | 5 |
+| ⚡ 번개 +1 | 10 % | 0 |
+| ✨ 황금 당근 +1 | 5 % | 10 |
+
+EV per treasure claim = 0.10 × 5 + 0.05 × 10 = **1.0 P**. 일일 ~1 회 claim 기준 미미한 인플레이션 — 100 P 캡 안전.
+
 ## 광고 보상 N-th tier (PR-32)
 
 광고 채널 (`AdRewardChannelModal`) claim 마다 누적 N 회 기준:
