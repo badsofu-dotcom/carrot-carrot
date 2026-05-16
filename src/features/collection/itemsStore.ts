@@ -60,9 +60,15 @@ interface ItemDef {
   /**
    * Minimum stack size required to spend one charge of this item. The
    * "사용" button stays hidden until `count >= minToUse`. Default 1.
-   * `gem` uses 5 (5 gems → +1 seed).
+   * `gem` uses 5 (5 gems → +1 seed), `carrot_coin` 50 (PR-24 trade).
    */
   minToUse?: number;
+  /**
+   * Optional hard cap on the stack size (PR-24). `add()` clamps; the
+   * cap is the only way to express a "max 3 hearts daily but can be
+   * pushed to 5 via friend wave" pattern. Default unlimited.
+   */
+  maxStack?: number;
 }
 
 export const ITEMS: readonly ItemDef[] = [
@@ -99,9 +105,11 @@ export const ITEMS: readonly ItemDef[] = [
     ko: "당근 코인",
     tab: "resources",
     iconRel: "assets/farm/icons/icon_coin.png",
-    effect: "보상함 토스포인트 환산 시각 표시",
-    usable: false,
-    acquisition: "수확/보상",
+    // PR-24 — 광고 채널 보상 통화. 50 coin → 캔디 당근 1 교환.
+    effect: "50개 사용 시 캔디 당근 1개",
+    usable: true,
+    minToUse: 50,
+    acquisition: "광고 보상 (채널당 +5 coin)",
   },
 
   // tool items (usable)
@@ -185,9 +193,13 @@ export const ITEMS: readonly ItemDef[] = [
     ko: "하트",
     tab: "collection",
     iconRel: "assets/farm/icons/icon_heart_hp.png",
-    effect: "이웃 토끼가 하루 한 번 두고 가는 인사 표시",
+    // PR-24 — 광고 시청 토큰. KST 자정 리필 (현재 < 3 이면 3 으로
+    // 채움, 이상이면 유지). 친구 wave +1 (cap 5). AdRewardChannel
+    // claim 시 1 consume.
+    effect: "광고 시청 토큰 (max 5, 자정 리필 3개)",
     usable: false,
-    acquisition: "농장에 방문한 이웃 토끼에게 인사하기 (하루 1회)",
+    acquisition: "자정 리필 + 이웃 토끼 wave",
+    maxStack: 5,
   },
 ];
 
@@ -226,6 +238,8 @@ interface ItemsState {
   counts: Record<ItemCode, number>;
   /** True once an initial hydrate attempt has resolved (ok or noop). */
   hydrated: boolean;
+  /** KST day key (`YYYY-MM-DD`) for the last heart rollover (PR-24). */
+  heartDayKey: string | null;
   add: (code: ItemCode, n?: number) => void;
   consume: (code: ItemCode, n?: number) => boolean;
   speciesOwned: () => number;
@@ -238,6 +252,34 @@ interface ItemsState {
    * zeroed).
    */
   hydrate: () => Promise<void>;
+  /**
+   * PR-24 — KST 자정 리필. heart count < HEART_DAILY_REFILL (3) 이면
+   * HEART_DAILY_REFILL 로 bump. 이상이면 유지 (친구 wave 누적 보호).
+   * 처음 호출 시 heartDayKey 비어 있으면 무조건 채움 (신규 사용자
+   * 시작 3 hearts 보장). 동일 KST 일자 재호출은 no-op.
+   */
+  rolloverHeartsIfNeeded: () => void;
+}
+
+const STORAGE_KEY_HEART_DAY = "cc.items.heartDay.v1";
+const HEART_DAILY_REFILL = 3;
+
+function kstDayKey(now: Date = new Date()): string {
+  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(kst.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+function loadHeartDayKey(): string | null {
+  return safeStorage.get(STORAGE_KEY_HEART_DAY);
+}
+function saveHeartDayKey(v: string) {
+  try {
+    safeStorage.set(STORAGE_KEY_HEART_DAY, v);
+  } catch {
+    /* ignore */
+  }
 }
 
 const ITEM_CODES: readonly ItemCode[] = ITEMS.map((i) => i.code);
@@ -256,14 +298,25 @@ function applySingleRemote(
   set({ counts: next });
 }
 
+const ITEM_BY_CODE: Record<ItemCode, (typeof ITEMS)[number]> =
+  Object.fromEntries(ITEMS.map((i) => [i.code, i])) as Record<
+    ItemCode,
+    (typeof ITEMS)[number]
+  >;
+
 export const useItemsStore = create<ItemsState>((set, get) => ({
   counts: loadCounts(),
   hydrated: false,
+  heartDayKey: loadHeartDayKey(),
 
   add: (code, n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
     const next = { ...get().counts };
-    next[code] = (next[code] ?? 0) + Math.floor(n);
+    let nextCount = (next[code] ?? 0) + Math.floor(n);
+    // PR-24 — per-item maxStack cap.
+    const cap = ITEM_BY_CODE[code]?.maxStack;
+    if (typeof cap === "number") nextCount = Math.min(nextCount, cap);
+    next[code] = nextCount;
     saveCounts(next);
     set({ counts: next });
   },
@@ -297,6 +350,22 @@ export const useItemsStore = create<ItemsState>((set, get) => ({
     >;
     saveCounts(blank);
     set({ counts: blank });
+  },
+
+  rolloverHeartsIfNeeded: () => {
+    const today = kstDayKey();
+    if (get().heartDayKey === today) return;
+    // 신규 일자 — current < 3 이면 3 으로 채움. 이상이면 유지.
+    const cur = get().counts.heart ?? 0;
+    const next = { ...get().counts };
+    if (cur < HEART_DAILY_REFILL) {
+      next.heart = HEART_DAILY_REFILL;
+      saveCounts(next);
+      set({ counts: next, heartDayKey: today });
+    } else {
+      set({ heartDayKey: today });
+    }
+    saveHeartDayKey(today);
   },
 
   hydrate: async () => {
