@@ -33,7 +33,7 @@ import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
-import { BuffIndicator } from "../../components/Farm/BuffIndicator";
+import { BuffChipsRow } from "../buffs/BuffChipsRow";
 import { FarmDropLayer } from "../../components/Farm/FarmDropLayer";
 import { HiddenBunnyLayer } from "../../components/Farm/HiddenBunnyLayer";
 import {
@@ -819,10 +819,10 @@ export function FarmHub({
         ☁ 하늘 보기
       </button>
 
-      {/* PR-17a — active buff pills (juice / soup / cake). Positioned
-          near the top under the sky-open chip; auto-hides when no
-          buff is live. */}
-      <BuffIndicator />
+      {/* PR-59 — 활성 buff chips (juice / soup / cake). 잔여시간 +
+          progress bar + 탭 시 BuffInfoPopover. 만료 5초 전 깜빡임.
+          PR-17a 의 BuffIndicator 폐기 후 본 컴포넌트가 대체. */}
+      <BuffChipsRow />
 
       {/* PR-34 — 농장 드랍 layer. 15~60s 간격으로 sky 영역에 아이템
           spawn. 탭 시 grant + SFX. 일일 max 30. */}
