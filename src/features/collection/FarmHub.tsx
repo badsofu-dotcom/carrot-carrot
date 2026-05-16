@@ -33,6 +33,7 @@ import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannel
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffIndicator } from "../../components/Farm/BuffIndicator";
 import { FarmDropLayer } from "../../components/Farm/FarmDropLayer";
+import { HiddenBunnyLayer } from "../../components/Farm/HiddenBunnyLayer";
 import {
   AdSuggestionModal,
   suggestAdFor,
@@ -799,6 +800,10 @@ export function FarmHub({
       {/* PR-34 — 농장 드랍 layer. 15~60s 간격으로 sky 영역에 아이템
           spawn. 탭 시 grant + SFX. 일일 max 30. */}
       <FarmDropLayer />
+
+      {/* PR-35 — 히든 토끼 가로지름. 5~30분 간격, 5초 통과. 미획득
+          토끼는 forceUnlock + BunnyGachaModal surface. 일일 max 4. */}
+      <HiddenBunnyLayer />
 
       {/* PR-27 — 자원 부족 광고 안내 모달. cc:ad-suggest:open 이벤트
           listener. 가드 통과 시만 표시. */}
