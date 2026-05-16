@@ -60,14 +60,20 @@ interface ToolDef {
  *  Centered inside the farm card. */
 const SLOT_SIZE = 64;
 const ICON_SIZE = 50;
-/** Compensates shovel/watering-can PNGs that ship with heavy transparent
- *  margin. PR-11 chose 1.25; user reported they still read smaller than
- *  basket/bag so PR-14 bumped to 1.45. Visible content lands at ~72.5 px
- *  vs. basket/bag's ~50 px — slot has overflow:visible so the few px of
- *  bleed past 64 stays inside the dock gap (6) without touching the
- *  next slot. */
+/** Per-PNG bbox compensation.
+ *  - SCALE_PADDED (모종삽/물뿌리개): PNG ships with heavy transparent
+ *    margin so visible content fills ~70% of the box. 1.45 brings the
+ *    visible content up to ~50 px on a 50 px display (72.5 box × 0.7).
+ *    PR-11 1.25 → PR-14 1.45 (user wanted larger). Hold.
+ *  - SCALE_TIGHT (바구니/주머니): PNG bbox is already tight (~100%
+ *    fill), so the visible content is the full 50 px. After PR-14 the
+ *    user observed basket/bag reading slightly larger than the padded
+ *    tools — PR-18 shrinks the display side to 0.9 (45 px visible) so
+ *    all four slots land within ~5 px of each other.
+ *  Bleed math (PR-14): 50 × 1.45 = 72.5, (72.5 - 64) / 2 = 4.25 px on
+ *  each side, < gap 6 → no adjacent slot encroachment. */
 const SCALE_PADDED = 1.45;
-const SCALE_TIGHT = 1.0;
+const SCALE_TIGHT = 0.9;
 
 const TOOL_DEFS: ToolDef[] = [
   {
