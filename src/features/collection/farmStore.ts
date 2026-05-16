@@ -62,6 +62,8 @@ interface FarmState {
   /** Increment the candy/golden bonus carrot inventory (local-only). */
   incCandyCarrots: (n?: number) => void;
   incGoldenCarrots: (n?: number) => void;
+  /** Direct-grant carrot count (PR-17b weekly treasure rewards). */
+  incCarrots: (n?: number) => void;
   /**
    * Grow every planted plot by `steps` (capped at stage 4).
    * `snapshotId` is the unique focus-complete snapshot id (e.g. lastSnapshot.at).
@@ -150,6 +152,10 @@ export const useFarmStore = create<FarmState>((set, get) => ({
   incGoldenCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
     set({ goldenCarrots: get().goldenCarrots + Math.floor(n) });
+  },
+  incCarrots: (n = 1) => {
+    if (!Number.isFinite(n) || n <= 0) return;
+    set({ carrots: get().carrots + Math.floor(n) });
   },
 
   growAllPlanted: (steps = 1, snapshotId = null, seedDelta = 0) => {

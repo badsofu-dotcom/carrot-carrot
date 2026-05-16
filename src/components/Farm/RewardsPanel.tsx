@@ -18,6 +18,7 @@ import { useFarmStore } from "../../features/collection/farmStore";
 import {
   MEDAL_LABELS,
   useRewardsStore,
+  WEEKLY_TREASURE_GOAL,
   type GiftReward,
   type MedalId,
 } from "../../features/collection/rewardsStore";
@@ -25,6 +26,7 @@ import { useItemsStore } from "../../features/collection/itemsStore";
 import { canWithdraw, MIN_PAYOUT, totalPoints } from "../../lib/points";
 import { apiCall, apiBaseUrl, tokenStore } from "../../lib/api";
 import { haptic } from "../../design-system/haptic";
+import { toast } from "../../design-system/ui";
 import { playSfx } from "../../lib/soundFx";
 import { useSoundStore } from "../../store/soundStore";
 
@@ -52,10 +54,14 @@ export function RewardsPanel({ open, onClose }: Props) {
 
   const incCandy = useFarmStore((s) => s.incCandyCarrots);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
+  const incCarrots = useFarmStore((s) => s.incCarrots);
+  const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
 
   const claimedDay = useRewardsStore((s) => s.giftClaimedDay);
   const claimDailyGift = useRewardsStore((s) => s.claimDailyGift);
   const medals = useRewardsStore((s) => s.medals);
+  const treasureProgress = useRewardsStore((s) => s.treasureProgress);
+  const openTreasureChest = useRewardsStore((s) => s.openTreasureChest);
 
   const points = totalPoints({ carrots, candyCarrots: candy, goldenCarrots: golden });
   const withdrawable = canWithdraw(points);
@@ -63,11 +69,13 @@ export function RewardsPanel({ open, onClose }: Props) {
   const [claimedThisOpen, setClaimedThisOpen] = useState<GiftReward | null>(null);
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
+  const [lastTreasureText, setLastTreasureText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setClaimedThisOpen(null);
       setWithdrawStatus(null);
+      setLastTreasureText(null);
     }
   }, [open]);
 
@@ -110,6 +118,45 @@ export function RewardsPanel({ open, onClose }: Props) {
     // "seed" rewards land via the same store path on the next focus
     // session tier — surfacing in inventory not yet wired for
     // direct-grant; documented as a known limitation.
+  };
+
+  // PR-17b — open the weekly treasure chest. The roll lives in
+  // rewardsStore.openTreasureChest (uses WEEKLY_TREASURE_TABLE +
+  // rollTable). The grant dispatches into the appropriate stores so
+  // header chips / inventory reflect the bonus instantly.
+  const onOpenTreasure = () => {
+    haptic("medium");
+    const reward = openTreasureChest();
+    if (!reward) {
+      toast("진행도 7 채우면 열 수 있어요");
+      return;
+    }
+    const s = useSoundStore.getState();
+    playSfx("giftbox", { muted: s.sfxMuted, masterVolume: s.sfxVolume });
+    switch (reward.kind) {
+      case "candy":
+        incCandy(reward.amount);
+        break;
+      case "golden":
+        incGolden(reward.amount);
+        break;
+      case "carrot":
+        incCarrots(reward.amount);
+        break;
+      case "seed":
+        // growAllPlanted's seed-delta side-door is the only existing
+        // direct-grant path (same as PR-7 gem→seed swap).
+        growAllPlanted(0, null, reward.amount);
+        break;
+      case "star":
+        useItemsStore.getState().add("star", reward.amount);
+        break;
+      default:
+        // treasure_progress wouldn't roll from this table; future-proof.
+        break;
+    }
+    setLastTreasureText(treasureToText(reward));
+    toast(`🎁 보물상자 — ${treasureToText(reward)}`);
   };
 
   const onWithdraw = async () => {
@@ -376,6 +423,109 @@ export function RewardsPanel({ open, onClose }: Props) {
               </div>
             </Section>
 
+            {/* Weekly treasure (PR-17b) */}
+            <Section title="주간 보물상자">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  background: "#fff",
+                  borderRadius: 16,
+                  padding: 14,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                }}
+              >
+                <img
+                  src={`${BASE}assets/farm/rewards/treasure_chest.png`}
+                  alt=""
+                  width={56}
+                  height={56}
+                  style={{
+                    objectFit: "contain",
+                    flexShrink: 0,
+                    filter:
+                      treasureProgress >= WEEKLY_TREASURE_GOAL
+                        ? "drop-shadow(0 4px 8px rgba(255,123,97,0.45))"
+                        : "grayscale(0.45) opacity(0.7)",
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>
+                    {treasureProgress >= WEEKLY_TREASURE_GOAL
+                      ? "보물상자 열기 준비됨!"
+                      : `진행도 ${treasureProgress}/${WEEKLY_TREASURE_GOAL}`}
+                  </div>
+                  <div
+                    aria-label={`treasure progress ${treasureProgress} of ${WEEKLY_TREASURE_GOAL}`}
+                    style={{
+                      marginTop: 6,
+                      height: 6,
+                      borderRadius: 999,
+                      background: "rgba(0,0,0,0.08)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
+                      data-testid="treasure-progress-bar"
+                      style={{
+                        width: `${(treasureProgress / WEEKLY_TREASURE_GOAL) * 100}%`,
+                        height: "100%",
+                        background:
+                          treasureProgress >= WEEKLY_TREASURE_GOAL
+                            ? "#FF7B61"
+                            : "rgba(255,123,97,0.55)",
+                        transition: "width 0.25s ease",
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 11, color: "#888", marginTop: 4 }}>
+                    광고 보상 → "보물 진행" 채널로 진행도 누적
+                  </div>
+                  {lastTreasureText && (
+                    <div
+                      data-testid="treasure-claimed"
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "#FF7B61",
+                      }}
+                    >
+                      {lastTreasureText}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  data-testid="treasure-open"
+                  disabled={treasureProgress < WEEKLY_TREASURE_GOAL}
+                  onClick={onOpenTreasure}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 12,
+                    border: "none",
+                    fontWeight: 800,
+                    fontSize: 13,
+                    background:
+                      treasureProgress >= WEEKLY_TREASURE_GOAL
+                        ? "#FF7B61"
+                        : "rgba(0,0,0,0.08)",
+                    color:
+                      treasureProgress >= WEEKLY_TREASURE_GOAL
+                        ? "#fff"
+                        : "#888",
+                    cursor:
+                      treasureProgress >= WEEKLY_TREASURE_GOAL
+                        ? "pointer"
+                        : "not-allowed",
+                  }}
+                >
+                  {treasureProgress >= WEEKLY_TREASURE_GOAL ? "열기" : "잠김"}
+                </button>
+              </div>
+            </Section>
+
             {/* Medals */}
             <Section title="훈장">
               <div
@@ -461,6 +611,23 @@ function giftToText(g: GiftReward): string {
       return `✨ 황금 당근 +${g.amount} (+${g.amount * 10} P)`;
     case "gem":
       return `💎 보석 +${g.amount}`;
+  }
+}
+
+function treasureToText(t: { kind: string; amount: number; points: number }): string {
+  switch (t.kind) {
+    case "candy":
+      return `🍬 캔디 당근 +${t.amount} (+${t.points} P)`;
+    case "golden":
+      return `✨ 황금 당근 +${t.amount} (+${t.points} P)`;
+    case "carrot":
+      return `🥕 당근 +${t.amount} (+${t.points} P)`;
+    case "seed":
+      return `🌱 씨앗 +${t.amount}`;
+    case "star":
+      return `⭐ 별 +${t.amount}`;
+    default:
+      return `+${t.amount} ${t.kind}`;
   }
 }
 

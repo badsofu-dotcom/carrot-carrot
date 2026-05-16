@@ -15,8 +15,15 @@
 import { create } from "zustand";
 import { safeStorage } from "../../lib/safeStorage";
 import { rollGift, type GiftReward } from "../../lib/giftRoll";
+import {
+  WEEKLY_TREASURE_TABLE,
+  rollTable,
+  type TableEntry,
+} from "../../lib/rewardTables";
 
 export type { GiftReward };
+
+export const WEEKLY_TREASURE_GOAL = 7;
 
 export type MedalId =
   | "first_harvest"
@@ -46,17 +53,28 @@ interface RewardsState {
   lastGiftReward: GiftReward | null;
   /** Medal IDs unlocked so far. */
   medals: ReadonlySet<MedalId>;
+  /** Treasure-chest progress 0..7 (PR-17b). Reset to 0 on open. */
+  treasureProgress: number;
+  /** Last treasure roll result (for the claim banner). */
+  lastTreasureReward: TableEntry | null;
 
   /** Returns the gift reward if a claim succeeded; null when already claimed. */
   claimDailyGift: (rng?: () => number) => GiftReward | null;
   /** Unlock a medal idempotently. Returns true if newly unlocked. */
   unlockMedal: (id: MedalId) => boolean;
+  /** Add N progress to the weekly treasure chest. Capped at GOAL. */
+  addTreasureProgress: (n?: number) => void;
+  /** Open the treasure chest. Returns the rolled reward, or null when
+   *  progress < GOAL. Caller is responsible for granting the reward
+   *  into farmStore / itemsStore. */
+  openTreasureChest: (rng?: () => number) => TableEntry | null;
   /** Reset for tests / data-wipe. */
   reset: () => void;
 }
 
 const STORAGE_KEY_DAY = "cc.rewards.giftDay.v1";
 const STORAGE_KEY_MEDALS = "cc.rewards.medals.v1";
+const STORAGE_KEY_TREASURE = "cc.rewards.treasureProgress.v1";
 
 function kstDayKey(now: Date = new Date()): string {
   const kst = new Date(now.getTime() + 9 * 3600 * 1000);
@@ -104,6 +122,21 @@ function saveMedals(medals: ReadonlySet<MedalId>) {
   safeStorage.set(STORAGE_KEY_MEDALS, JSON.stringify(Array.from(medals)));
 }
 
+function loadTreasureProgress(): number {
+  const raw = safeStorage.get(STORAGE_KEY_TREASURE);
+  if (!raw) return 0;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(WEEKLY_TREASURE_GOAL, Math.round(n)));
+}
+function saveTreasureProgress(n: number) {
+  try {
+    safeStorage.set(STORAGE_KEY_TREASURE, String(n));
+  } catch {
+    /* ignore */
+  }
+}
+
 export { rollGift };
 
 export const MEDAL_LABELS: Record<MedalId, string> = {
@@ -124,6 +157,8 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
   giftClaimedDay: safeStorage.get(STORAGE_KEY_DAY),
   lastGiftReward: null,
   medals: loadMedals(),
+  treasureProgress: loadTreasureProgress(),
+  lastTreasureReward: null,
 
   claimDailyGift: (rng = Math.random) => {
     const today = kstDayKey();
@@ -156,10 +191,33 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
     return true;
   },
 
+  addTreasureProgress: (n = 1) => {
+    const inc = Math.max(0, Math.floor(n));
+    if (inc === 0) return;
+    const next = Math.min(WEEKLY_TREASURE_GOAL, get().treasureProgress + inc);
+    saveTreasureProgress(next);
+    set({ treasureProgress: next });
+  },
+
+  openTreasureChest: (rng = Math.random) => {
+    if (get().treasureProgress < WEEKLY_TREASURE_GOAL) return null;
+    const reward = rollTable(WEEKLY_TREASURE_TABLE, rng);
+    saveTreasureProgress(0);
+    set({ treasureProgress: 0, lastTreasureReward: reward });
+    return reward;
+  },
+
   reset: () => {
     safeStorage.remove(STORAGE_KEY_DAY);
     safeStorage.remove(STORAGE_KEY_MEDALS);
-    set({ giftClaimedDay: null, lastGiftReward: null, medals: new Set() });
+    safeStorage.remove(STORAGE_KEY_TREASURE);
+    set({
+      giftClaimedDay: null,
+      lastGiftReward: null,
+      medals: new Set(),
+      treasureProgress: 0,
+      lastTreasureReward: null,
+    });
   },
 }));
 

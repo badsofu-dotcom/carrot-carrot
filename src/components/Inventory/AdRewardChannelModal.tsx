@@ -112,6 +112,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
         break;
       case "treasure":
         addItem("star", 1);
+        useRewardsStore.getState().addTreasureProgress(1);
         toast("🌟 보물 진행 +1 (별 +1)");
         break;
     }
