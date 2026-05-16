@@ -138,16 +138,34 @@ export function DevActionsGroup() {
     toast("로컬 데이터 초기화");
   };
 
-  // ── PR-19 cheats ─────────────────────────────────────────────────
+  // ── PR-19 cheats (PR-25 expanded) ────────────────────────────────
+  // Catch-all: every farm currency + every bag item + watering can max
+  // + every medal. Idempotent — re-tap just tops things off.
   const handleAllResources999 = () => {
     haptic("success");
+    // Farm currencies (header chips)
     incCarrots(999);
     incCandy(999);
     incGolden(999);
     growAllPlanted(0, null, 999); // seeds via side-door
+    // Bag items — every defined code. carrot/candy/golden are mirrored
+    // (their canonical SoT is farmStore, not itemsStore) so we skip
+    // those three to avoid double-counting in the bag grid.
+    addItem("carrot_coin", 999);
+    addItem("hourglass", 99);
+    addItem("bolt", 99);
+    addItem("juice", 99);
+    addItem("soup", 99);
+    addItem("cake", 99);
+    addItem("medal", 99);
     addItem("star", 999);
     addItem("gem", 999);
-    toast("모든 자원 +999");
+    addItem("heart", 99);
+    // Tools — watering can to max
+    refillFromAd(TOOL_CONSTANTS.MAX_DAILY);
+    // Medals — every defined ID
+    for (const m of ALL_MEDALS) unlockMedal(m);
+    toast("모든 자원/도구/메달 +max");
   };
   const handleCarrot100 = () => {
     haptic("light");
