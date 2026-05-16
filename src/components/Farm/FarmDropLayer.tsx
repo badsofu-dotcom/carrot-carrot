@@ -25,6 +25,8 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useMissionsStore } from "../../features/missions/missionsStore";
+import { useNotificationsStore } from "../../features/notifications/notificationsStore";
+import { notify } from "../../lib/webNotify";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useSoundStore } from "../../store/soundStore";
 import { playSfx } from "../../lib/soundFx";
@@ -318,6 +320,18 @@ export function FarmDropLayer() {
       };
       const next = [...cur, newDrop];
       persist(next);
+      // PR-53 — drop spawn 시 알림 (사용자 가 다른 탭/앱 보고 있을 때
+      // 자기 농장에 뭔가 떨어졌다는 신호). visibility hidden 한정으로
+      // 좁히면 더 자연스러우나 본 PR 은 minimal — store 가 토글 false
+      // 면 no-op.
+      const notifStore = useNotificationsStore.getState();
+      if (notifStore.shouldNotify("drop")) {
+        notify({
+          kind: "drop",
+          title: "🌟 농장에 뭔가 떨어졌어요",
+          body: spec.toast,
+        });
+      }
       scheduleNext();
       return next;
     });
