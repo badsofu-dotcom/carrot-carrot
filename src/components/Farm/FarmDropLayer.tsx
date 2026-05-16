@@ -146,6 +146,43 @@ const MAX_SPAWN_MS = 60_000;
 const VISIBLE_MS = 5_000;
 const DAILY_CAP = 30;
 
+// PR-45 — 드랍 spawn 위치 클러스터. 산 라인 아래 (top ≥ 45%) 의
+// 농장 활동 영역. 각 클러스터에 weight + (top%/left%) 박스 정의.
+// 사용자가 농장 BG 의 자연스러운 spot 에 떨어진 듯한 느낌.
+interface SpotCluster {
+  id: string;
+  weight: number;
+  topMin: number;
+  topMax: number;
+  leftMin: number;
+  leftMax: number;
+}
+const SPOT_CLUSTERS: readonly SpotCluster[] = [
+  // plot 영역 사이 (울타리 안) — 가장 흔함.
+  { id: "fence-inside", weight: 30, topMin: 60, topMax: 70, leftMin: 25, leftMax: 75 },
+  // 울타리 바깥 잔디 — 두 번째.
+  { id: "fence-outside", weight: 25, topMin: 70, topMax: 85, leftMin: 10, leftMax: 90 },
+  // 버섯집 (좌측 하단 코너 영역) 주변.
+  { id: "mushroom-house", weight: 15, topMin: 75, topMax: 85, leftMin: 8, leftMax: 22 },
+  // 나무 (우측 하단) 밑.
+  { id: "tree-base", weight: 15, topMin: 70, topMax: 82, leftMin: 78, leftMax: 92 },
+  // 우물 (좌측 중간) 근처.
+  { id: "well", weight: 10, topMin: 55, topMax: 65, leftMin: 8, leftMax: 20 },
+  // 어디든 낮은 영역 (fallback).
+  { id: "random-low", weight: 5, topMin: 45, topMax: 85, leftMin: 10, leftMax: 90 },
+];
+const SPOT_TOTAL_WEIGHT = SPOT_CLUSTERS.reduce((s, c) => s + c.weight, 0);
+
+function pickSpot(rng: () => number): SpotCluster {
+  const r = rng() * SPOT_TOTAL_WEIGHT;
+  let acc = 0;
+  for (const c of SPOT_CLUSTERS) {
+    acc += c.weight;
+    if (r < acc) return c;
+  }
+  return SPOT_CLUSTERS[0]!;
+}
+
 function kstDayKey(): string {
   const kst = new Date(Date.now() + 9 * 3600 * 1000);
   return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`;
@@ -215,10 +252,13 @@ export function FarmDropLayer() {
       return;
     }
     const spec = pickDrop(Math.random);
-    // Safe zone — 상단 sky 영역 (top 12-25%) + horizontal 15-85%.
-    // plot 영역 침범 방지.
-    const top = 12 + Math.random() * 13;
-    const left = 15 + Math.random() * 70;
+    // PR-45 — spawn 위치 클러스터. 산 라인 아래 (top 45-85%) 의 농장
+    // 활동 영역. 클러스터별 weighted random + 클러스터 안에서 uniform.
+    const cluster = pickSpot(Math.random);
+    const top =
+      cluster.topMin + Math.random() * (cluster.topMax - cluster.topMin);
+    const left =
+      cluster.leftMin + Math.random() * (cluster.leftMax - cluster.leftMin);
     const id = ++idCounter.current;
     setDrop({ id, spec, topPct: top, leftPct: left });
     if (fadeTimer.current) clearTimeout(fadeTimer.current);
