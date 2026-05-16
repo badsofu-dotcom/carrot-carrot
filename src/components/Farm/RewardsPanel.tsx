@@ -21,6 +21,7 @@ import {
   type GiftReward,
   type MedalId,
 } from "../../features/collection/rewardsStore";
+import { useItemsStore } from "../../features/collection/itemsStore";
 import { canWithdraw, MIN_PAYOUT, totalPoints } from "../../lib/points";
 import { apiCall, apiBaseUrl, tokenStore } from "../../lib/api";
 import { haptic } from "../../design-system/haptic";
@@ -95,6 +96,9 @@ export function RewardsPanel({ open, onClose }: Props) {
     setClaimedThisOpen(reward);
     if (reward.kind === "candy") incCandy(reward.amount);
     else if (reward.kind === "golden") incGolden(reward.amount);
+    else if (reward.kind === "gem") {
+      useItemsStore.getState().add("gem", reward.amount);
+    }
     // "seed" rewards land via the same store path on the next focus
     // session tier — surfacing in inventory not yet wired for
     // direct-grant; documented as a known limitation.
@@ -447,6 +451,8 @@ function giftToText(g: GiftReward): string {
       return `🍬 캔디 당근 +${g.amount} (+${g.amount * 5} P)`;
     case "golden":
       return `✨ 황금 당근 +${g.amount} (+${g.amount * 10} P)`;
+    case "gem":
+      return `💎 보석 +${g.amount}`;
   }
 }
 

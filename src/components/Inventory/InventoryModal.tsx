@@ -77,7 +77,9 @@ export function InventoryModal({ open, onClose }: Props) {
 
   const onUse = (code: ItemCode) => {
     haptic("medium");
-    if (!consume(code, 1)) {
+    const def = ITEMS.find((i) => i.code === code);
+    const cost = def?.minToUse ?? 1;
+    if (!consume(code, cost)) {
       toast("아이템이 부족해요");
       return;
     }
@@ -105,6 +107,13 @@ export function InventoryModal({ open, onClose }: Props) {
         break;
       case "cake":
         toast("🍰 다음 포커스 완료 시 씨앗 +1 (미구현)");
+        break;
+      case "gem":
+        // 5 gems trade for 1 seed. Reuses growAllPlanted's seed-delta
+        // side-door (steps=0, snapshotId=null, seedDelta=1) — the only
+        // direct-grant seed path the store exposes today.
+        growAllPlanted(0, null, 1);
+        toast(`💎 보석 ${cost}개 사용 → 씨앗 +1`);
         break;
       default:
         break;
@@ -254,6 +263,8 @@ export function InventoryModal({ open, onClose }: Props) {
               {items.map((it) => {
                 const count = liveResourceCount(it.code);
                 const owned = count > 0;
+                const minToUse = it.minToUse ?? 1;
+                const canUse = it.usable && count >= minToUse;
                 return (
                   <div
                     key={it.code}
@@ -309,7 +320,7 @@ export function InventoryModal({ open, onClose }: Props) {
                     >
                       {count > 0 ? count : ""}
                     </span>
-                    {it.usable && owned && (
+                    {canUse && (
                       <button
                         type="button"
                         data-testid={`inv-use-${it.code}`}
@@ -330,7 +341,7 @@ export function InventoryModal({ open, onClose }: Props) {
                           padding: 0,
                         }}
                       >
-                        사용
+                        {minToUse > 1 ? `사용 (${minToUse})` : "사용"}
                       </button>
                     )}
                   </div>

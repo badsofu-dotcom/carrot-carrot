@@ -6,23 +6,17 @@
  * store just tracks the cosmetic claim flags + the gift-box roll
  * results so the UI can render badges and "이미 받음" states.
  *
- * Daily gift roll table (preview/local — server-side audit will replace
- * this once the worker ad-verify pipeline is live):
- *   60 %  +1 seed
- *   24 %  +1 candy carrot   (+5 P pending)
- *    8 %  +1 golden carrot  (+10 P pending)
- *    8 %  +3 seeds
+ * The daily-gift roll table itself lives in `src/lib/giftRoll.ts` so
+ * it can be unit-tested standalone.
  *
  * Milestones are deterministic from the farmStore stats and the focus
  * snapshot stream — see `evaluateMilestones()` for the trigger logic.
  */
 import { create } from "zustand";
 import { safeStorage } from "../../lib/safeStorage";
+import { rollGift, type GiftReward } from "../../lib/giftRoll";
 
-export type GiftReward =
-  | { kind: "seed"; amount: number }
-  | { kind: "candy"; amount: number }
-  | { kind: "golden"; amount: number };
+export type { GiftReward };
 
 export type MedalId =
   | "first_harvest"
@@ -110,14 +104,7 @@ function saveMedals(medals: ReadonlySet<MedalId>) {
   safeStorage.set(STORAGE_KEY_MEDALS, JSON.stringify(Array.from(medals)));
 }
 
-/** Pure: roll a single gift outcome from the table at the top of the file. */
-export function rollGift(rng: () => number = Math.random): GiftReward {
-  const r = rng();
-  if (r < 0.6) return { kind: "seed", amount: 1 };
-  if (r < 0.84) return { kind: "candy", amount: 1 };
-  if (r < 0.92) return { kind: "golden", amount: 1 };
-  return { kind: "seed", amount: 3 };
-}
+export { rollGift };
 
 export const MEDAL_LABELS: Record<MedalId, string> = {
   first_harvest: "첫 수확",

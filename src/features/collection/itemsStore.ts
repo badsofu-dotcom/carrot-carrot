@@ -58,6 +58,12 @@ interface ItemDef {
   usable: boolean;
   /** Where the player gets it; surfaced as "획득 방법" copy when count===0. */
   acquisition: string;
+  /**
+   * Minimum stack size required to spend one charge of this item. The
+   * "사용" button stays hidden until `count >= minToUse`. Default 1.
+   * `gem` uses 5 (5 gems → +1 seed).
+   */
+  minToUse?: number;
 }
 
 export const ITEMS: readonly ItemDef[] = [
@@ -179,9 +185,10 @@ export const ITEMS: readonly ItemDef[] = [
     ko: "보석",
     tab: "collection",
     iconRel: "assets/farm/icons/icon_gem.png",
-    effect: "미구현 — 차후 상점 화폐",
-    usable: false,
-    acquisition: "미구현",
+    effect: "5개 사용 시 씨앗 1개 추가",
+    usable: true,
+    acquisition: "오늘의 선물상자 (2% 확률)",
+    minToUse: 5,
   },
   {
     code: "heart",
