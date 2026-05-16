@@ -21,6 +21,8 @@ import {
   type GiftReward,
 } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
+import { useCollectionStore } from "../../features/collection/collectionStore";
+import { passivesFromOwned } from "../../lib/dogamPassives";
 import { canWithdraw, MIN_PAYOUT, totalPoints } from "../../lib/points";
 import { apiCall, apiBaseUrl, tokenStore } from "../../lib/api";
 import { haptic } from "../../design-system/haptic";
@@ -100,10 +102,14 @@ export function RewardsPanel({ open, onClose }: Props) {
       const s = useSoundStore.getState();
       playSfx("giftbox", { muted: s.sfxMuted, masterVolume: s.sfxVolume });
     }
-    if (reward.kind === "candy") incCandy(reward.amount);
-    else if (reward.kind === "golden") incGolden(reward.amount);
+    // PR-63 — 도감 20마리 이상 시 giftBoostX (×1.5) reward 증폭.
+    const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
+    const giftBoost = passivesFromOwned(dogamOwned).giftBoostX;
+    const amt = Math.max(1, Math.round(reward.amount * giftBoost));
+    if (reward.kind === "candy") incCandy(amt);
+    else if (reward.kind === "golden") incGolden(amt);
     else if (reward.kind === "gem") {
-      useItemsStore.getState().add("gem", reward.amount);
+      useItemsStore.getState().add("gem", amt);
     }
     // "seed" rewards land via the same store path on the next focus
     // session tier — surfacing in inventory not yet wired for

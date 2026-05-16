@@ -520,6 +520,14 @@ export function FarmHub({
           pushFx("harvest_pop", bounds);
           toast("당근 +1");
         }
+        // PR-63 — 도감 10마리 이상 시 sessionCarrotMul (×1.05) 보너스.
+        // base harvest +1 carrot 위에 5% 확률로 +1 추가 — 평균 1.05.
+        if (passives.sessionCarrotMul > 1) {
+          const extraChance = passives.sessionCarrotMul - 1; // 0.05
+          if (Math.random() < extraChance) {
+            useFarmStore.getState().incCarrots(1);
+          }
+        }
         unlockMedal("first_harvest");
         // useFarmStore.carrots is the SoT; using getState() to avoid
         // re-subscribing for this one-shot check.
