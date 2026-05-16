@@ -28,6 +28,7 @@ import { useSoundStore } from "../../store/soundStore";
 import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
+import { useMissionsStore } from "../missions/missionsStore";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
@@ -404,9 +405,21 @@ export function FarmHub({
     const onShow = (ev: Event) => {
       const detail = (ev as CustomEvent<{ bunnyId?: string }>).detail;
       if (detail?.bunnyId) setGachaBunnyId(detail.bunnyId);
+      // PR-52 — bunny unlock surface = bunny_new mission trigger.
+      if (detail?.bunnyId) {
+        useMissionsStore.getState().incrementProgress("bunny_new", 1);
+      }
+    };
+    // PR-52 — medal_unlock 미션 트리거.
+    const onMedal = () => {
+      useMissionsStore.getState().incrementProgress("medal_unlock", 1);
     };
     window.addEventListener("cc:bunny-gacha:show", onShow);
-    return () => window.removeEventListener("cc:bunny-gacha:show", onShow);
+    window.addEventListener("cc:medal:unlocked", onMedal);
+    return () => {
+      window.removeEventListener("cc:bunny-gacha:show", onShow);
+      window.removeEventListener("cc:medal:unlocked", onMedal);
+    };
   }, []);
 
   // Ad-reward channel modal — opened via cc:ad-channel:open from
@@ -493,11 +506,15 @@ export function FarmHub({
           incCandyCarrots(1);
           pushFx("sparkle", bounds);
           unlockMedal("first_candy");
+          // PR-52 mission trigger
+          useMissionsStore.getState().incrementProgress("candy_harvest", 1);
           toast("🍬 캔디 당근! +5 P");
         } else if (outcome.kind === "golden") {
           incGoldenCarrots(1);
           pushFx("sparkle", bounds);
           unlockMedal("first_golden");
+          // PR-52 mission trigger
+          useMissionsStore.getState().incrementProgress("golden_harvest", 1);
           toast("✨ 황금 당근! +10 P");
         } else {
           pushFx("harvest_pop", bounds);
@@ -592,6 +609,8 @@ export function FarmHub({
       pushFx("perfect_combo", { cx: 50, cy: 50 });
       toast("🌟 퍼펙트 콤보! 다음 수확이 좋아질거에요");
       unlockMedal("perfect_combo");
+      // PR-52 mission trigger
+      useMissionsStore.getState().incrementProgress("perfect_combo", 1);
     }
     lastAllRipe.current = allRipe;
   }, [stages, pushFx, unlockMedal]);

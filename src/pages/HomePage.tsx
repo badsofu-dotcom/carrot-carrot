@@ -39,6 +39,8 @@ import { PREMIUM_SOUNDS } from "../data/sounds";
 import { useFarmStore } from "../features/collection/farmStore";
 import { useBuffsStore } from "../features/collection/buffsStore";
 import { useRewardsStore } from "../features/collection/rewardsStore";
+import { useMissionsStore } from "../features/missions/missionsStore";
+import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
 
 const LOGIN_PROMPT_KEY = "cc.hasSeenLoginPrompt";
@@ -172,6 +174,13 @@ export function HomePage() {
           const nightCount = rewardsStore.bumpNightSession();
           if (nightCount >= 7) rewardsStore.unlockMedal("quiet_sky");
         }
+
+        // PR-52 — 일일 미션 트리거. focus_25 / focus_50 / focus_night.
+        const focusedMin = lastSnapshot.focusedMs / 60_000;
+        const missions = useMissionsStore.getState();
+        if (focusedMin >= 25) missions.incrementProgress("focus_25", 1);
+        if (focusedMin >= 50) missions.incrementProgress("focus_50", 1);
+        if (isNight) missions.incrementProgress("focus_night", 1);
 
         // Reward 1: 오늘 5세션 완료 → 원데이 사운드 패스.
         if (!isPassActive(passExpiresAt) && todayCompleted + 1 >= 5) {
@@ -416,6 +425,9 @@ export function HomePage() {
         open={soundSheetOpen}
         onClose={() => setSoundSheetOpen(false)}
       />
+
+      {/* PR-52 — 오늘의 목표 카드 (일일 미션). 컨트롤 아래에 위치. */}
+      <DailyMissionsCard />
 
       {/* Modals + overlays */}
       <AbandonModal

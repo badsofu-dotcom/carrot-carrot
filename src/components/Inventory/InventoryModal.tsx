@@ -28,6 +28,7 @@ import { ITEM_META } from "../../lib/itemMeta";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useToolStore, TOOL_CONSTANTS } from "../../features/collection/toolStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
+import { useMissionsStore } from "../../features/missions/missionsStore";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 
@@ -115,6 +116,8 @@ export function InventoryModal({ open, onClose }: Props) {
       toast("아이템이 부족해요");
       return;
     }
+    // PR-52 — tool_use 미션 트리거 (모든 도구/아이템 사용 카운트).
+    useMissionsStore.getState().incrementProgress("tool_use", 1);
     switch (code) {
       case "hourglass":
         growAllPlanted(1, Date.now(), 0);

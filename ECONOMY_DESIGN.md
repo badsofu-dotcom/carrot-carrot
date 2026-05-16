@@ -68,6 +68,27 @@ Header chips render the PNG icon at 18×18 with `object-fit: contain`. If the as
 | `reward_points_total` (포인트 합계) | **100** | EV 110 P, anti-abuse 자연 차단 (PR-32 보정 50 → 100) |
 | `ad_views_today` (광고 시청 횟수) | 10 | 5회 P 보상 + 5회 토큰 보상 |
 
+## 일일 미션 (PR-52)
+
+매일 KST 자정 12종 pool 에서 3개 deterministic random pick (day-key hash). 미션별 reward 1~10 P, 모두 클리어 시 +5 P bonus.
+
+| Mission | threshold | reward | trigger 사이트 |
+| --- | --- | --- | --- |
+| 25분 집중 1회 | 1 | 5 P | HomePage focus complete (focusedMs ≥ 25 min) |
+| 50분 집중 1회 | 1 | 10 P | HomePage focus complete (≥ 50 min) |
+| 야간 집중 1회 | 1 | 5 P | HomePage focus complete (KST 22-06) |
+| 광고 3회 시청 | 3 | 5 P | AdRewardChannelModal claim |
+| 토끼 1마리 새로 만나기 | 1 | 3 P | cc:bunny-gacha:show 이벤트 |
+| 황금당근 1개 수확 | 1 | 5 P | FarmHub harvest golden |
+| 캔디당근 3개 수확 | 3 | 3 P | FarmHub harvest candy |
+| 농장 드랍 5개 줍기 | 5 | 3 P | FarmDropLayer.grant |
+| 메달 1개 신규 unlock | 1 | 5 P | cc:medal:unlocked 이벤트 |
+| 퍼펙트 콤보 1회 | 1 | 5 P | FarmHub allRipe 트리거 |
+| 도구 아이템 3개 사용 | 3 | 3 P | InventoryModal.onUse |
+| 친구 1명 초대 | 1 | 10 P | PR-54 wire 예정 |
+
+EV 평균 (3개 pick + bonus): **15~20 P / 일**. 100 P 캡 합산 EV 약 173 + 17 = **190 P** 잠재 (캡 100 + 도감 100 bonus 10 = 110). 사용자 활동 인센티브 강화 + anti-abuse 자연 차단.
+
 ## 광고 채널 — 보물 진행 랜덤 보상 (PR-48)
 
 `AdRewardChannelModal` 의 "보물" 채널 claim 마다 진행도 +1 + 랜덤 보상 풀 1 개:
