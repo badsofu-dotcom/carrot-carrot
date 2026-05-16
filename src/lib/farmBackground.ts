@@ -80,6 +80,14 @@ export interface PickFarmBackgroundOpts {
   weather?: "rain" | "snow" | null;
   /** If true, overlay seasonal palette (March → cherry etc.). */
   seasonOverlay?: boolean;
+  /** DEV-only forced slot. Wins over everything else (auto / weather /
+   *  season). Caller (FarmHub) reads `FARM_FORCE_SLOT_KEY` from
+   *  safeStorage and passes the value here. */
+  forceSlot?: FarmBgSlot | null;
+}
+
+export function isValidSlot(v: unknown): v is FarmBgSlot {
+  return typeof v === "string" && VALID_SLOTS.has(v);
 }
 
 const ENV_AUTO_DEFAULT = (() => {
@@ -91,6 +99,24 @@ const ENV_AUTO_DEFAULT = (() => {
 
 /** Settings-toggle storage key for "auto background". "0" disables. */
 export const FARM_BG_AUTO_KEY = "cc.farm.bgAuto.v1";
+/** DEV-only override (PR-19). When this safeStorage key holds a valid
+ *  FarmBgSlot value, `pickFarmBackgroundSlot` returns it unconditionally
+ *  — bypasses hour/weather/season logic so the DEV panel can step the
+ *  time of day for testing. Production never sets this (the cycle action
+ *  is dead-code-eliminated under `import.meta.env.DEV`). */
+export const FARM_FORCE_SLOT_KEY = "cc.dev.forceSlot.v1";
+
+const VALID_SLOTS: ReadonlySet<string> = new Set([
+  "sky_dawn",
+  "bg_morning",
+  "bg_day",
+  "bg_evening",
+  "bg_night",
+  "bg_cherry",
+  "bg_autumn",
+  "bg_snowy",
+  "bg_rainy",
+]);
 
 /**
  * Read the per-user override from safeStorage. The caller is responsible
@@ -137,6 +163,9 @@ export function pickFarmBackgroundSlot(
   now: Date = new Date(),
   opts: PickFarmBackgroundOpts = {},
 ): FarmBgSlot {
+  // DEV override wins over everything (PR-19).
+  if (opts.forceSlot && isValidSlot(opts.forceSlot)) return opts.forceSlot;
+
   const auto = opts.autoEnabled ?? ENV_AUTO_DEFAULT;
   if (!auto) return "bg_day";
 

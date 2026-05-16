@@ -9,10 +9,13 @@ import { useBuffsStore } from "./buffsStore";
 import { safeStorage } from "../../lib/safeStorage";
 import {
   FARM_BG_AUTO_KEY,
+  FARM_FORCE_SLOT_KEY,
   autoFromStorageValue,
+  isValidSlot,
   msUntilNextHour,
   pickFarmBackground,
   pickFarmBackgroundSlot,
+  type FarmBgSlot,
 } from "../../lib/farmBackground";
 import {
   computePerfectCombo,
@@ -214,22 +217,31 @@ export function FarmHub({
   // Time-of-day background. Recomputes at mount, on tab focus (`visibilitychange`),
   // and at the next KST hour boundary so dawn → morning → day etc. flip
   // automatically. The auto toggle lives in Settings → 외관 → 배경 자동 변경.
-  const [bgSrc, setBgSrc] = useState<string>(() => {
+  // Reads BOTH the auto-bg toggle and (PR-19) the DEV force-slot key.
+  // forceSlot wins inside pickFarmBackgroundSlot; production users never
+  // have the key set so the path collapses to the original behavior.
+  const readSlotOpts = () => {
     const auto = autoFromStorageValue(safeStorage.get(FARM_BG_AUTO_KEY));
-    return pickFarmBackground(new Date(), { autoEnabled: auto });
-  });
-  const [bgSlot, setBgSlot] = useState(() => {
-    const auto = autoFromStorageValue(safeStorage.get(FARM_BG_AUTO_KEY));
-    return pickFarmBackgroundSlot(new Date(), { autoEnabled: auto });
-  });
+    const forceRaw = safeStorage.get(FARM_FORCE_SLOT_KEY);
+    const forceSlot: FarmBgSlot | null = isValidSlot(forceRaw)
+      ? (forceRaw as FarmBgSlot)
+      : null;
+    return { autoEnabled: auto, forceSlot };
+  };
+  const [bgSrc, setBgSrc] = useState<string>(() =>
+    pickFarmBackground(new Date(), readSlotOpts()),
+  );
+  const [bgSlot, setBgSlot] = useState(() =>
+    pickFarmBackgroundSlot(new Date(), readSlotOpts()),
+  );
   useEffect(() => {
     let cancelled = false;
     let timeout: ReturnType<typeof setTimeout> | null = null;
     const recompute = () => {
       if (cancelled) return;
-      const auto = autoFromStorageValue(safeStorage.get(FARM_BG_AUTO_KEY));
-      const nextSrc = pickFarmBackground(new Date(), { autoEnabled: auto });
-      const nextSlot = pickFarmBackgroundSlot(new Date(), { autoEnabled: auto });
+      const opts = readSlotOpts();
+      const nextSrc = pickFarmBackground(new Date(), opts);
+      const nextSlot = pickFarmBackgroundSlot(new Date(), opts);
       setBgSrc((cur) => (cur === nextSrc ? cur : nextSrc));
       setBgSlot((cur) => (cur === nextSlot ? cur : nextSlot));
       // 5-minute polling per spec — handles weather/season overrides
@@ -242,11 +254,17 @@ export function FarmHub({
     const onVisible = () => {
       if (document.visibilityState === "visible") recompute();
     };
+    // PR-19 — DEV panel's "force time slot" action dispatches this
+    // event so the background updates immediately instead of waiting
+    // for the 5-min poll.
+    const onForceSlot = () => recompute();
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("cc:dev:forceSlot", onForceSlot);
     return () => {
       cancelled = true;
       if (timeout) clearTimeout(timeout);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("cc:dev:forceSlot", onForceSlot);
     };
   }, []);
 

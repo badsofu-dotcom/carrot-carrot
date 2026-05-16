@@ -68,6 +68,8 @@ interface RewardsState {
    *  progress < GOAL. Caller is responsible for granting the reward
    *  into farmStore / itemsStore. */
   openTreasureChest: (rng?: () => number) => TableEntry | null;
+  /** DEV — clear the daily gift claim flag so "오늘의 선물" reopens. */
+  resetDailyGiftClaim: () => void;
   /** Reset for tests / data-wipe. */
   reset: () => void;
 }
@@ -197,6 +199,11 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
     const next = Math.min(WEEKLY_TREASURE_GOAL, get().treasureProgress + inc);
     saveTreasureProgress(next);
     set({ treasureProgress: next });
+  },
+
+  resetDailyGiftClaim: () => {
+    safeStorage.remove(STORAGE_KEY_DAY);
+    set({ giftClaimedDay: null, lastGiftReward: null });
   },
 
   openTreasureChest: (rng = Math.random) => {
