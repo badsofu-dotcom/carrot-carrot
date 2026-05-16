@@ -412,10 +412,14 @@ export function InventoryModal({ open, onClose }: Props) {
               })}
             </div>
 
-            {/* PR-41 — Bottom sticky detail panel. 선택된 아이템의 풀
-                설명 + 획득 방법 + 사용하기 버튼 통합 surface. 비선택
-                상태에서는 짧은 안내 (탭하면 자세히). */}
+            {/* PR-41 — Detail panel (info-only, scrollable).
+                PR-57 — usable 아이템의 "사용" 버튼은 별도 ActionBar 로
+                분리해서 panel 내부 스크롤과 무관하게 항상 보임. */}
             <DetailPanel
+              code={selected}
+              count={selected ? liveResourceCount(selected) : 0}
+            />
+            <ActionBar
               code={selected}
               count={selected ? liveResourceCount(selected) : 0}
               onUse={onUse}
@@ -463,18 +467,14 @@ export function InventoryModal({ open, onClose }: Props) {
 function DetailPanel({
   code,
   count,
-  onUse,
 }: {
   code: ItemCode | null;
   count: number;
-  onUse: (c: ItemCode) => void;
 }) {
   if (!code) return null;
   const def = ITEMS.find((i) => i.code === code);
   if (!def) return null;
   const meta = ITEM_META[code];
-  const minToUse = def.minToUse ?? 1;
-  const canUse = def.usable && count >= minToUse;
   return (
     <div
       data-testid="inventory-detail"
@@ -556,33 +556,80 @@ function DetailPanel({
         >
           획득 방법: {def.acquisition}
         </p>
-        {def.usable && (
-          <button
-            type="button"
-            data-testid={`inventory-use-${code}`}
-            onClick={() => onUse(code)}
-            disabled={!canUse}
-            style={{
-              marginTop: 8,
-              width: "100%",
-              height: 36,
-              borderRadius: 10,
-              border: "none",
-              background: canUse ? "#FF7B61" : "rgba(0,0,0,0.08)",
-              color: canUse ? "#fff" : "#888",
-              fontWeight: 800,
-              fontSize: 13,
-              cursor: canUse ? "pointer" : "not-allowed",
-            }}
-          >
-            {minToUse > 1
-              ? `사용하기 (${minToUse}개 필요)`
-              : count > 0
-                ? "사용하기"
-                : "보유 부족"}
-          </button>
-        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * ActionBar (PR-57) — DetailPanel 과 분리된 sticky 사용 버튼.
+ *
+ * DetailPanel 의 maxHeight overflow 스크롤과 무관하게 항상 보임.
+ * usable === false 면 미렌더 (자원 chip 등은 사용 버튼 불필요).
+ * minToUse 미달 시 disabled + "최소 N개 필요" 안내.
+ * code === null 이면 미렌더.
+ */
+function ActionBar({
+  code,
+  count,
+  onUse,
+}: {
+  code: ItemCode | null;
+  count: number;
+  onUse: (c: ItemCode) => void;
+}) {
+  if (!code) return null;
+  const def = ITEMS.find((i) => i.code === code);
+  if (!def || !def.usable) return null;
+  const minToUse = def.minToUse ?? 1;
+  const canUse = count >= minToUse;
+  const label = (() => {
+    if (canUse) {
+      return minToUse > 1 ? `사용하기 (${minToUse}개 소비)` : "사용하기";
+    }
+    if (count === 0) return "보유 부족";
+    return `최소 ${minToUse}개 필요`;
+  })();
+  return (
+    <div
+      data-testid="inventory-action-bar"
+      style={{
+        flexShrink: 0,
+        marginTop: 8,
+        padding: "8px 4px 0",
+        borderTop: "1px solid rgba(0,0,0,0.05)",
+        boxShadow: "0 -2px 6px rgba(0,0,0,0.04)",
+      }}
+    >
+      <button
+        type="button"
+        data-testid={`inventory-use-${code}`}
+        onClick={() => onUse(code)}
+        disabled={!canUse}
+        style={{
+          width: "100%",
+          height: 44,
+          borderRadius: 12,
+          border: "none",
+          background: canUse ? "#FF7B61" : "rgba(0,0,0,0.08)",
+          color: canUse ? "#fff" : "#888",
+          fontWeight: 800,
+          fontSize: 14,
+          cursor: canUse ? "pointer" : "not-allowed",
+          transition: "background 0.15s, transform 0.15s",
+        }}
+        onPointerDown={(e) => {
+          if (canUse) e.currentTarget.style.transform = "scale(0.97)";
+        }}
+        onPointerUp={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+        onPointerLeave={(e) => {
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+      >
+        {label}
+      </button>
     </div>
   );
 }
