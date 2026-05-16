@@ -36,7 +36,19 @@ export function variantForSlot(slot: FarmBgSlot): AtmosphereVariant {
   }
 }
 
-export function Atmosphere({ variant }: { variant: AtmosphereVariant }) {
+export function Atmosphere({
+  variant,
+  noClouds = false,
+}: {
+  variant: AtmosphereVariant;
+  /**
+   * When true, suppress the always-on cloud parallax (the soft white
+   * radial-gradient haze). Weather particles (rain/snow/cherry/autumn)
+   * still render. PR-15: SkyView passes this so stars / moon / shooting
+   * stars read sharp instead of through fog.
+   */
+  noClouds?: boolean;
+}) {
   // Particles built once per variant — render order is stable, no
   // layout thrash. Math.random is fine: this only runs when the
   // variant changes, not on every animation frame.
@@ -54,22 +66,25 @@ export function Atmosphere({ variant }: { variant: AtmosphereVariant }) {
         zIndex: 1,
       }}
     >
-      {/* Slow cloud parallax — always on */}
-      <div
-        style={{
-          position: "absolute",
-          top: "8%",
-          left: 0,
-          width: "200%",
-          height: "12%",
-          backgroundImage:
-            "radial-gradient(closest-side, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
-          backgroundRepeat: "repeat-x",
-          backgroundSize: "30% 100%",
-          animation: "cc-cloud-drift 70s linear infinite",
-          opacity: 0.6,
-        }}
-      />
+      {/* Slow cloud parallax — always on except when SkyView opens. */}
+      {!noClouds && (
+        <div
+          data-testid="atmosphere-clouds"
+          style={{
+            position: "absolute",
+            top: "8%",
+            left: 0,
+            width: "200%",
+            height: "12%",
+            backgroundImage:
+              "radial-gradient(closest-side, rgba(255,255,255,0.55), rgba(255,255,255,0) 70%)",
+            backgroundRepeat: "repeat-x",
+            backgroundSize: "30% 100%",
+            animation: "cc-cloud-drift 70s linear infinite",
+            opacity: 0.6,
+          }}
+        />
+      )}
 
       {particles}
 

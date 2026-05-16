@@ -265,7 +265,10 @@ export function SkyView({ open, slot, onClose }: Props) {
               opacity: 0.9,
             }}
           >
-            <Atmosphere variant={variant} />
+            {/* PR-15: suppress the always-on cloud parallax so the
+                sky's stars / moon / shooting-star aren't fogged.
+                Weather particles (rain/snow/cherry/autumn) still play. */}
+            <Atmosphere variant={variant} noClouds />
           </div>
 
           {/* Long-press sparkle burst */}
