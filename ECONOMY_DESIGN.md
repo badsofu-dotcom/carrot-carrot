@@ -1,8 +1,21 @@
-# 버니타임 v2 — Economy Design
+# 버니타임 v2 — Economy Design (v2 — PR-31~38)
 
 This document captures the BunnyTime v2 reward economy: how a focus
 session converts into Toss points, what caps and audit trails protect
 us against abuse, and what is currently **live** vs **scaffolded**.
+
+## v2 자원 분류 (PR-31)
+
+`itemsStore.ItemCategory` 4 종 + 별도 stores 2 surface:
+
+| 카테고리 | 항목 | 목적 |
+| --- | --- | --- |
+| **currency** | carrot / candy / golden | P 직접 변환 (1 / 5 / 10 P) |
+| **soft_currency** | seed / carrot_coin | 게임내 재화 (씨앗 sink 미정 — PR-32 후속 검토 / 50 coin → 캔디 1) |
+| **consumable** | hourglass / bolt / juice / soup / cake | 도구 아이템 (사용 시 1회 효과) |
+| **token** | star / gem / heart | 특수 토큰 (star=레전더리 / gem=trade modal / heart=광고 시청 토큰) |
+| **honor** (별도 store) | medal × 11 | 도전 과제 (rewardsStore.medals Set, AchievementsCard) |
+| **dex** (별도 store) | bunny × 25 | 도감 (collectionStore.ownedCharacters, CollectionPage) |
 
 > Status: **live (gated by secrets)**.
 > The `executePromotion` call path is wired in `routes/economy.ts` →
@@ -22,8 +35,8 @@ us against abuse, and what is currently **live** vs **scaffolded**.
 | Source | Drop | Points | Tracked in client store as |
 | --- | --- | --- | --- |
 | 일반 당근 (carrot harvest) | every harvest | 1 P | `useFarmStore.carrots` |
-| 캔디 당근 (candy carrot) | 4 % base / 12 % during perfect-combo / +1 %p with combo-streak ≥5 | 5 P | `useFarmStore.candyCarrots` |
-| 황금 당근 (golden carrot) | 1 % roll on harvest | 10 P | `useFarmStore.goldenCarrots` |
+| 캔디 당근 (candy carrot) | **7 %** base / 12 % perfect-combo / +1 %p combo-streak ≥5 / +5 %p juice / +0.1 %p dogam ≥1 | 5 P | `useFarmStore.candyCarrots` |
+| 황금 당근 (golden carrot) | **0.6 %** roll on harvest / +0.1 %p dogam ≥5 | 10 P | `useFarmStore.goldenCarrots` |
 | 광고 시청 보상 (rewarded ad) | per ad, ≤ 10/day | 2 P | (server-side audit) |
 | 데일리 출석 보너스 | once / KST day | 3 P | (server-side audit) |
 
@@ -82,6 +95,57 @@ Header chips render the PNG icon at 18×18 with `object-fit: contain`. If the as
 | **합계 EV** | **~173 P** (집중 시) |
 
 100 P 캡이 적중 — anti-abuse 자연 차단. 2 시간 풀 활용 시 100 P + tokens (gem/bolt) bonus 받음.
+
+## Gem trade options (PR-33)
+
+GemTradeModal — 보석 사용 5 옵션:
+
+| ID | 비용 | 효과 | 즉시 EV |
+| --- | --- | --- | --- |
+| seeds9 | 5 gem | 씨앗 +9 | 0 P (soft sink) |
+| grow | 5 gem | 전체 심은 plot +1 stage | 무시 |
+| session | 10 gem | 당근 +25 (25분 세션 1회분) | 25 P → 2.5 P/gem |
+| golden | 20 gem | 황금당근 +1 | 10 P → 0.5 P/gem |
+| legend | 50 gem | 레전더리 토끼 (보유 시 환불) | 도감 unlock |
+
+## 농장 드랍 (PR-34)
+
+`FarmDropLayer` — 15~60 초 random spawn, 5 초 표시. 일일 max 30 (KST 리셋).
+
+| Drop | weight | 확률 |
+| --- | --- | --- |
+| gem | 25 | 27.2 % |
+| bolt | 20 | 21.7 % |
+| heart | 15 | 16.3 % |
+| hourglass | 10 | 10.9 % |
+| juice / soup / cake / seed | 각 5 | 각 5.4 % |
+| golden | 1 | 1.1 % |
+| hidden_bunny | 1 | 1.1 % |
+
+체류 유도 메커닉. 클라 카운터만 (anti-abuse 자연 차단).
+
+## 히든 토끼 (PR-35)
+
+`HiddenBunnyLayer` — 5~30 분 random 가로지름. 일일 max 4. 탭 시:
+- 미획득: forceUnlock + BunnyGachaModal surface (도감 unlock 가치)
+- 보유: gem +5 보너스
+
+사양 B (히든 스팟) 는 follow-up.
+
+## 도감 패시브 (PR-38)
+
+`passivesFromOwned(count)` — 도감 unlock 카운트에 비례한 누적 효과:
+
+| 임계 | 효과 |
+| --- | --- |
+| 1 마리 | 캔디 확률 +0.1 %p |
+| 5 마리 | 황금 확률 +0.1 %p |
+| 10 마리 | 세션 당근 ×1.05 (잔여 wire) |
+| 15 마리 | 광고 보상 +1 carrot |
+| 20 마리 | 일일 gift ×1.5 (잔여 wire) |
+| 25 마리 | 일일 P 캡 100 → 110 (worker enforcement TBD) |
+
+캐스케이드 (≥ N). gacha rates (1, 5) + 광고 N-th tier (15) 본 PR 에 wire.
 
 ## Harvest gacha rates (PR-32 보정)
 
