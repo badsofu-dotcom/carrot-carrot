@@ -57,11 +57,18 @@ interface RewardsState {
   treasureProgress: number;
   /** Last treasure roll result (for the claim banner). */
   lastTreasureReward: TableEntry | null;
+  /** PR-49 — KST 22-06 시간대 집중 세션 누적 카운터 (lifetime).
+   *  7회 도달 시 `quiet_sky` 메달 unlock. */
+  nightSessions: number;
 
   /** Returns the gift reward if a claim succeeded; null when already claimed. */
   claimDailyGift: (rng?: () => number) => GiftReward | null;
   /** Unlock a medal idempotently. Returns true if newly unlocked. */
   unlockMedal: (id: MedalId) => boolean;
+  /** PR-49 — unlock 11 모든 메달 (DEV cheat). 신규 unlock 개수 반환. */
+  unlockAllMedals: () => number;
+  /** PR-49 — 야간 집중 세션 +1, 누적 카운트 반환. quiet_sky 임계 7. */
+  bumpNightSession: () => number;
   /** Add N progress to the weekly treasure chest. Capped at GOAL. */
   addTreasureProgress: (n?: number) => void;
   /** Open the treasure chest. Returns the rolled reward, or null when
@@ -77,6 +84,8 @@ interface RewardsState {
 const STORAGE_KEY_DAY = "cc.rewards.giftDay.v1";
 const STORAGE_KEY_MEDALS = "cc.rewards.medals.v1";
 const STORAGE_KEY_TREASURE = "cc.rewards.treasureProgress.v1";
+// PR-49 — quiet_sky "밤의 숲지기" 트리거. KST 22-06 시간대 집중 누적 카운터.
+const STORAGE_KEY_NIGHT_SESSIONS = "cc.rewards.nightSessions.v1";
 
 function kstDayKey(now: Date = new Date()): string {
   const kst = new Date(now.getTime() + 9 * 3600 * 1000);
@@ -139,6 +148,34 @@ function saveTreasureProgress(n: number) {
   }
 }
 
+function loadNightSessions(): number {
+  const raw = safeStorage.get(STORAGE_KEY_NIGHT_SESSIONS);
+  if (!raw) return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+function saveNightSessions(n: number) {
+  try {
+    safeStorage.set(STORAGE_KEY_NIGHT_SESSIONS, String(n));
+  } catch {
+    /* ignore */
+  }
+}
+
+const ALL_MEDAL_IDS: readonly MedalId[] = [
+  "first_harvest",
+  "five_carrots",
+  "first_session",
+  "perfect_combo",
+  "first_candy",
+  "first_golden",
+  "dogam_25",
+  "dogam_50",
+  "dogam_75",
+  "dogam_100",
+  "quiet_sky",
+];
+
 export { rollGift };
 
 export const MEDAL_LABELS: Record<MedalId, string> = {
@@ -161,6 +198,7 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
   medals: loadMedals(),
   treasureProgress: loadTreasureProgress(),
   lastTreasureReward: null,
+  nightSessions: loadNightSessions(),
 
   claimDailyGift: (rng = Math.random) => {
     const today = kstDayKey();
@@ -193,6 +231,43 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
     return true;
   },
 
+  unlockAllMedals: () => {
+    const cur = get().medals;
+    let unlocked = 0;
+    const next = new Set(cur);
+    for (const id of ALL_MEDAL_IDS) {
+      if (!next.has(id)) {
+        next.add(id);
+        unlocked++;
+      }
+    }
+    if (unlocked > 0) {
+      saveMedals(next);
+      set({ medals: next });
+      // Fire event for each newly unlocked id — SFX listener consistency.
+      try {
+        if (typeof window !== "undefined") {
+          for (const id of ALL_MEDAL_IDS) {
+            if (cur.has(id)) continue;
+            window.dispatchEvent(
+              new CustomEvent("cc:medal:unlocked", { detail: { id } }),
+            );
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return unlocked;
+  },
+
+  bumpNightSession: () => {
+    const next = get().nightSessions + 1;
+    saveNightSessions(next);
+    set({ nightSessions: next });
+    return next;
+  },
+
   addTreasureProgress: (n = 1) => {
     const inc = Math.max(0, Math.floor(n));
     if (inc === 0) return;
@@ -218,12 +293,14 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
     safeStorage.remove(STORAGE_KEY_DAY);
     safeStorage.remove(STORAGE_KEY_MEDALS);
     safeStorage.remove(STORAGE_KEY_TREASURE);
+    safeStorage.remove(STORAGE_KEY_NIGHT_SESSIONS);
     set({
       giftClaimedDay: null,
       lastGiftReward: null,
       medals: new Set(),
       treasureProgress: 0,
       lastTreasureReward: null,
+      nightSessions: 0,
     });
   },
 }));

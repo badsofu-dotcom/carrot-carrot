@@ -235,10 +235,9 @@ export function DevActionsGroup() {
   };
   const handleUnlockAllMedals = () => {
     haptic("success");
-    let n = 0;
-    for (const m of ALL_MEDALS) {
-      if (unlockMedal(m)) n++;
-    }
+    // PR-49 — rewardsStore.unlockAllMedals() store method 사용. 신규
+    // unlock 개수 반환 + cc:medal:unlocked 이벤트 dispatch (SFX 트리거).
+    const n = useRewardsStore.getState().unlockAllMedals();
     toast(n > 0 ? `메달 ${n}개 unlock` : "이미 다 unlock 됨");
   };
   const handleResetDailyGift = () => {

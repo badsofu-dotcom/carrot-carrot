@@ -38,6 +38,7 @@ import { useSoundStore, isPassActive } from "../store/soundStore";
 import { PREMIUM_SOUNDS } from "../data/sounds";
 import { useFarmStore } from "../features/collection/farmStore";
 import { useBuffsStore } from "../features/collection/buffsStore";
+import { useRewardsStore } from "../features/collection/rewardsStore";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
 
 const LOGIN_PROMPT_KEY = "cc.hasSeenLoginPrompt";
@@ -156,6 +157,21 @@ export function HomePage() {
           type: "complete",
         });
         if (newIds.length) setUnlockQueue(newIds);
+
+        // PR-49 — 메달 트리거:
+        //   first_session: 첫 호흡 — 매 valid 완료마다 idempotent unlock
+        //   quiet_sky:     밤의 숲지기 — KST 22:00~06:00 집중 7회 누적
+        const rewardsStore = useRewardsStore.getState();
+        rewardsStore.unlockMedal("first_session");
+        const completedAtKstHour = (() => {
+          const kst = new Date(lastSnapshot.at + 9 * 3600 * 1000);
+          return kst.getUTCHours();
+        })();
+        const isNight = completedAtKstHour >= 22 || completedAtKstHour < 6;
+        if (isNight) {
+          const nightCount = rewardsStore.bumpNightSession();
+          if (nightCount >= 7) rewardsStore.unlockMedal("quiet_sky");
+        }
 
         // Reward 1: 오늘 5세션 완료 → 원데이 사운드 패스.
         if (!isPassActive(passExpiresAt) && todayCompleted + 1 >= 5) {
