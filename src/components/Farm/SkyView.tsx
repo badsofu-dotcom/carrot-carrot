@@ -187,7 +187,13 @@ export function SkyView({ open, slot, onClose }: Props) {
     touchStartY.current = null;
     if (start == null) return;
     const end = e.changedTouches[0]?.clientY ?? start;
-    if (Math.abs(end - start) >= SWIPE_DISMISS_PX) {
+    // PR-16 — dismiss only on a DOWN swipe (start → end going down,
+    // i.e. end - start positive). Previously closed on either direction
+    // which was inconsistent with the new farm-side swipe-up-to-open
+    // gesture (an up swipe inside SkyView would re-trigger the farm
+    // gesture model). Down only keeps the mental model: up = open sky,
+    // down = back to farm.
+    if (end - start >= SWIPE_DISMISS_PX) {
       onClose();
       return;
     }
@@ -201,6 +207,22 @@ export function SkyView({ open, slot, onClose }: Props) {
   // message; close button stays.
   const onBackdropClick: React.MouseEventHandler = () => {
     setMessageIdx((n) => n + 1);
+  };
+
+  // PR-16 — desktop mouse wheel: cumulative downward scroll closes.
+  const wheelAcc = useRef(0);
+  const wheelResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const SKY_WHEEL_THRESHOLD = 60;
+  const onSkyWheel: React.WheelEventHandler = (e) => {
+    wheelAcc.current += e.deltaY;
+    if (wheelResetTimer.current) clearTimeout(wheelResetTimer.current);
+    wheelResetTimer.current = setTimeout(() => {
+      wheelAcc.current = 0;
+    }, 250);
+    if (wheelAcc.current >= SKY_WHEEL_THRESHOLD) {
+      wheelAcc.current = 0;
+      onClose();
+    }
   };
 
   return (
@@ -218,6 +240,7 @@ export function SkyView({ open, slot, onClose }: Props) {
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
+          onWheel={onSkyWheel}
           onClick={onBackdropClick}
           style={{
             position: "fixed",

@@ -314,6 +314,51 @@ export function FarmHub({
 
   // --- Sky-view -------------------------------------------------------
   const [skyOpen, setSkyOpen] = useState(false);
+
+  // PR-16: swipe-up / wheel-up on the farm card opens SkyView. The
+  // existing chip ("☁ 하늘 보기") still works; this is an additional
+  // affordance. Threshold values match SkyView's SWIPE_DISMISS_PX.
+  const swipeStartY = useRef<number | null>(null);
+  const swipeMoved = useRef(false);
+  const wheelAcc = useRef(0);
+  const wheelResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const FARM_SWIPE_THRESHOLD_PX = 80;
+  const FARM_WHEEL_THRESHOLD = 60;
+  const onFarmTouchStart: React.TouchEventHandler = (e) => {
+    swipeStartY.current = e.touches[0]?.clientY ?? null;
+    swipeMoved.current = false;
+  };
+  const onFarmTouchMove: React.TouchEventHandler = (e) => {
+    const start = swipeStartY.current;
+    if (start == null) return;
+    const cur = e.touches[0]?.clientY ?? start;
+    if (Math.abs(cur - start) > 8) swipeMoved.current = true;
+  };
+  const onFarmTouchEnd: React.TouchEventHandler = (e) => {
+    const start = swipeStartY.current;
+    swipeStartY.current = null;
+    if (start == null) return;
+    const end = e.changedTouches[0]?.clientY ?? start;
+    // Up swipe: start > end. Threshold matches SkyView's dismiss value.
+    if (start - end >= FARM_SWIPE_THRESHOLD_PX && !skyOpen) {
+      haptic("light");
+      setSkyOpen(true);
+    }
+  };
+  const onFarmWheel: React.WheelEventHandler = (e) => {
+    // Accumulate within a 250 ms rolling window so trackpads (small
+    // deltaY per event) can still trigger but a single sharp scroll
+    // doesn't compete with the deltaY decay.
+    wheelAcc.current += e.deltaY;
+    if (wheelResetTimer.current) clearTimeout(wheelResetTimer.current);
+    wheelResetTimer.current = setTimeout(() => {
+      wheelAcc.current = 0;
+    }, 250);
+    if (wheelAcc.current <= -FARM_WHEEL_THRESHOLD && !skyOpen) {
+      wheelAcc.current = 0;
+      setSkyOpen(true);
+    }
+  };
   // --- Bunny gacha modal ----------------------------------------------
   const [gachaBunnyId, setGachaBunnyId] = useState<string | null>(null);
   // Ad-reward channel modal — opened via cc:ad-channel:open from
@@ -495,6 +540,10 @@ export function FarmHub({
   return (
     <section
       data-testid="farm-hub"
+      onTouchStart={onFarmTouchStart}
+      onTouchMove={onFarmTouchMove}
+      onTouchEnd={onFarmTouchEnd}
+      onWheel={onFarmWheel}
       style={{
         // Visible card: fills the FarmView flex column. Width clamps at
         // --app-max-width (480px); height fills available space.
