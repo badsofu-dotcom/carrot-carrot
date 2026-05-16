@@ -24,6 +24,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ITEMS, useItemsStore, type ItemCode, type ItemTab } from "../../features/collection/itemsStore";
+import { ITEM_META } from "../../lib/itemMeta";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useToolStore, TOOL_CONSTANTS } from "../../features/collection/toolStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
@@ -48,6 +49,10 @@ interface Props {
 
 export function InventoryModal({ open, onClose }: Props) {
   const [tab, setTab] = useState<ItemTab>("resources");
+  // PR-41 — selected item state. Click a grid cell to highlight + show
+  // bottom sticky panel with full description + acquisition + 사용하기
+  // 버튼 (조건부). 같은 셀 재클릭 = unselect.
+  const [selected, setSelected] = useState<ItemCode | null>(null);
   const counts = useItemsStore((s) => s.counts);
   const consume = useItemsStore((s) => s.consume);
   const carrots = useFarmStore((s) => s.carrots);
@@ -81,6 +86,14 @@ export function InventoryModal({ open, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // PR-41 — modal close + tab switch unselect.
+  useEffect(() => {
+    if (!open) setSelected(null);
+  }, [open]);
+  useEffect(() => {
+    setSelected(null);
+  }, [tab]);
 
   const items = ITEMS.filter((i) => i.tab === tab);
 
@@ -274,29 +287,44 @@ export function InventoryModal({ open, onClose }: Props) {
               ))}
             </div>
 
-            {/* Grid */}
+            {/* PR-41 — scrollable grid. flex:1 + minHeight:0 takes the
+                vertical space between header/tabs and the bottom sticky
+                detail panel. */}
             <div
+              data-testid="inventory-grid"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
                 gap: 10,
                 overflowY: "auto",
                 paddingBottom: 8,
+                flex: 1,
+                minHeight: 0,
               }}
             >
               {items.map((it) => {
                 const count = liveResourceCount(it.code);
                 const owned = count > 0;
-                const minToUse = it.minToUse ?? 1;
-                const canUse = it.usable && count >= minToUse;
+                const isSelected = selected === it.code;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={it.code}
                     data-testid={`inv-${it.code}`}
-                    title={!owned ? `획득 방법: ${it.acquisition}` : it.effect}
+                    aria-pressed={isSelected}
+                    title={it.ko}
+                    onClick={() => {
+                      haptic("light");
+                      setSelected((cur) => (cur === it.code ? null : it.code));
+                    }}
                     style={{
                       position: "relative",
                       background: "#fff",
+                      // PR-41 — 주황 외곽선 강조 (선택 상태). 비선택 시
+                      // 옅은 회색 hairline.
+                      border: isSelected
+                        ? "2px solid #FF7B61"
+                        : "1px solid rgba(0,0,0,0.05)",
                       borderRadius: 14,
                       width: "100%",
                       aspectRatio: "1 / 1",
@@ -306,13 +334,18 @@ export function InventoryModal({ open, onClose }: Props) {
                       alignItems: "center",
                       justifyContent: "center",
                       gap: 4,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                      boxShadow: isSelected
+                        ? "0 4px 12px rgba(255,123,97,0.25)"
+                        : "0 1px 3px rgba(0,0,0,0.04)",
                       opacity: owned ? 1 : 0.45,
+                      cursor: "pointer",
+                      transition: "border-color 0.15s, box-shadow 0.15s",
                     }}
                   >
                     <img
                       src={`${BASE}${it.iconRel}`}
                       alt=""
+                      draggable={false}
                       style={{
                         width: 40,
                         height: 40,
@@ -344,61 +377,166 @@ export function InventoryModal({ open, onClose }: Props) {
                     >
                       {count > 0 ? count : ""}
                     </span>
-                    {canUse && (
-                      <button
-                        type="button"
-                        data-testid={`inv-use-${it.code}`}
-                        onClick={() => onUse(it.code)}
-                        style={{
-                          position: "absolute",
-                          left: 4,
-                          right: 4,
-                          bottom: 4,
-                          height: 18,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          border: "none",
-                          borderRadius: 8,
-                          background: "#FF7B61",
-                          color: "#fff",
-                          cursor: "pointer",
-                          padding: 0,
-                        }}
-                      >
-                        {minToUse > 1 ? `사용 (${minToUse})` : "사용"}
-                      </button>
-                    )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
 
+            {/* PR-41 — Bottom sticky detail panel. 선택된 아이템의 풀
+                설명 + 획득 방법 + 사용하기 버튼 통합 surface. 비선택
+                상태에서는 짧은 안내 (탭하면 자세히). */}
+            <DetailPanel
+              code={selected}
+              count={selected ? liveResourceCount(selected) : 0}
+              onUse={onUse}
+            />
+
             {/* Footer summary */}
-            <p
-              style={{
-                margin: "8px 4px 0",
-                fontSize: 11,
-                color: "#888",
-                textAlign: "center",
-              }}
-            >
-              총 {ITEMS.length}종 · 보유 {useItemsStore.getState().speciesOwned()}종
-              {tab === "resources" && (
-                <>
-                  {" · "}
-                  🥕 {carrots} · 🍬 {candy} · ✨ {golden} · 🌱 {seeds}
-                </>
-              )}
-              {tab === "tools" && (
-                <>
-                  {" · "}
-                  최대 광고 충전 {TOOL_CONSTANTS.MAX_AD_REFILLS}회/일
-                </>
-              )}
-            </p>
+            {selected === null && (
+              <p
+                style={{
+                  margin: "8px 4px 0",
+                  fontSize: 11,
+                  color: "#888",
+                  textAlign: "center",
+                  flexShrink: 0,
+                }}
+              >
+                총 {ITEMS.length}종 · 보유 {useItemsStore.getState().speciesOwned()}종
+                {tab === "resources" && (
+                  <>
+                    {" · "}
+                    🥕 {carrots} · 🍬 {candy} · ✨ {golden} · 🌱 {seeds}
+                  </>
+                )}
+                {tab === "tools" && (
+                  <>
+                    {" · "}
+                    최대 광고 충전 {TOOL_CONSTANTS.MAX_AD_REFILLS}회/일
+                  </>
+                )}
+              </p>
+            )}
           </motion.div>
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+/**
+ * PR-41 — Bottom sticky detail panel. Shown only when an item cell is
+ * tapped. Folds icon + name + count + longDescription + acquisition +
+ * "사용하기" 버튼을 한 surface 에 묶음. 비선택 상태에서는 모달 본문이
+ * 기본 footer 요약을 사용 (호출자 측에서 조건부 렌더).
+ */
+function DetailPanel({
+  code,
+  count,
+  onUse,
+}: {
+  code: ItemCode | null;
+  count: number;
+  onUse: (c: ItemCode) => void;
+}) {
+  if (!code) return null;
+  const def = ITEMS.find((i) => i.code === code);
+  if (!def) return null;
+  const meta = ITEM_META[code];
+  const minToUse = def.minToUse ?? 1;
+  const canUse = def.usable && count >= minToUse;
+  return (
+    <div
+      data-testid="inventory-detail"
+      style={{
+        flexShrink: 0,
+        marginTop: 10,
+        padding: "12px 14px",
+        background: "#fff",
+        border: "1px solid rgba(255,123,97,0.25)",
+        borderRadius: 14,
+        boxShadow: "0 -2px 8px rgba(255,123,97,0.06)",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+      }}
+    >
+      <img
+        src={`${BASE}${def.iconRel}`}
+        alt=""
+        width={42}
+        height={42}
+        style={{ objectFit: "contain", flexShrink: 0, marginTop: 2 }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            gap: 8,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>
+            {def.ko}
+          </h3>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: count > 0 ? "#FF7B61" : "#888",
+            }}
+          >
+            보유 {count}
+          </span>
+        </div>
+        <p
+          style={{
+            margin: "4px 0 0",
+            fontSize: 12,
+            color: "#444",
+            lineHeight: 1.4,
+          }}
+        >
+          {meta.longDescription}
+        </p>
+        <p
+          style={{
+            margin: "4px 0 0",
+            fontSize: 11,
+            color: "#888",
+            lineHeight: 1.3,
+          }}
+        >
+          획득 방법: {def.acquisition}
+        </p>
+        {def.usable && (
+          <button
+            type="button"
+            data-testid={`inventory-use-${code}`}
+            onClick={() => onUse(code)}
+            disabled={!canUse}
+            style={{
+              marginTop: 8,
+              width: "100%",
+              height: 36,
+              borderRadius: 10,
+              border: "none",
+              background: canUse ? "#FF7B61" : "rgba(0,0,0,0.08)",
+              color: canUse ? "#fff" : "#888",
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: canUse ? "pointer" : "not-allowed",
+            }}
+          >
+            {minToUse > 1
+              ? `사용하기 (${minToUse}개 필요)`
+              : count > 0
+                ? "사용하기"
+                : "보유 부족"}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
