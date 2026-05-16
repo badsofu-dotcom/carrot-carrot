@@ -22,7 +22,9 @@ import { useToolStore } from "../../features/collection/toolStore";
 import { useRewardsStore } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useFarmStore } from "../../features/collection/farmStore";
+import { useCollectionStore } from "../../features/collection/collectionStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
+import { passivesFromOwned } from "../../lib/dogamPassives";
 import { safeStorage } from "../../lib/safeStorage";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
@@ -157,15 +159,21 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       const n = cur + 1;
       writeAdDailyCount(today, n);
       const farm = useFarmStore.getState();
+      // PR-38 — 도감 패시브 (15마리 이상) 적용 → carrot tier 에 추가
+      // bonus.
+      const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
+      const adBonus = passivesFromOwned(dogamOwned).adRewardBonusCarrot;
       if (n === 1 || n === 2) {
-        farm.incCarrots(5);
-        toast(`🎬 광고 ${n}회 → 당근 +5`);
+        farm.incCarrots(5 + adBonus);
+        toast(`🎬 광고 ${n}회 → 당근 +${5 + adBonus}`);
       } else if (n === 3 || n === 4) {
-        farm.incCarrots(10);
-        toast(`🎬 광고 ${n}회 → 당근 +10`);
+        farm.incCarrots(10 + adBonus);
+        toast(`🎬 광고 ${n}회 → 당근 +${10 + adBonus}`);
       } else if (n === 5) {
-        farm.incCarrots(20);
-        toast("🎬 광고 5회 달성 → 당근 +20 (오늘 50 P 보장 완료)");
+        farm.incCarrots(20 + adBonus);
+        toast(
+          `🎬 광고 5회 달성 → 당근 +${20 + adBonus} (오늘 50 P 보장 완료)`,
+        );
       } else if (n <= 10) {
         // 6~10: 토큰 (gem or bolt 50/50)
         const pickGem = Math.random() < 0.5;

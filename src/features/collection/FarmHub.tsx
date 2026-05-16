@@ -27,6 +27,7 @@ import { playSfx } from "../../lib/soundFx";
 import { useSoundStore } from "../../store/soundStore";
 import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
+import { passivesFromOwned } from "../../lib/dogamPassives";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
@@ -480,7 +481,14 @@ export function FarmHub({
         // active. PR-8: one-shot +5%p candy on top of the existing
         // base / boost / batch bonuses.
         const juiceActive = useBuffsStore.getState().consume("juice");
-        const outcome = rollHarvestGacha({ juiceActive });
+        // PR-38 — 도감 패시브 (캔디 +0.1%p / 황금 +0.1%p) 적용.
+        const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
+        const passives = passivesFromOwned(dogamOwned);
+        const outcome = rollHarvestGacha({
+          juiceActive,
+          candyBonusP: passives.candyBonusP,
+          goldenBonusP: passives.goldenBonusP,
+        });
         if (outcome.kind === "candy") {
           incCandyCarrots(1);
           pushFx("sparkle", bounds);

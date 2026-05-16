@@ -56,6 +56,14 @@ export interface RollOpts {
    * the buff after a single roll.
    */
   juiceActive?: boolean;
+  /**
+   * PR-38 — 도감 패시브 추가 %p. 캐스케이드 적용:
+   *   candyBonusP  +0.1%p (1마리 이상)
+   *   goldenBonusP +0.1%p (5마리 이상)
+   * 호출자는 `passivesFromOwned(count)` 로 계산해서 전달.
+   */
+  candyBonusP?: number;
+  goldenBonusP?: number;
 }
 
 /**
@@ -111,17 +119,20 @@ export function rollHarvestGacha(opts: RollOpts = {}): HarvestOutcome {
     // No un-owned seasonal bunny — fall through.
   }
 
-  // 2) Golden carrot.
-  if (r < HARVEST_BUNNY_RATE + HARVEST_GOLD) {
+  // 2) Golden carrot. PR-38 passive bonus 적용.
+  const goldP = HARVEST_GOLD + Math.max(0, opts.goldenBonusP ?? 0);
+  if (r < HARVEST_BUNNY_RATE + goldP) {
     return { kind: "golden" };
   }
 
   // 3) Candy carrot — boosted while perfect-combo or mid-batch.
   //    Juice buff stacks on top of whichever base / boost is active.
+  //    PR-38 dogam passive +0.1%p 도 누적.
   let candyP = opts.perfectCombo ? HARVEST_BOOST_CANDY : HARVEST_BASE_CANDY;
   if ((opts.comboStreak ?? 0) >= 5) candyP += COMBO_BATCH_BONUS;
   if (opts.juiceActive) candyP += JUICE_CANDY_BONUS;
-  if (r < HARVEST_BUNNY_RATE + HARVEST_GOLD + candyP) {
+  candyP += Math.max(0, opts.candyBonusP ?? 0);
+  if (r < HARVEST_BUNNY_RATE + goldP + candyP) {
     return { kind: "candy" };
   }
   return { kind: "carrot" };
