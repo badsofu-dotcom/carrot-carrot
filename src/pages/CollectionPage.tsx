@@ -18,6 +18,9 @@ import { FarmOnboarding } from "../features/collection/FarmOnboarding";
 import { RewardsPanel } from "../components/Farm/RewardsPanel";
 import { InventoryModal } from "../components/Inventory/InventoryModal";
 import { useRewardsStore } from "../features/collection/rewardsStore";
+import { useSoundStore } from "../store/soundStore";
+import { bgmEngine } from "../lib/bgmEngine";
+import { playSfx } from "../lib/soundFx";
 import {
   RARITY_COLOR,
   RARITY_LABEL,
@@ -797,6 +800,41 @@ function FarmView({
     window.addEventListener("cc:bag:open", open);
     return () => window.removeEventListener("cc:bag:open", open);
   }, []);
+
+  // PR-13 — medal-unlocked SFX dispatcher. The rewardsStore fires
+  // `cc:medal:unlocked` with `{ id }`; we play sfx_combo for the
+  // perfect-combo medal (special) and sfx_levelup for everything else.
+  useEffect(() => {
+    const onUnlock = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ id?: string }>).detail;
+      const id = detail?.id ?? "";
+      const s = useSoundStore.getState();
+      const kind = id === "perfect_combo" ? "combo" : "levelup";
+      playSfx(kind, { muted: s.sfxMuted, masterVolume: s.sfxVolume });
+    };
+    window.addEventListener("cc:medal:unlocked", onUnlock);
+    return () => window.removeEventListener("cc:medal:unlocked", onUnlock);
+  }, []);
+
+  // PR-13 — Farm BGM bootstrap. The browser blocks `audio.play()` until
+  // a user gesture, so we hook a one-shot pointerdown listener that
+  // calls bgmEngine.start with the current settings. bgmEngine.start is
+  // idempotent — extra calls past the first are cheap.
+  const farmBgmEnabled = useSoundStore((s) => s.farmBgmEnabled);
+  const farmBgmVolume = useSoundStore((s) => s.farmBgmVolume);
+  useEffect(() => {
+    const kick = () => {
+      bgmEngine.start({ enabled: farmBgmEnabled, volume: farmBgmVolume });
+    };
+    document.addEventListener("pointerdown", kick, { passive: true });
+    return () => document.removeEventListener("pointerdown", kick);
+  }, [farmBgmEnabled, farmBgmVolume]);
+  useEffect(() => {
+    bgmEngine.setEnabled(farmBgmEnabled);
+  }, [farmBgmEnabled]);
+  useEffect(() => {
+    bgmEngine.setVolume(farmBgmVolume);
+  }, [farmBgmVolume]);
 
   // Dogam threshold medals (25/50/75/100). Re-evaluated whenever the
   // unlock count crosses a boundary. unlockMedal() is idempotent.

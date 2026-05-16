@@ -26,6 +26,8 @@ import { useFriendsStore } from "../../features/collection/friendsStore";
 import { CHARACTER_BY_ID } from "../../features/collection/collectionData";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
+import { playSfx } from "../../lib/soundFx";
+import { useSoundStore } from "../../store/soundStore";
 
 const AUTO_DISMISS_MS = 6_000;
 
@@ -48,6 +50,10 @@ export function VisitorBunny({ visible }: Props) {
 
   useEffect(() => {
     if (!shouldShow) return;
+    // PR-13: visitor entrance SFX. Read sfxMuted/sfxVolume directly from
+    // the store so we don't subscribe just for this side-effect.
+    const s = useSoundStore.getState();
+    playSfx("bunny", { muted: s.sfxMuted, masterVolume: s.sfxVolume });
     const timer = window.setTimeout(() => setDismissed(true), AUTO_DISMISS_MS);
     return () => window.clearTimeout(timer);
   }, [shouldShow]);

@@ -141,6 +141,18 @@ export const useRewardsStore = create<RewardsState>((set, get) => ({
     next.add(id);
     saveMedals(next);
     set({ medals: next });
+    // PR-13: dispatch cc:medal:unlocked so listeners (CollectionPage) can
+    // play sfx_levelup / sfx_combo without coupling the store to React
+    // audio. SSR / non-browser: silent.
+    try {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("cc:medal:unlocked", { detail: { id } }),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
     return true;
   },
 

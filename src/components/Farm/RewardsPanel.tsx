@@ -25,6 +25,8 @@ import { useItemsStore } from "../../features/collection/itemsStore";
 import { canWithdraw, MIN_PAYOUT, totalPoints } from "../../lib/points";
 import { apiCall, apiBaseUrl, tokenStore } from "../../lib/api";
 import { haptic } from "../../design-system/haptic";
+import { playSfx } from "../../lib/soundFx";
+import { useSoundStore } from "../../store/soundStore";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -94,6 +96,12 @@ export function RewardsPanel({ open, onClose }: Props) {
     const reward = claimDailyGift();
     if (!reward) return;
     setClaimedThisOpen(reward);
+    // PR-13 giftbox open SFX. Fired on the user-gesture path so autoplay
+    // policy is satisfied.
+    {
+      const s = useSoundStore.getState();
+      playSfx("giftbox", { muted: s.sfxMuted, masterVolume: s.sfxVolume });
+    }
     if (reward.kind === "candy") incCandy(reward.amount);
     else if (reward.kind === "golden") incGolden(reward.amount);
     else if (reward.kind === "gem") {

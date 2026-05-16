@@ -191,7 +191,9 @@ export function FarmHub({
   const hydrateBunnies = useCollectionStore((s) => s.hydrateBunniesFromRemote);
   const hydrateFriends = useFriendsStore((s) => s.hydrate);
   const sfxMuted = useSoundStore((s) => s.sfxMuted);
-  const masterVolume = useSoundStore((s) => s.volume);
+  // PR-13 — SFX now has its own volume slider, decoupled from the
+  // white-noise BGM volume that drives the focus-mode player.
+  const masterVolume = useSoundStore((s) => s.sfxVolume);
 
   // Pull canonical farm + inventory + bunny ownership + today's visitor
   // from the server on mount. No-op for guest/mock — every adapter

@@ -486,6 +486,9 @@ function PushSettingsGroup() {
         testId="row-haptic-toggle"
       />
       <SfxMutedRow />
+      <SfxVolumeRow />
+      <FarmBgmToggleRow />
+      <FarmBgmVolumeRow />
     </SettingsGroup>
   );
 }
@@ -511,8 +514,84 @@ function SfxMutedRow() {
           label="농장 효과음"
         />
       }
-      last
       testId="row-sfx-toggle"
+    />
+  );
+}
+
+function SfxVolumeRow() {
+  const sfxVolume = useSoundStore((s) => s.sfxVolume);
+  const setSfxVolume = useSoundStore((s) => s.setSfxVolume);
+  return (
+    <Row
+      label="효과음 볼륨"
+      sub={`현재 ${sfxVolume}% — mp3 없으면 절차적 합성음 재생`}
+      right={
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={sfxVolume}
+          onChange={(e) => setSfxVolume(Number(e.target.value))}
+          data-testid="row-sfx-volume"
+          aria-label="효과음 볼륨"
+          style={{ width: 120, accentColor: "var(--accent-carrot)" }}
+        />
+      }
+      testId="row-sfx-volume-wrap"
+    />
+  );
+}
+
+function FarmBgmToggleRow() {
+  const enabled = useSoundStore((s) => s.farmBgmEnabled);
+  const setEnabled = useSoundStore((s) => s.setFarmBgmEnabled);
+  const toggle = (next: boolean) => {
+    setEnabled(next);
+    haptic(next ? "light" : "warning");
+    toast(next ? "농장 BGM 켬" : "농장 BGM 끔");
+  };
+  return (
+    <Row
+      label="농장 BGM"
+      sub="하늘 슬롯 (낮/밤/비/눈) 에 따라 자동 트랙. mp3 없으면 무음."
+      right={
+        <Switch checked={enabled} onChange={toggle} label="농장 BGM" />
+      }
+      testId="row-farm-bgm-toggle"
+    />
+  );
+}
+
+function FarmBgmVolumeRow() {
+  const enabled = useSoundStore((s) => s.farmBgmEnabled);
+  const farmBgmVolume = useSoundStore((s) => s.farmBgmVolume);
+  const setFarmBgmVolume = useSoundStore((s) => s.setFarmBgmVolume);
+  return (
+    <Row
+      label="BGM 볼륨"
+      sub={enabled ? `현재 ${farmBgmVolume}%` : "BGM 끔 상태"}
+      right={
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={farmBgmVolume}
+          disabled={!enabled}
+          onChange={(e) => setFarmBgmVolume(Number(e.target.value))}
+          data-testid="row-farm-bgm-volume"
+          aria-label="BGM 볼륨"
+          style={{
+            width: 120,
+            accentColor: "var(--accent-carrot)",
+            opacity: enabled ? 1 : 0.4,
+          }}
+        />
+      }
+      last
+      testId="row-farm-bgm-volume-wrap"
     />
   );
 }
