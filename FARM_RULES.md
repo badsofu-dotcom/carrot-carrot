@@ -104,6 +104,20 @@ Routes:
 
 Tests: `node --test src/lib/visitorRng.test.mjs` covers determinism, day rotation, cross-user divergence, hash distribution over 1k samples, and empty-pool null return.
 
+## 보석 (gem) — PR-7
+
+Gem is a rare collectible in the bag's "컬렉션" tab. Source + sink:
+
+**Drop**: 2 % per "오늘의 선물상자" claim — the rarest band in `rollGift()` (`src/lib/giftRoll.ts`). Other gift bands unchanged in mass; the rebalance only redistributed 2 percentage points within the previous 8 % "seed +3" slot (now 6 % seed +3 + 2 % gem). Daily-gift EV stays at 2.0 P (gem and seed both contribute 0 P).
+
+**Spend**: in the 가방 → 컬렉션 탭, the gem tile shows "사용 (5)" when `count >= 5`. Tapping consumes 5 gems and grants +1 seed via `farmStore.growAllPlanted(0, null, 1)`. Effectively: 5 gem ≈ 1 ad-watch / 1 focus tier of seeds.
+
+Worker side: gem rides on the existing `/items/use` path (single `count -= 1` per call, fired 5× via `itemsStore.consume("gem", 5)` mirror loop). No migration needed.
+
+Unit tests: `node --test src/lib/giftRoll.test.mjs` covers each band boundary, the gem tail, and a 50k-sample Monte-Carlo that the runtime rate stays within ±0.5 percentage points of design (2 %).
+
+ItemDef.minToUse new field — drives the "사용" button visibility AND the consume() cost. Defaults to 1; gem is the first item to set 5. Future items (juice/soup/cake follow-up PRs) can adopt this if they need multi-cost.
+
 ## Future / out of scope
 
 - Worker-side seed persistence (needs new `user_seeds` column or table — separate PR).
