@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useToolStore } from "../../features/collection/toolStore";
 import { useRewardsStore } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
+import { useBuffsStore } from "../../features/collection/buffsStore";
 import { safeStorage } from "../../lib/safeStorage";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
@@ -85,13 +86,19 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
     }
     haptic("medium");
     switch (c) {
-      case "watering":
-        if (!refill()) {
+      case "watering": {
+        // Soup buff (PR-9) — pre-consume so a no-op refill doesn't
+        // burn the buff. If we can't actually refill, restore it by
+        // re-activating; otherwise grant +1 on top of the standard +3.
+        const soupActive = useBuffsStore.getState().consume("soup");
+        if (!refill(soupActive ? 1 : 0)) {
+          if (soupActive) useBuffsStore.getState().activate("soup");
           toast("오늘 충전 한도가 가득 찼어요");
           return;
         }
-        toast("⚡ 물뿌리개 +3 충전");
+        toast(soupActive ? "⚡ 물뿌리개 +4 충전 (수프 효과)" : "⚡ 물뿌리개 +3 충전");
         break;
+      }
       case "gift":
         if (giftAlreadyClaimed) {
           toast("오늘 선물상자는 이미 열었어요");

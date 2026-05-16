@@ -93,9 +93,15 @@ export function InventoryModal({ open, onClose }: Props) {
         // Mirror `tools/refill` locally: +3 wateringCan up to MAX_DAILY,
         // bypassing the per-day ad cap because the item itself is the
         // ad reward. Uses refillFromAd to keep the path symmetric.
-        if (refillFromAd()) {
-          toast("⚡ 물뿌리개 +3 충전");
+        // Pre-consume soup buff (PR-9) so bolt also benefits; if the
+        // refill itself fails, restore the buff so it isn't wasted.
+        const soupActive = useBuffsStore.getState().consume("soup");
+        if (refillFromAd(soupActive ? 1 : 0)) {
+          toast(
+            soupActive ? "⚡ 물뿌리개 +4 충전 (수프 효과)" : "⚡ 물뿌리개 +3 충전",
+          );
         } else {
+          if (soupActive) useBuffsStore.getState().activate("soup");
           toast("오늘 광고 충전 한도 가득");
         }
         break;
@@ -105,7 +111,8 @@ export function InventoryModal({ open, onClose }: Props) {
         toast("🥤 다음 수확 캔디 확률 +5%p");
         break;
       case "soup":
-        toast("🍲 다음 충전까지 물뿌리개 +1 (미구현)");
+        useBuffsStore.getState().activate("soup");
+        toast("🍲 다음 물뿌리개 충전 +1");
         break;
       case "cake":
         toast("🍰 다음 포커스 완료 시 씨앗 +1 (미구현)");

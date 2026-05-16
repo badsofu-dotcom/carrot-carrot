@@ -54,8 +54,16 @@ interface ToolState {
   /**
    * Apply one ad refill (+3 charges, max MAX_DAILY, increments
    * `adRefillsToday`). Returns true on success.
+   *
+   * `extraCharges` is an opt-in bonus on top of the standard +3 — used
+   * by PR-9's soup buff (당근 수프 효과: 다음 충전 +1). Both the grant
+   * AND the daily ceiling lift by the bonus for that one refill, so a
+   * soup-boosted refill can leave the can at 11/10 momentarily.
+   * Callers are responsible for pre-consuming the soup buff via
+   * `useBuffsStore.consume("soup")` so a no-op refill (already at
+   * MAX_AD_REFILLS) doesn't burn the buff.
    */
-  refillFromAd: () => boolean;
+  refillFromAd: (extraCharges?: number) => boolean;
   /** Force the daily-reset check (idempotent). */
   rolloverIfNeeded: () => void;
   /** Replace state from a server snapshot (back-compat optional). */
@@ -94,11 +102,14 @@ export const useToolStore = create<ToolState>((set, get) => ({
     return true;
   },
 
-  refillFromAd: () => {
+  refillFromAd: (extraCharges = 0) => {
     get().rolloverIfNeeded();
     const s = get();
     if (s.adRefillsToday >= MAX_AD_REFILLS) return false;
-    const next = Math.min(MAX_DAILY, s.wateringCanLeft + AD_REFILL_AMOUNT);
+    const bonus = Math.max(0, Math.floor(extraCharges));
+    const grant = AD_REFILL_AMOUNT + bonus;
+    const ceiling = MAX_DAILY + bonus;
+    const next = Math.min(ceiling, s.wateringCanLeft + grant);
     set({
       wateringCanLeft: next,
       adRefillsToday: s.adRefillsToday + 1,
