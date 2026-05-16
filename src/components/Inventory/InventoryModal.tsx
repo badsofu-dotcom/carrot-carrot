@@ -344,6 +344,11 @@ export function InventoryModal({ open, onClose }: Props) {
                       opacity: owned ? 1 : 0.45,
                       cursor: "pointer",
                       transition: "border-color 0.15s, box-shadow 0.15s",
+                      // PR-44 — flex 부모 안에서 자식 img 가 자연 사이즈로
+                      // overflow 하는 회귀 차단. cell 외곽선 너머로 이미지
+                      // 가 비져나가지 않게 hard-clip.
+                      overflow: "hidden",
+                      boxSizing: "border-box",
                     }}
                   >
                     <img
@@ -351,9 +356,15 @@ export function InventoryModal({ open, onClose }: Props) {
                       alt=""
                       draggable={false}
                       style={{
+                        // PR-44 hotfix — max-* 추가. flex/grid 컨테이너
+                        // 가 img 의 intrinsic 사이즈를 따라 자라는 일부
+                        // 브라우저 동작 (특히 큰 PNG asset) 차단.
                         width: 40,
                         height: 40,
+                        maxWidth: 40,
+                        maxHeight: 40,
                         objectFit: "contain",
+                        flexShrink: 0,
                         filter: owned ? "none" : "grayscale(0.85)",
                       }}
                     />
@@ -470,7 +481,17 @@ function DetailPanel({
         alt=""
         width={42}
         height={42}
-        style={{ objectFit: "contain", flexShrink: 0, marginTop: 2 }}
+        style={{
+          // PR-44 — width/height attribute 만으로는 일부 브라우저가
+          // intrinsic 사이즈를 따름. inline style 로 hard-clamp.
+          width: 42,
+          height: 42,
+          maxWidth: 42,
+          maxHeight: 42,
+          objectFit: "contain",
+          flexShrink: 0,
+          marginTop: 2,
+        }}
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
