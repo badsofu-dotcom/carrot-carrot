@@ -38,7 +38,10 @@ const OPTIONS: readonly Option[] = [
   { id: "grow", cost: 5, emoji: "🌿", title: "전체 +1단계", body: "심은 모든 plot 한 단계 즉시 성장" },
   { id: "session", cost: 10, emoji: "🥕", title: "당근 +25", body: "25분 세션 1회분 즉시 보상" },
   { id: "golden", cost: 20, emoji: "✨", title: "황금당근 +1", body: "확정 황금당근 1개 (+10 P)" },
-  { id: "legend", cost: 50, emoji: "👑", title: "레전더리 가챠", body: "레전더리 토끼 1회 시도 (이미 보유면 환불)" },
+  // PR-51 — GRAC 공시: 미보유 시 100% (전설 풀에 legendary-demon 1마리,
+  // 미보유면 무조건 unlock), 이미 보유 시 보석 50 환불 (실패 P 손실
+  // 없음). 확률형 아이템 정의 회피 — 결과 보장.
+  { id: "legend", cost: 50, emoji: "👑", title: "전설 친구 만나기", body: "전설 토끼 1마리 unlock (이미 보유면 보석 환불, 실패 0%)" },
 ];
 
 export function GemTradeModal() {
@@ -104,7 +107,7 @@ export function GemTradeModal() {
           } catch {
             /* SSR */
           }
-          toast("💎 레전더리 토끼 획득!");
+          toast("💎 전설 토끼 도감 unlock!");
         } else {
           // 환불.
           add("gem", opt.cost);

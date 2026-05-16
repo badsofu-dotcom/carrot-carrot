@@ -5,6 +5,7 @@
 > 악동 토끼와 함께하는 25분 집중 타이머 🥕 — 토스 미니앱 v1.0.
 
 **한 줄 소개:** 악동 토끼와 함께하는 25분 집중 타이머 🥕.
+**카테고리:** 집중 / 생산성 도구 (게임물 분류 아님 — 보상 정책 공시 [`src/legal/reward-disclosure.md`](./src/legal/reward-disclosure.md)).
 **제출 가이드:** [`DEPLOY.md`](./DEPLOY.md) 참고.
 
 ## 단계 로드맵

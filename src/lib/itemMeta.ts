@@ -28,12 +28,12 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
   },
   candy: {
     longDescription:
-      "수확 가챠 7 % 보너스. 토스포인트 5 P 환산. 콤보 / 주스 효과로 확률 ↑.",
+      "수확 보너스 7 % 보너스. 토스포인트 5 P 환산. 콤보 / 주스 효과로 확률 ↑.",
     emoji: "🍬",
   },
   golden: {
     longDescription:
-      "수확 가챠 0.6 % 희귀 보너스. 토스포인트 10 P. 케이크 사용 시 확률 강화.",
+      "수확 보너스 0.6 % 희귀 보너스. 토스포인트 10 P. 케이크 사용 시 확률 강화.",
     emoji: "✨",
   },
   seed: {
@@ -43,7 +43,7 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
   },
   carrot_coin: {
     longDescription:
-      "광고 보상으로 받는 토큰. 50개 사용 → 캔디 당근 1개. 향후 토끼 가챠 비용 예정.",
+      "광고 보상으로 받는 토큰. 50개 사용 → 캔디 당근 1개. 향후 토끼 만나기 비용 예정.",
     emoji: "🪙",
   },
   hourglass: {
@@ -73,7 +73,7 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
   },
   star: {
     longDescription:
-      "수확 가챠 / 보물상자에서 적립. 100개 모으면 레전더리 토끼 1마리 직접 해제.",
+      "수확 보너스 / 보물상자에서 적립. 100개 모으면 전설 토끼 1마리 직접 해제.",
     emoji: "⭐",
   },
   gem: {

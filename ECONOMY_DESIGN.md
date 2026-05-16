@@ -1,5 +1,13 @@
 # 버니타임 v2 — Economy Design (v2 — PR-31~38)
 
+> **공시 (PR-51 / GRAC 가드레일)**
+> 본 앱은 게임물이 아닌 **집중 / 생산성 도구** 입니다. 농장 시각화 +
+> 보상은 사용자의 집중 활동에 대한 인센티브입니다. **일일 환산 한도
+> 100 P** (광고 5회 + 농장 활동 + 도감 100마리 보너스 +10) 이며 광고
+> 수익을 기반으로 한 적립 모델을 따릅니다. 확률형 보상 (보너스 드랍 /
+> 친구 만나기) 는 `src/legal/reward-disclosure.md` 에서 공시.
+
+
 This document captures the BunnyTime v2 reward economy: how a focus
 session converts into Toss points, what caps and audit trails protect
 us against abuse, and what is currently **live** vs **scaffolded**.
