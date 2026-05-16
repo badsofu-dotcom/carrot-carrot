@@ -22,9 +22,8 @@ import {
   loadAutoBreak,
   saveAutoBreak,
 } from "../store/timerStore";
-import { useCollectionStore, useOwnedCount } from "../features/collection/collectionStore";
-import { CHARACTERS } from "../features/collection/collectionData";
-import { UnlockOverlay } from "../features/collection/UnlockOverlay";
+import { useOwnedCount } from "../features/collection/collectionStore";
+import { DevActionsGroup } from "../features/dev/DevActionsGroup";
 import { safeStorage } from "../lib/safeStorage";
 import { useSoundStore } from "../store/soundStore";
 import { ONBOARDING_KEY } from "../features/collection/FarmOnboarding";
@@ -34,13 +33,9 @@ import appIcon120 from "../assets/app-icon-120.png";
 
 const APP_VERSION = "1.0.0 · phase-7";
 
-function isDev(): boolean {
-  try {
-    return import.meta.env.DEV || import.meta.env.VITE_TIMER_DEBUG === "true";
-  } catch {
-    return false;
-  }
-}
+// `isDev` helper removed in PR-19 — replaced by inline
+// `import.meta.env.DEV` checks so Vite can dead-code-eliminate the
+// DevActionsGroup tree from production builds.
 
 /** 도감 보유 수에서 프로필 레벨/타이틀 도출. 빈 컬렉션이면 LV.0 / 새내기 토끼. */
 function deriveProfileTier(ownedCount: number): { level: number; title: string; cheer: string } {
@@ -306,8 +301,13 @@ export function SettingsPage() {
         />
       </SettingsGroup>
 
-      {/* 개발자 액션 — DEV 조건부 */}
-      {isDev() && <DevActionsGroup />}
+      {/* 개발자 액션 — `import.meta.env.DEV` 조건부.
+          Vite 가 빌드 시 literal `false` 로 치환 → 다음 라인 전체
+          dead-code-eliminate. DevActionsGroup 모듈도 사용처 없음으로
+          tree-shake 됨. VITE_TIMER_DEBUG=true 면 prod 빌드에도 노출. */}
+      {(import.meta.env.DEV || import.meta.env.VITE_TIMER_DEBUG === "true") && (
+        <DevActionsGroup />
+      )}
 
       {/* 정보 */}
       <SettingsGroup title="정보">
@@ -596,93 +596,7 @@ function FarmBgmVolumeRow() {
   );
 }
 
-/* ----------------------- DEV actions ----------------------- */
-
-function DevActionsGroup() {
-  const applySession = useCollectionStore((s) => s.applySession);
-  const forceUnlock = useCollectionStore((s) => s.forceUnlock);
-  const resetAll = useCollectionStore((s) => s.resetAll);
-  const totalCarrots = useCollectionStore((s) => s.totalCarrots);
-  const ownedCount = useCollectionStore((s) => s.ownedCharacters.length);
-  const [previewQueue, setPreviewQueue] = useState<string[]>([]);
-
-  const handleTestSuccess = () => {
-    haptic("success");
-    const newIds = applySession({
-      presetMin: 25,
-      focusedMs: 25 * 60 * 1000,
-      type: "complete",
-    });
-    if (newIds.length) {
-      toast(`+당근 1, 신규 해제 ${newIds.length}개`);
-      setPreviewQueue(newIds);
-    } else {
-      toast("+당근 1");
-    }
-  };
-
-  const handlePreviewLegendary = () => {
-    haptic("success");
-    const id = forceUnlock("legendary-demon");
-    if (id) setPreviewQueue([id]);
-    else setPreviewQueue(["legendary-demon"]); // 이미 가진 경우에도 overlay 만 미리보기
-  };
-
-  const handleSeedAll = () => {
-    haptic("warning");
-    let lastIds: string[] = [];
-    for (const c of CHARACTERS) {
-      const r = forceUnlock(c.id);
-      if (r) lastIds.push(r);
-    }
-    if (lastIds.length) toast(`도감 ${lastIds.length}마리 추가`);
-    else toast("이미 다 있어");
-  };
-
-  const handleReset = () => {
-    if (!window.confirm("로컬 도감/통계를 모두 지울까?")) return;
-    resetAll();
-    haptic("warning");
-    toast("로컬 데이터 초기화");
-  };
-
-  return (
-    <>
-      <SettingsGroup title="개발자 (DEV)">
-        <Row
-          label="테스트 성공 처리"
-          sub={`+당근 1, 조건 맞으면 자동 해제 · 누적 ${totalCarrots}개 / 보유 ${ownedCount}마리`}
-          right={<Chevron />}
-          onClick={handleTestSuccess}
-          testId="row-dev-test-success"
-        />
-        <Row
-          label="레전더리 미리보기"
-          sub="해제 오버레이 프리뷰"
-          right={<Chevron />}
-          onClick={handlePreviewLegendary}
-          testId="row-dev-preview-legendary"
-        />
-        <Row
-          label="도감 전부 채우기"
-          sub="12종 캐릭터 전부 unlock"
-          right={<Chevron />}
-          onClick={handleSeedAll}
-          testId="row-dev-seed-all"
-        />
-        <Row
-          label="로컬 데이터 초기화"
-          sub="도감/누적/연속 전부 지움"
-          right={<span style={{ color: "var(--accent-devil)", fontWeight: 700, fontSize: 13 }}>WIPE</span>}
-          onClick={handleReset}
-          last
-          testId="row-dev-reset"
-        />
-      </SettingsGroup>
-      <UnlockOverlay queue={previewQueue} onClose={() => setPreviewQueue([])} />
-    </>
-  );
-}
+/* DEV actions moved to src/features/dev/DevActionsGroup.tsx (PR-19) */
 
 interface SettingsGroupProps {
   title: string;
