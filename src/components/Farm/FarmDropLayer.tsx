@@ -29,7 +29,7 @@ import { useSoundStore } from "../../store/soundStore";
 import { playSfx } from "../../lib/soundFx";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
-import { safeStorage } from "../../lib/safeStorage";
+import { safeStorage, safeSessionStorage } from "../../lib/safeStorage";
 
 const BASE: string =
   (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
@@ -220,10 +220,11 @@ interface PersistedState {
   drops: ActiveDrop[];
 }
 
+// PR-47 — safeSessionStorage (iframe-safe shim) 사용. dist-preview 에
+// 리터럴 sessionStorage 토큰을 노출하지 않음 (PR-13 의 금지토큰 정책).
 function loadPersisted(): PersistedState | null {
   try {
-    if (typeof sessionStorage === "undefined") return null;
-    const raw = sessionStorage.getItem(SESSION_STORE_KEY);
+    const raw = safeSessionStorage.get(SESSION_STORE_KEY);
     if (!raw) return null;
     const v = JSON.parse(raw) as Partial<PersistedState>;
     if (typeof v.day !== "string" || !Array.isArray(v.drops)) return null;
@@ -239,8 +240,7 @@ function loadPersisted(): PersistedState | null {
 
 function savePersisted(state: PersistedState): void {
   try {
-    if (typeof sessionStorage === "undefined") return;
-    sessionStorage.setItem(SESSION_STORE_KEY, JSON.stringify(state));
+    safeSessionStorage.set(SESSION_STORE_KEY, JSON.stringify(state));
   } catch {
     /* ignore */
   }
@@ -396,8 +396,20 @@ export function FarmDropLayer() {
 }
 
 /**
- * 개별 drop sprite. PR-47 분리, PR-46 에서 sparkle/float/bounce 효과
- * 강화 예정.
+ * 개별 drop sprite (PR-46 강화).
+ *
+ * 시각 효과:
+ *   - entrance: scale 0 → 1.2 → 1 bounce + opacity 0 → 1
+ *   - idle float: y [0, -6, 0] loop 2.4s ease-in-out (조용한 둥둥)
+ *   - backdrop: 큰 radial-gradient 빛 ray (88 × 88)
+ *   - sparkles: 5 별 (★) 회전 + opacity pulse (4s linear rotate +
+ *     2s pulse). 위치는 32 px radius 원주에 균등 배치.
+ *   - tap target: 48 × 48 (효과 노드들 포함). 효과 노드 pointerEvents
+ *     none — 클릭은 button 캡처.
+ *
+ * 성능: framer-motion 의 transform/opacity 만 사용 (compositor-cheap).
+ * 5 sparkle × 1 backdrop + icon 의 1 float wrapper = ~7 노드/drop.
+ * 동시 3 drop 의 최대 21 노드 — 모바일 WebView 안전.
  */
 function DropSprite({
   drop,
@@ -408,16 +420,25 @@ function DropSprite({
   spec: DropSpec;
   onTap: () => void;
 }) {
+  const SPARKLE_COUNT = 5;
+  const SPARKLE_RADIUS = 32; // px from center
   return (
     <motion.button
       type="button"
       data-testid={`farm-drop-${spec.kind}`}
       aria-label={spec.toast.replace(/^[^\s]+\s/, "")}
       onClick={onTap}
-      initial={{ opacity: 0, scale: 0.5, y: -10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.6, y: 10 }}
-      transition={{ type: "spring", stiffness: 320, damping: 22 }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: [0, 1.2, 1] }}
+      exit={{ opacity: 0, scale: 0.6 }}
+      transition={{
+        opacity: { duration: 0.2 },
+        scale: {
+          times: [0, 0.6, 1],
+          duration: 0.45,
+          ease: "easeOut",
+        },
+      }}
       style={{
         position: "absolute",
         top: `${drop.topPct}%`,
@@ -428,33 +449,121 @@ function DropSprite({
         alignItems: "center",
         justifyContent: "center",
         border: "none",
-        background:
-          "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 60%, rgba(255,255,255,0) 100%)",
+        background: "transparent",
         cursor: "pointer",
         padding: 0,
         zIndex: 6,
-        filter:
-          "drop-shadow(0 2px 6px rgba(0,0,0,0.18)) drop-shadow(0 0 12px rgba(255,200,100,0.45))",
+        // transform-origin 중심으로 scale entrance 자연스러움.
+        transformOrigin: "center center",
       }}
     >
-      {spec.iconRel ? (
-        <img
-          src={`${BASE}${spec.iconRel}`}
-          alt=""
-          draggable={false}
-          style={{
-            width: 36,
-            height: 36,
-            maxWidth: 36,
-            maxHeight: 36,
-            objectFit: "contain",
-          }}
-        />
-      ) : (
-        <span aria-hidden style={{ fontSize: 28 }}>
-          {spec.emoji}
-        </span>
-      )}
+      {/* (5) 큰 backdrop ray — radial-gradient warm halo, 클릭 무관. */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: -20,
+          background:
+            "radial-gradient(circle, rgba(255,236,170,0.65) 0%, rgba(255,210,140,0.35) 45%, rgba(255,200,100,0) 75%)",
+          borderRadius: "50%",
+          pointerEvents: "none",
+          filter: "blur(2px)",
+        }}
+      />
+
+      {/* (2) 둥둥 떠있는 wrapper — 아이콘만 y 진동. SVG/PNG 둘 다 OK. */}
+      <motion.span
+        aria-hidden
+        animate={{ y: [0, -6, 0] }}
+        transition={{
+          repeat: Infinity,
+          duration: 2.4,
+          ease: "easeInOut",
+        }}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 36,
+          height: 36,
+          filter:
+            "drop-shadow(0 2px 6px rgba(0,0,0,0.22)) drop-shadow(0 0 10px rgba(255,200,100,0.7))",
+          pointerEvents: "none",
+        }}
+      >
+        {spec.iconRel ? (
+          <img
+            src={`${BASE}${spec.iconRel}`}
+            alt=""
+            draggable={false}
+            style={{
+              width: 36,
+              height: 36,
+              maxWidth: 36,
+              maxHeight: 36,
+              objectFit: "contain",
+            }}
+          />
+        ) : (
+          <span aria-hidden style={{ fontSize: 28 }}>
+            {spec.emoji}
+          </span>
+        )}
+      </motion.span>
+
+      {/* (1) sparkle 별 회전 — 5 ★ 균등 배치. 각 별: 천천히 회전 + opacity pulse. */}
+      {Array.from({ length: SPARKLE_COUNT }).map((_, i) => {
+        const angle = (i / SPARKLE_COUNT) * Math.PI * 2;
+        const x = Math.cos(angle) * SPARKLE_RADIUS;
+        const y = Math.sin(angle) * SPARKLE_RADIUS;
+        return (
+          <motion.span
+            key={i}
+            aria-hidden
+            animate={{
+              opacity: [0.3, 1, 0.3],
+              scale: [0.7, 1.1, 0.7],
+              rotate: [0, 360],
+            }}
+            transition={{
+              opacity: {
+                repeat: Infinity,
+                duration: 2,
+                delay: i * 0.18,
+                ease: "easeInOut",
+              },
+              scale: {
+                repeat: Infinity,
+                duration: 2,
+                delay: i * 0.18,
+                ease: "easeInOut",
+              },
+              rotate: {
+                repeat: Infinity,
+                duration: 4,
+                ease: "linear",
+              },
+            }}
+            style={{
+              position: "absolute",
+              left: `calc(50% + ${x}px - 6px)`,
+              top: `calc(50% + ${y}px - 6px)`,
+              width: 12,
+              height: 12,
+              fontSize: 11,
+              lineHeight: 1,
+              color: i % 2 === 0 ? "#fff7cf" : "#ffe48a",
+              textShadow: "0 0 4px rgba(255,230,150,0.85)",
+              pointerEvents: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            ★
+          </motion.span>
+        );
+      })}
     </motion.button>
   );
 }
