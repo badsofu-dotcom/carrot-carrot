@@ -28,11 +28,10 @@ test("WEEKLY_TREASURE_TABLE probabilities sum to 1.0", () => {
 
 test("DAILY_GIFT_TABLE EV is computed and reported", () => {
   const ev = expectedValuePoints(DAILY_GIFT_TABLE);
-  // The implementation aims for ≈ 2.5 P; the IMPLEMENTATION_REPORT
-  // records the actual EV produced by the live table.
-  // 0.4*0 + 0.3*1 + 0.18*5 + 0.07*10 + 0.05*0
-  // = 0 + 0.3 + 0.9 + 0.7 + 0 = 1.9 P
-  assert.ok(Math.abs(ev - 1.9) < TOL, `got ${ev}`);
+  // PR-17c alignment with giftRoll.ts:
+  // 0.6*0 + 0.24*5 + 0.08*10 + 0.06*0 + 0.02*0
+  // = 0 + 1.2 + 0.8 + 0 + 0 = 2.0 P
+  assert.ok(Math.abs(ev - 2.0) < TOL, `got ${ev}`);
 });
 
 test("WEEKLY_TREASURE_TABLE EV is computed", () => {
@@ -48,17 +47,18 @@ test("rollTable: rng=0 returns first entry", () => {
 });
 
 test("rollTable: rng=0.999 returns last entry", () => {
+  // PR-17c: last entry is now gem (replaced star).
   const e = rollTable(DAILY_GIFT_TABLE, () => 0.999);
-  assert.equal(e.kind, "star");
+  assert.equal(e.kind, "gem");
 });
 
 test("rollTable: rng covers the golden bucket", () => {
-  // Daily golden = bucket [0.88, 0.95). rng 0.9 → golden.
-  const e = rollTable(DAILY_GIFT_TABLE, () => 0.9);
+  // PR-17c: golden bucket is [0.84, 0.92). rng 0.88 → golden.
+  const e = rollTable(DAILY_GIFT_TABLE, () => 0.88);
   assert.equal(e.kind, "golden");
 });
 
 test("rollTable: clamps out-of-range rng (no throw)", () => {
   assert.equal(rollTable(DAILY_GIFT_TABLE, () => -1).kind, "seed");
-  assert.equal(rollTable(DAILY_GIFT_TABLE, () => 2).kind, "star");
+  assert.equal(rollTable(DAILY_GIFT_TABLE, () => 2).kind, "gem");
 });

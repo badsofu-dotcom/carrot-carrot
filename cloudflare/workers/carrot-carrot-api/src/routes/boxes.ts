@@ -40,12 +40,15 @@ function kstYmd(): string {
 }
 
 interface Entry { p: number; kind: string; amount: number; }
+// PR-17c — aligned with src/lib/giftRoll.ts and src/lib/rewardTables.ts
+// DAILY_GIFT_TABLE. EV 2.0 P (gem and seed contribute 0 P; candy 5,
+// golden 10 → 0.24*5 + 0.08*10 = 2.0).
 const DAILY: readonly Entry[] = [
-  { p: 0.4, kind: "seed", amount: 1 },
-  { p: 0.3, kind: "carrot", amount: 1 },
-  { p: 0.18, kind: "candy", amount: 1 },
-  { p: 0.07, kind: "golden", amount: 1 },
-  { p: 0.05, kind: "star", amount: 1 },
+  { p: 0.6, kind: "seed", amount: 1 },
+  { p: 0.24, kind: "candy", amount: 1 },
+  { p: 0.08, kind: "golden", amount: 1 },
+  { p: 0.06, kind: "seed", amount: 3 },
+  { p: 0.02, kind: "gem", amount: 1 },
 ];
 const WEEKLY: readonly Entry[] = [
   { p: 0.25, kind: "candy", amount: 2 },

@@ -22,6 +22,7 @@ export type RewardKind =
   | "golden"    // 10 P
   | "carrot"    // 1 P
   | "star"      // 0 P, used to buy legendary bunny
+  | "gem"       // 0 P, future shop currency (PR-7)
   | "treasure_progress"; // 0 P, advances treasure chest
 
 export interface TableEntry {
@@ -33,15 +34,18 @@ export interface TableEntry {
 }
 
 /**
- * Daily gift table. Target EV ≈ 2.5 P; the test reports the actual
- * computed EV — IMPLEMENTATION_REPORT.md uses that value verbatim.
+ * Daily gift table. EV 2.0 P after PR-17c alignment.
+ *
+ * Mirrors `src/lib/giftRoll.ts → rollGift` band by band so the
+ * doc-table (this) and the runtime roll function agree. The worker
+ * `cloudflare/.../routes/boxes.ts → DAILY` is updated in lock-step.
  */
 export const DAILY_GIFT_TABLE: readonly TableEntry[] = [
-  { p: 0.4, kind: "seed", amount: 1, points: 0 },
-  { p: 0.3, kind: "carrot", amount: 1, points: 1 },
-  { p: 0.18, kind: "candy", amount: 1, points: 5 },
-  { p: 0.07, kind: "golden", amount: 1, points: 10 },
-  { p: 0.05, kind: "star", amount: 1, points: 0 },
+  { p: 0.6, kind: "seed", amount: 1, points: 0 },
+  { p: 0.24, kind: "candy", amount: 1, points: 5 },
+  { p: 0.08, kind: "golden", amount: 1, points: 10 },
+  { p: 0.06, kind: "seed", amount: 3, points: 0 },
+  { p: 0.02, kind: "gem", amount: 1, points: 0 },
 ];
 
 /**
