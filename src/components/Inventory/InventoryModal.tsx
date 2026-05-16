@@ -130,6 +130,12 @@ export function InventoryModal({ open, onClose }: Props) {
         growAllPlanted(0, null, 1);
         toast(`💎 보석 ${cost}개 사용 → 씨앗 +1`);
         break;
+      case "carrot_coin":
+        // PR-24 — 50 coin 사용 → 캔디 당근 +1. 광고 누적 → 캔디 변환
+        // 의 sink. consume 은 이미 위에서 cost (50) 만큼 진행됨.
+        useFarmStore.getState().incCandyCarrots(1);
+        toast(`🪙 코인 ${cost}개 사용 → 캔디 당근 +1`);
+        break;
       default:
         break;
     }

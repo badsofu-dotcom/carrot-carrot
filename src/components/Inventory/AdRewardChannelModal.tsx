@@ -84,6 +84,13 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       toast("이 보상은 오늘 이미 받았어요");
       return;
     }
+    // PR-24 — heart gate (no-consume yet). 잔여 0 이면 채널별 사이드
+    // 이펙트 시작 전에 abort. 성공 path 의 마지막에서 consume.
+    const items = useItemsStore.getState();
+    if ((items.counts.heart ?? 0) <= 0) {
+      toast("하트가 부족해요 — 내일 자정에 다시 채워져요");
+      return;
+    }
     haptic("medium");
     switch (c) {
       case "watering": {
@@ -116,6 +123,11 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
         toast("🌟 보물 진행 +1 (별 +1)");
         break;
     }
+    // PR-24 — heart consume + carrot_coin grant on success path. 채널
+    // 어디서든 toast+return 으로 일찍 빠지면 이 라인까지 도달 안 함
+    // → 자원 변동 없음.
+    items.consume("heart", 1);
+    items.add("carrot_coin", 5);
     markClaimed(c);
     // TODO: post nonce + channel to worker `/economy/ad-view` once
     // the ad-token verification path is wired. The nonce stub here

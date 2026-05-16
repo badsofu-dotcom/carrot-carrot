@@ -192,6 +192,7 @@ export function FarmHub({
   const cycleDebug = useFarmStore((s) => s.cycleDebug);
   const hydrate = useFarmStore((s) => s.hydrate);
   const hydrateItems = useItemsStore((s) => s.hydrate);
+  const rolloverHearts = useItemsStore((s) => s.rolloverHeartsIfNeeded);
   const hydrateBunnies = useCollectionStore((s) => s.hydrateBunniesFromRemote);
   const hydrateFriends = useFriendsStore((s) => s.hydrate);
   const sfxMuted = useSoundStore((s) => s.sfxMuted);
@@ -206,13 +207,22 @@ export function FarmHub({
     void hydrate();
     void hydrateItems();
     void hydrateFriends();
+    // PR-24 — KST 자정 heart 리필. mount + visibilitychange 모두에서
+    // idempotent 호출. 최초 사용자는 day key 비어 있어 즉시 +3 부여
+    // → ad 슬롯이 처음부터 활성 상태.
+    rolloverHearts();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") rolloverHearts();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     void (async () => {
       const r = await loadBunnyCollection();
       if (r.ok && "collection" in r) {
         hydrateBunnies(r.collection.bunnies.map((b) => b.bunny_id));
       }
     })();
-  }, [hydrate, hydrateItems, hydrateBunnies, hydrateFriends]);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [hydrate, hydrateItems, hydrateBunnies, hydrateFriends, rolloverHearts]);
 
   // Time-of-day background. Recomputes at mount, on tab focus (`visibilitychange`),
   // and at the next KST hour boundary so dawn → morning → day etc. flip
