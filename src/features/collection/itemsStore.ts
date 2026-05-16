@@ -126,7 +126,10 @@ export const ITEMS: readonly ItemDef[] = [
     ko: "씨앗",
     tab: "resources",
     category: "soft_currency",
-    iconRel: "assets/farm/crops/crop_stage1_seed.webp",
+    // PR-58 — 씨앗 아이콘 UX: crop stage1 (갈색 흙덩이) 가 직관성 약함
+    // → tool_seed_pack (씨앗 봉투) 으로 교체. tool_fertilizer 가 spec 에
+    // 명시되었으나 자산 부재, seed_pack 이 의미상 가장 가까움.
+    iconRel: "assets/farm/tools/tool_seed_pack.png",
     // PR-31 — soft currency. 현재 sink 없음 (씨뿌리기는 무료).
     // PR-32 calibration 에서 씨뿌리기 -1 seed 룰 추가 검토.
     effect: "농장 씨뿌리기 자원 (현재 무료, 향후 sink 예정)",
