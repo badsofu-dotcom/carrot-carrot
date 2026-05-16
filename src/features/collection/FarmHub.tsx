@@ -31,6 +31,10 @@ import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffIndicator } from "../../components/Farm/BuffIndicator";
+import {
+  AdSuggestionModal,
+  suggestAdFor,
+} from "../../components/Farm/AdSuggestionModal";
 import { FxLayer, type FxEvent, type FxKind } from "../../components/Farm/Effects";
 import { Atmosphere, variantForSlot } from "../../components/Farm/Atmosphere";
 import { SkyView } from "../../components/Farm/SkyView";
@@ -532,7 +536,15 @@ export function FarmHub({
         pushFx("water_splash", bounds);
         toast("물을 주었어요");
       } else {
-        toast("오늘 물뿌리개를 다 썼어요 🥲");
+        // PR-27 — 물뿌리개 잔여 0 → 광고 시청 안내 팝업 (spam guard
+        // cooldown 5분 + 일일 cap 3 회). 가드 통과 못 하면 모달은
+        // 안 뜨고 fallback toast 만 노출.
+        const shown = suggestAdFor(
+          "watering",
+          "물뿌리개가 부족해요!",
+          "광고를 보면 물뿌리개를 3회 충전할 수 있어요.",
+        );
+        if (!shown) toast("오늘 물뿌리개를 다 썼어요 🥲");
       }
       return;
     }
@@ -770,6 +782,10 @@ export function FarmHub({
           near the top under the sky-open chip; auto-hides when no
           buff is live. */}
       <BuffIndicator />
+
+      {/* PR-27 — 자원 부족 광고 안내 모달. cc:ad-suggest:open 이벤트
+          listener. 가드 통과 시만 표시. */}
+      <AdSuggestionModal />
 
       {/* Bottom-of-card tool dock. Absolute inside .farm-hub, above
           the help-copy chip. Selecting a tool dispatches the
