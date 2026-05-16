@@ -24,6 +24,7 @@ import {
 } from "../store/timerStore";
 import { useOwnedCount } from "../features/collection/collectionStore";
 import { DevActionsGroup } from "../features/dev/DevActionsGroup";
+import { FriendInviteGroup } from "../features/friends/FriendInviteGroup";
 import { safeStorage } from "../lib/safeStorage";
 import { useSoundStore } from "../store/soundStore";
 import { useNotificationsStore } from "../features/notifications/notificationsStore";
@@ -305,6 +306,10 @@ export function SettingsPage() {
           testId="row-data-reset"
         />
       </SettingsGroup>
+
+      {/* PR-62 — 친구 초대 (client stub). 백엔드 wire 전까지 가입자
+          grant 만 적용. */}
+      <FriendInviteGroup />
 
       {/* 개발자 액션 — `import.meta.env.DEV` 조건부.
           Vite 가 빌드 시 literal `false` 로 치환 → 다음 라인 전체
