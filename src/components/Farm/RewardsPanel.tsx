@@ -32,6 +32,10 @@ import { useSoundStore } from "../../store/soundStore";
 
 const BASE = import.meta.env.BASE_URL;
 
+// PR-22 — display every defined medal (was 6 of 11). Dogam progression
+// + quiet_sky are tracked elsewhere; now visible here too. Ordering:
+// session/farm milestones first, then rare drops, then dogam ladder,
+// then quiet_sky.
 const MEDAL_ORDER: readonly MedalId[] = [
   "first_session",
   "first_harvest",
@@ -39,6 +43,11 @@ const MEDAL_ORDER: readonly MedalId[] = [
   "perfect_combo",
   "first_candy",
   "first_golden",
+  "dogam_25",
+  "dogam_50",
+  "dogam_75",
+  "dogam_100",
+  "quiet_sky",
 ];
 
 interface Props {
@@ -209,7 +218,11 @@ export function RewardsPanel({ open, onClose }: Props) {
             }}
             data-testid="rewards-backdrop"
           />
-          {/* Sheet */}
+          {/* Sheet — PR-22: outer container is a non-scrolling flex
+              column with maxHeight 90 vh. Header (drag bar + title +
+              close) sticks at top; the section content lives in a
+              dedicated overflow-y:auto inner div so framer-motion's
+              transform doesn't compete with scroll on iOS Safari. */}
           <motion.div
             data-testid="rewards-panel"
             role="dialog"
@@ -221,11 +234,6 @@ export function RewardsPanel({ open, onClose }: Props) {
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             style={{
               position: "fixed",
-              // Center via margin auto. Don't use transform: translateX
-              // here — framer-motion drives the y slide-in via the same
-              // transform property and would clobber an inline X
-              // translation, pushing the sheet off-screen-right on
-              // mobile. Same fix as InventoryModal (PR-6.5).
               left: 0,
               right: 0,
               marginLeft: "auto",
@@ -234,53 +242,83 @@ export function RewardsPanel({ open, onClose }: Props) {
               zIndex: 1051,
               width: "100%",
               maxWidth: "var(--app-max-width, 480px)",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
               background: "#FFF8EE",
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
-              padding:
-                "12px calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))",
-              maxHeight: "82vh",
-              overflowY: "auto",
               boxShadow: "0 -8px 28px rgba(0,0,0,0.18)",
               boxSizing: "border-box",
+              // Outer overflow stays hidden so the rounded corners
+              // clip cleanly; inner scrolldiv carries the auto behavior.
+              overflow: "hidden",
             }}
           >
+            {/* Sticky header — drag handle + title + close */}
             <div
-              aria-hidden
               style={{
-                width: 44,
-                height: 5,
-                borderRadius: 999,
-                background: "rgba(0,0,0,0.18)",
-                margin: "4px auto 14px",
-              }}
-            />
-            <header
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 12,
+                flexShrink: 0,
+                padding:
+                  "12px calc(20px + env(safe-area-inset-right)) 0 calc(20px + env(safe-area-inset-left))",
               }}
             >
-              <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>보상함</h2>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="닫기"
+              <div
+                aria-hidden
                 style={{
-                  width: 32,
-                  height: 32,
+                  width: 44,
+                  height: 5,
                   borderRadius: 999,
-                  border: "none",
-                  background: "rgba(0,0,0,0.06)",
-                  fontSize: 16,
-                  cursor: "pointer",
+                  background: "rgba(0,0,0,0.18)",
+                  margin: "4px auto 14px",
+                }}
+              />
+              <header
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
                 }}
               >
-                ×
-              </button>
-            </header>
+                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>보상함</h2>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="닫기"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 999,
+                    border: "none",
+                    background: "rgba(0,0,0,0.06)",
+                    fontSize: 16,
+                    cursor: "pointer",
+                  }}
+                >
+                  ×
+                </button>
+              </header>
+            </div>
+
+            {/* Scrollable content. flex:1 + minHeight:0 = the column's
+                growable row that takes whatever vertical space is left
+                after the header. WebkitOverflowScrolling: touch is for
+                iOS momentum scrolling. Scrollbar hidden so the panel
+                feels native on mobile. */}
+            <div
+              data-testid="rewards-scroll"
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
+                padding:
+                  "0 calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))",
+                scrollbarWidth: "none",
+              }}
+            >
+              <style>{`[data-testid="rewards-scroll"]::-webkit-scrollbar{display:none;}`}</style>
 
             {/* Toss points section */}
             <Section title="토스포인트">
@@ -531,7 +569,9 @@ export function RewardsPanel({ open, onClose }: Props) {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
+                  // PR-22 — auto-fit so more medals (11 now) flow across
+                  // multiple rows without forcing a fixed column count.
+                  gridTemplateColumns: "repeat(auto-fit, minmax(86px, 1fr))",
                   gap: 10,
                 }}
               >
@@ -578,6 +618,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                 })}
               </div>
             </Section>
+            </div>
           </motion.div>
         </>
       )}
@@ -590,12 +631,17 @@ function medalAsset(id: MedalId): string {
   switch (id) {
     case "perfect_combo":
     case "first_golden":
+    case "dogam_100":
       return "medal_gold";
     case "five_carrots":
     case "first_candy":
+    case "dogam_50":
+    case "dogam_75":
+    case "quiet_sky":
       return "medal_silver";
     case "first_harvest":
     case "first_session":
+    case "dogam_25":
     default:
       return "medal_bronze";
   }
