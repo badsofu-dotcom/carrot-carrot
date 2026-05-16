@@ -114,8 +114,8 @@ const DROPS: readonly DropSpec[] = [
     kind: "seed",
     weight: 4,
     emoji: "🌱",
-    // PR-58 — 씨앗 봉투로 비주얼 통일 (itemsStore seed iconRel 동일).
-    iconRel: "assets/farm/tools/tool_seed_pack.png",
+    // PR-58 → PR-67 — fertilizer 자산 복원 (itemsStore seed iconRel 동일).
+    iconRel: "assets/farm/items/tool_fertilizer.png",
     toast: "🌱 씨앗 +1",
   },
   {

@@ -206,10 +206,12 @@ export function InventoryModal({ open, onClose }: Props) {
               zIndex: 1061,
               width: "100%",
               maxWidth: "var(--app-max-width, 480px)",
-              // PR-56 — height 70vh 고정 → maxHeight 90vh. 모달이 컨텐츠
-              // 크기에 따라 자라며 작은 viewport (iPhone SE 568) 에서도
-              // DetailPanel 본문 잘림 없음. RewardsPanel (PR-22) 와
-              // 동일 패턴.
+              // PR-56 → PR-67 — height 고정 제거 후 maxHeight 만 두니
+              // 컨텐츠 적을 때 모달이 화면 70~80% 위치에서 멈추는 회귀.
+              // minHeight 70vh 추가해서 bottom-sheet 적정 높이 보장.
+              // 컨텐츠 많으면 maxHeight 90vh 까지 자람. 작은 viewport
+              // (iPhone SE 568) 에서도 DetailPanel + ActionBar 둘 다 표시.
+              minHeight: "70vh",
               maxHeight: "90vh",
               background: "#FFF8EE",
               borderTopLeftRadius: 24,

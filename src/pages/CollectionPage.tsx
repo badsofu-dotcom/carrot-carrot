@@ -924,11 +924,11 @@ function FarmView({
               대로 사용. 시각 발견성 위해 헤더에 노출 (이전엔 사용자가
               잔여량 확인 불가). 자산이 없으면 emoji fallback. */}
           <CurrencyChip
-            // PR-58 — 씨앗 봉투 비주얼로 통일. itemsStore + FarmDropLayer
-            // 와 동일 자산. crop_stage1_seed (갈색 흙덩이) 는 농장 plot
-            // stage1 (어린 모종) 용으로 유지 — 인벤토리 / 헤더 / 드랍은
-            // tool_seed_pack 으로 직관성 강화.
-            icon={`${import.meta.env.BASE_URL}assets/farm/tools/tool_seed_pack.png`}
+            // PR-58 → PR-67 — 사용자가 tool_fertilizer.png 추가하여 원안
+            // 복원. itemsStore + FarmDropLayer 와 동일 자산. crop_stage1_
+            // seed (갈색 흙덩이) 는 농장 plot stage1 (어린 모종) 용으로
+            // 유지 — 인벤토리 / 헤더 / 드랍은 fertilizer 로 직관성 강화.
+            icon={`${import.meta.env.BASE_URL}assets/farm/items/tool_fertilizer.png`}
             emoji="🌱"
             label="씨앗"
             count={seeds}
