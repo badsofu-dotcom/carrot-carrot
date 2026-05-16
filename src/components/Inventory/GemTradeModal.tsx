@@ -199,6 +199,7 @@ export function GemTradeModal() {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {OPTIONS.map((opt) => {
                 const canUse = gemCount >= opt.cost;
+                const shortfall = opt.cost - gemCount;
                 return (
                   <button
                     key={opt.id}
@@ -206,6 +207,11 @@ export function GemTradeModal() {
                     onClick={() => apply(opt)}
                     disabled={!canUse}
                     data-testid={`gem-opt-${opt.id}`}
+                    aria-label={
+                      canUse
+                        ? `${opt.title} — 보석 ${opt.cost}개 사용`
+                        : `${opt.title} — 보석 ${shortfall}개 부족`
+                    }
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -219,9 +225,16 @@ export function GemTradeModal() {
                       cursor: canUse ? "pointer" : "not-allowed",
                       textAlign: "left",
                       transition: "background 0.15s, border-color 0.15s",
+                      opacity: canUse ? 1 : 0.85,
                     }}
                   >
-                    <span aria-hidden style={{ fontSize: 24 }}>
+                    <span
+                      aria-hidden
+                      style={{
+                        fontSize: 24,
+                        filter: canUse ? "none" : "grayscale(0.6)",
+                      }}
+                    >
                       {opt.emoji}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -245,6 +258,20 @@ export function GemTradeModal() {
                       >
                         {opt.body}
                       </p>
+                      {!canUse && (
+                        <p
+                          data-testid={`gem-opt-${opt.id}-shortfall`}
+                          style={{
+                            margin: "3px 0 0",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: "#b86a52",
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          보석 {shortfall}개 더 필요해요
+                        </p>
+                      )}
                     </div>
                     <span
                       style={{

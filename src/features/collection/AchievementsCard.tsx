@@ -12,6 +12,7 @@
  */
 import { useState } from "react";
 import { useRewardsStore } from "./rewardsStore";
+import { useCollectionStore } from "./collectionStore";
 import type { MedalId } from "./rewardsStore";
 import {
   SORTED_MEDALS,
@@ -19,6 +20,7 @@ import {
   type MedalDef,
   type MedalTier,
 } from "./medalsConfig";
+import { nextPassiveLabel } from "../../lib/dogamPassives";
 
 const BASE: string =
   (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
@@ -31,9 +33,11 @@ const TIER_COLOR: Record<MedalTier, string> = {
 
 export function AchievementsCard() {
   const medals = useRewardsStore((s) => s.medals);
+  const dogamOwned = useCollectionStore((s) => s.ownedCharacters.length);
   const [selected, setSelected] = useState<MedalId | null>(null);
   const unlockedCount = medals.size;
   const total = SORTED_MEDALS.length;
+  const nextPassive = nextPassiveLabel(dogamOwned);
 
   const selectedDef = selected
     ? SORTED_MEDALS.find((m) => m.id === selected) ?? null
@@ -73,6 +77,36 @@ export function AchievementsCard() {
           {unlockedCount} / {total} 달성
         </span>
       </header>
+      <div
+        data-testid="dogam-passive-banner"
+        style={{
+          marginBottom: 10,
+          padding: "8px 12px",
+          background: "linear-gradient(90deg, #fff4dc 0%, #ffe6cf 100%)",
+          border: "1px solid rgba(255,123,97,0.18)",
+          borderRadius: 12,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#8a5a2a" }}>
+          🐰 도감 {dogamOwned}마리
+        </span>
+        <span
+          data-testid="dogam-next-passive"
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: nextPassive ? "#FF7B61" : "#22a06b",
+            textAlign: "right",
+            lineHeight: 1.25,
+          }}
+        >
+          {nextPassive ? `다음: ${nextPassive}` : "모든 패시브 달성"}
+        </span>
+      </div>
       <div
         style={{
           display: "grid",
