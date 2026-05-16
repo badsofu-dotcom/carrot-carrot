@@ -785,6 +785,7 @@ function FarmView({
   const carrots = useFarmStore((s) => s.carrots);
   const candyCarrots = useFarmStore((s) => s.candyCarrots);
   const goldenCarrots = useFarmStore((s) => s.goldenCarrots);
+  const seeds = useFarmStore((s) => s.seeds);
   const plantedCount = stages.filter((s) => s >= 1 && s <= 3).length;
   const readyCount = stages.filter((s) => s === 4).length;
   const [rewardsOpen, setRewardsOpen] = useState(false);
@@ -885,7 +886,7 @@ function FarmView({
       >
         <div
           data-testid="farm-inventory"
-          aria-label={`당근 ${carrots}개, 캔디당근 ${candyCarrots}개, 황금당근 ${goldenCarrots}개. (정보: 새싹 ${plantedCount}개, 익은 밭 ${readyCount}개)`}
+          aria-label={`당근 ${carrots}개, 캔디당근 ${candyCarrots}개, 황금당근 ${goldenCarrots}개, 씨앗 ${seeds}개. (정보: 새싹 ${plantedCount}개, 익은 밭 ${readyCount}개)`}
           style={{ display: "flex", alignItems: "center", gap: 10 }}
         >
           <CurrencyChip
@@ -909,6 +910,19 @@ function FarmView({
             label="황금"
             count={goldenCarrots}
             testId="chip-golden"
+            muted
+          />
+          {/* PR-20 — seed chip. seeds 자원은 현재 daily-gift / focus-tier
+              seedDelta / cake buff / weekly treasure / gem-trade 다섯
+              경로로 grant 됨. 소비 sink 는 아직 없음 — 향후 add 시 그
+              대로 사용. 시각 발견성 위해 헤더에 노출 (이전엔 사용자가
+              잔여량 확인 불가). 자산이 없으면 emoji fallback. */}
+          <CurrencyChip
+            icon={`${import.meta.env.BASE_URL}assets/farm/crops/crop_stage1_seed.webp`}
+            emoji="🌱"
+            label="씨앗"
+            count={seeds}
+            testId="chip-seed"
             muted
           />
         </div>
