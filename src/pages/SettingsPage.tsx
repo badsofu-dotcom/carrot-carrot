@@ -26,6 +26,11 @@ import { useOwnedCount } from "../features/collection/collectionStore";
 import { DevActionsGroup } from "../features/dev/DevActionsGroup";
 import { safeStorage } from "../lib/safeStorage";
 import { useSoundStore } from "../store/soundStore";
+import { useNotificationsStore } from "../features/notifications/notificationsStore";
+import {
+  notificationPermission,
+  requestNotificationPermission,
+} from "../lib/webNotify";
 import { ONBOARDING_KEY } from "../features/collection/FarmOnboarding";
 import { reopenOnboarding } from "../features/collection/BunnyOnboardingModal";
 import { FARM_BG_AUTO_KEY, autoFromStorageValue } from "../lib/farmBackground";
@@ -489,7 +494,92 @@ function PushSettingsGroup() {
       <SfxVolumeRow />
       <FarmBgmToggleRow />
       <FarmBgmVolumeRow />
+      <NotifyMasterRow />
+      <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때 알림" />
+      <NotifyKindRow kind="session" label="집중 완료" sub="25분 / 50분 세션 끝났을 때" />
+      <NotifyKindRow kind="mission" label="오늘의 목표" sub="미션 클리어 / 미완료 안내" />
+      <NotifyKindRow kind="treasure" label="주간 보물상자" sub="진행 7 충족 시" last />
     </SettingsGroup>
+  );
+}
+
+/* ---------------------- PR-61 알림 토글 ---------------------- */
+
+function NotifyMasterRow() {
+  const masterEnabled = useNotificationsStore((s) => s.masterEnabled);
+  const setMaster = useNotificationsStore((s) => s.setMaster);
+  const [permission, setPermission] = useState(
+    () => notificationPermission(),
+  );
+  const onToggle = async (v: boolean) => {
+    setMaster(v);
+    haptic(v ? "light" : "warning");
+    if (v && permission === "default") {
+      const next = await requestNotificationPermission();
+      setPermission(next);
+      if (next === "granted") toast("알림 권한 허용됨 — native 알림 사용");
+      else if (next === "denied") toast("권한 거부 — in-app 배너로 안내");
+      else toast("알림 ON");
+    } else {
+      toast(v ? "알림 ON" : "알림 OFF");
+    }
+  };
+  const subText = (() => {
+    if (permission === "granted") return "권한 OK — native 알림 사용";
+    if (permission === "denied") return "권한 거부 — in-app 배너 fallback";
+    if (permission === "unsupported")
+      return "Web Notification 미지원 — in-app 배너 fallback";
+    return "탭하면 권한 요청 (native 거부 시 in-app 배너 fallback)";
+  })();
+  return (
+    <Row
+      label="알림 받기"
+      sub={subText}
+      right={
+        <Switch
+          checked={masterEnabled}
+          onChange={onToggle}
+          label="알림 받기"
+        />
+      }
+      testId="row-notify-master"
+    />
+  );
+}
+
+function NotifyKindRow({
+  kind,
+  label,
+  sub,
+  last,
+}: {
+  kind: "drop" | "session" | "mission" | "treasure" | "midnight";
+  label: string;
+  sub?: string;
+  last?: boolean;
+}) {
+  const byKind = useNotificationsStore((s) => s.byKind);
+  const setKind = useNotificationsStore((s) => s.setKind);
+  const master = useNotificationsStore((s) => s.masterEnabled);
+  const value = byKind[kind] !== false;
+  return (
+    <Row
+      label={label}
+      sub={sub}
+      right={
+        <Switch
+          checked={master && value}
+          onChange={(v) => {
+            setKind(kind, v);
+            haptic("light");
+          }}
+          disabled={!master}
+          label={label}
+        />
+      }
+      last={last}
+      testId={`row-notify-${kind}`}
+    />
   );
 }
 

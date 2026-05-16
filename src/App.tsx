@@ -15,6 +15,7 @@ import { useUserStore } from "./store/userStore";
 import { bunnyImages } from "./assets/characters";
 import { useTimerEngine } from "./features/timer/useTimerEngine";
 import { useSoundPlayer } from "./hooks/useSoundPlayer";
+import { InAppBanner } from "./features/notifications/InAppBanner";
 
 // Phase 7.9.2 — module top-level 에서 LCP 후보 bunny 두 장을 즉시 fetch+decode.
 // React 가 mount 하기 이전에 시작되므로 splash 1.5s hold 안에 home avatar 가 cache hit.
@@ -208,6 +209,8 @@ export default function App() {
             <AnimatedRoutes />
             <TabBar />
             <ToastViewport />
+            {/* PR-61 — in-app banner. webNotify fallback path 의 surface. */}
+            <InAppBanner />
           </div>
         </Router>
         {!splashDone && <SplashScreen onDone={() => setSplashDone(true)} />}

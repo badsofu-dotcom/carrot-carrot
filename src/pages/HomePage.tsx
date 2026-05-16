@@ -41,6 +41,8 @@ import { useBuffsStore } from "../features/collection/buffsStore";
 import { useRewardsStore } from "../features/collection/rewardsStore";
 import { useMissionsStore } from "../features/missions/missionsStore";
 import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
+import { useNotificationsStore } from "../features/notifications/notificationsStore";
+import { notify } from "../lib/webNotify";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
 
 const LOGIN_PROMPT_KEY = "cc.hasSeenLoginPrompt";
@@ -181,6 +183,19 @@ export function HomePage() {
         if (focusedMin >= 25) missions.incrementProgress("focus_25", 1);
         if (focusedMin >= 50) missions.incrementProgress("focus_50", 1);
         if (isNight) missions.incrementProgress("focus_night", 1);
+
+        // PR-61 — 집중 완료 알림. notificationsStore 토글 ON + master ON
+        // 일 때만 fire. native 권한 granted 면 system notification, 아니
+        // 면 cc:notify:in-app event 로 InAppBanner 가 표시.
+        const notif = useNotificationsStore.getState();
+        if (notif.shouldNotify("session")) {
+          const mins = Math.round(focusedMin);
+          notify({
+            kind: "session",
+            title: "🎉 집중 완료!",
+            body: `${mins}분 집중 끝 — 농장으로 가서 수확하기`,
+          });
+        }
 
         // Reward 1: 오늘 5세션 완료 → 원데이 사운드 패스.
         if (!isPassActive(passExpiresAt) && todayCompleted + 1 >= 5) {
