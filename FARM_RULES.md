@@ -118,6 +118,18 @@ Unit tests: `node --test src/lib/giftRoll.test.mjs` covers each band boundary, t
 
 ItemDef.minToUse new field — drives the "사용" button visibility AND the consume() cost. Defaults to 1; gem is the first item to set 5. Future items (juice/soup/cake follow-up PRs) can adopt this if they need multi-cost.
 
+## 당근 주스 (juice) — PR-8
+
+One-shot consumable buff. From the 가방 → 도구 아이템 탭, tap "사용" — the next harvest gacha gets `JUICE_CANDY_BONUS` (+5 %p) added to its candy band. Stacks on top of perfect-combo boost and the comboStreak≥5 batch bonus.
+
+State persists in a new `buffsStore` (`src/features/collection/buffsStore.ts`) keyed by buff kind (`juice` / `soup` / `cake`). `juiceActive` becomes `true` on activation and is read+cleared atomically by `FarmHub` at the next harvest via `useBuffsStore.getState().consume("juice")`. Survives a tab reload via `safeStorage` shim.
+
+Acquisition: today's gift box (paths: PR-2 worker `/boxes/gift/open`, PR-7 local `rollGift`). Acquisition copy uses the bag's `acquisition` string, unchanged.
+
+Worker side: `/items/use` already covers the consume on the inventory side; the buff itself is client-only state. No migration needed.
+
+Unit tests in `src/lib/seasonalBunny.test.mjs` (`juiceActive` band widening, stacking with perfect-combo, no spillover into bunny/golden bands).
+
 ## Future / out of scope
 
 - Worker-side seed persistence (needs new `user_seeds` column or table — separate PR).
