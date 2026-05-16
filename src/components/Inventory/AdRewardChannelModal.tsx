@@ -139,21 +139,33 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
   return (
     <AnimatePresence>
       {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-            onClick={onClose}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 1080,
-              background: "rgba(0,0,0,0.5)",
-            }}
-            data-testid="ad-channel-backdrop"
-          />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          onClick={onClose}
+          style={{
+            // PR-42 — 단일 fixed 컨테이너 + flex centering. 이전 코드는
+            // 내부 modal 카드에 `left:50%; top:50%; transform:
+            // translate(-50%,-50%)` 를 직접 걸었는데 framer-motion 의
+            // y/opacity 애니메이션이 같은 transform 속성을 덮어써서
+            // 모바일에서 모달이 우측으로 밀려 잘림.
+            // BunnyGachaModal 패턴 차용: outer fixed inset:0 + display
+            // flex 중앙 정렬 → inner motion 카드는 transform 자유 사용.
+            position: "fixed",
+            inset: 0,
+            zIndex: 1080,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding:
+              "16px calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left))",
+            boxSizing: "border-box",
+          }}
+          data-testid="ad-channel-backdrop"
+        >
           <motion.div
             data-testid="ad-channel-modal"
             role="dialog"
@@ -163,17 +175,18 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            onClick={(e) => e.stopPropagation()}
             style={{
-              position: "fixed",
-              left: "50%",
-              top: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 1081,
-              width: "min(360px, calc(100% - 32px))",
+              // No fixed positioning — flex parent centers. width clamps
+              // at min(360, parent inner width) so 한 padding 16 좌우
+              // 빼고도 자연스럽게 viewport 안에 머무름.
+              width: "100%",
+              maxWidth: 360,
               background: "#FFF8EE",
               borderRadius: 20,
               padding: "20px 22px",
               boxShadow: "0 12px 36px rgba(0,0,0,0.32)",
+              boxSizing: "border-box",
             }}
           >
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, textAlign: "center" }}>
@@ -233,7 +246,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               나중에
             </button>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
