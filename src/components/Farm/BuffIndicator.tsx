@@ -25,10 +25,14 @@ interface PillSpec {
   bg: string;
 }
 
+// PR-23 — short labels (1 word) so the pill doesn't wrap on a 64×3-slot
+// dock width. white-space: nowrap is the belt; short labels are the
+// suspenders. Emoji separated from the word with a hair space so screen
+// readers pronounce the label, not the emoji.
 const PILLS: readonly PillSpec[] = [
-  { key: "juice", emoji: "🥤", label: "주스 효과", bg: "rgba(255, 226, 110, 0.92)" },
-  { key: "soup", emoji: "🍲", label: "수프 효과", bg: "rgba(255, 165, 92, 0.92)" },
-  { key: "cake", emoji: "🍰", label: "케이크 효과", bg: "rgba(255, 168, 200, 0.92)" },
+  { key: "juice", emoji: "🥤", label: "주스", bg: "rgba(255, 226, 110, 0.92)" },
+  { key: "soup", emoji: "🍲", label: "수프", bg: "rgba(255, 165, 92, 0.92)" },
+  { key: "cake", emoji: "🍰", label: "케이크", bg: "rgba(255, 168, 200, 0.92)" },
 ];
 
 export function BuffIndicator() {
@@ -61,7 +65,7 @@ export function BuffIndicator() {
         <span
           key={p.key}
           data-testid={`buff-pill-${p.key}`}
-          aria-label={p.label}
+          aria-label={`${p.label} 효과 활성`}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -75,6 +79,10 @@ export function BuffIndicator() {
             border: "1px solid rgba(255,255,255,0.65)",
             boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
             letterSpacing: "0.01em",
+            // PR-23 — never wrap. Better to overflow horizontally
+            // (parent has gap 6 + ample width) than break mid-label.
+            whiteSpace: "nowrap",
+            flexShrink: 0,
           }}
         >
           <span aria-hidden style={{ fontSize: 12 }}>{p.emoji}</span>
