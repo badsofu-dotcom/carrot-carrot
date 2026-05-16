@@ -27,6 +27,7 @@ import { useCollectionStore } from "./collectionStore";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
+import { BuffIndicator } from "../../components/Farm/BuffIndicator";
 import { FxLayer, type FxEvent, type FxKind } from "../../components/Farm/Effects";
 import { Atmosphere, variantForSlot } from "../../components/Farm/Atmosphere";
 import { SkyView } from "../../components/Farm/SkyView";
@@ -736,6 +737,11 @@ export function FarmHub({
       >
         ☁ 하늘 보기
       </button>
+
+      {/* PR-17a — active buff pills (juice / soup / cake). Positioned
+          near the top under the sky-open chip; auto-hides when no
+          buff is live. */}
+      <BuffIndicator />
 
       {/* Bottom-of-card tool dock. Absolute inside .farm-hub, above
           the help-copy chip. Selecting a tool dispatches the
