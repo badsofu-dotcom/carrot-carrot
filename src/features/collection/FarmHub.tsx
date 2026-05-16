@@ -32,6 +32,7 @@ import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffIndicator } from "../../components/Farm/BuffIndicator";
+import { FarmDropLayer } from "../../components/Farm/FarmDropLayer";
 import {
   AdSuggestionModal,
   suggestAdFor,
@@ -794,6 +795,10 @@ export function FarmHub({
           near the top under the sky-open chip; auto-hides when no
           buff is live. */}
       <BuffIndicator />
+
+      {/* PR-34 — 농장 드랍 layer. 15~60s 간격으로 sky 영역에 아이템
+          spawn. 탭 시 grant + SFX. 일일 max 30. */}
+      <FarmDropLayer />
 
       {/* PR-27 — 자원 부족 광고 안내 모달. cc:ad-suggest:open 이벤트
           listener. 가드 통과 시만 표시. */}
