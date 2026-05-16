@@ -39,38 +39,50 @@ interface ToolDef {
   /** If true, slot doesn't select on tap (display-only). */
   passive?: boolean;
   /**
-   * Per-tool rendered icon size (px). Different source assets ship
-   * with different intrinsic padding — shovel/can/seed have a lot of
-   * transparent margin so they need a larger box to read as the same
-   * visual weight as the basket (which is auto-bbox-cropped). Tuned
-   * by eye from the 56×56 dock button.
+   * Per-tool visual-compensation multiplier on top of `ICON_SIZE`.
+   * 1.0 = no compensation (basket has a tight PNG bbox).
+   * 1.25 = shovel / watering_can PNGs ship with ~20 % transparent
+   * margin, so we transform-scale them up to land at the same visible
+   * content size as the basket / bag. Tuned by eye on a 64 px slot.
+   *
+   * PR-11: previous version used per-tool `size` (px). The disparity
+   * between `size: 58` (shovel/can) and `size: 46` (basket) still made
+   * shovel/can read smaller because the PNG content fills less of the
+   * box. Uniform `ICON_SIZE` + transform `scale()` gives a single
+   * "max bounding box" knob and a separate "padding compensation" knob.
    */
-  size: number;
+  scale: number;
 }
 
-/** Dock chrome — three slots after this PR (seed_pack moved to the
- *  bag inventory). Slot 64 px, icon ~58 (padded) or 46 (basket-tight).
+/** Dock chrome — 3 tool slots + 1 bag slot. Slot 64 px (fixed).
+ *  Icon bounding box ICON_SIZE for all; per-icon `scale` compensates
+ *  the PNG-padding asymmetry without resizing the slot box.
  *  Centered inside the farm card. */
 const SLOT_SIZE = 64;
+const ICON_SIZE = 50;
+/** Compensates shovel/watering-can PNGs that ship with ~20% transparent
+ *  margin. Same value reused for the bag slot below. */
+const SCALE_PADDED = 1.25;
+const SCALE_TIGHT = 1.0;
 
 const TOOL_DEFS: ToolDef[] = [
   {
     id: "shovel",
     label: "삽",
     src: `${BASE}assets/farm/tools/tool_shovel.png`,
-    size: 58,
+    scale: SCALE_PADDED,
   },
   {
     id: "watering_can",
     label: "물뿌리개",
     src: `${BASE}assets/farm/tools/tool_watering_can.png`,
-    size: 58,
+    scale: SCALE_PADDED,
   },
   {
     id: "basket",
     label: "바구니",
     src: `${BASE}assets/farm/tools/tool_basket.png`,
-    size: 46,
+    scale: SCALE_TIGHT,
   },
 ];
 
@@ -181,17 +193,19 @@ export function ToolDock() {
                 alt=""
                 draggable={false}
                 style={{
-                  width: t.size,
-                  height: t.size,
+                  width: ICON_SIZE,
+                  height: ICON_SIZE,
                   objectFit: "contain",
-                  // The button is `display: flex` and the slot box is
-                  // 48 px; an icon larger than that gets shrunk by the
-                  // flex algorithm unless we lock its basis. The slot
-                  // also has overflow: visible so the larger icon
-                  // safely overflows by a few px on each side.
+                  // PR-11: uniform bounding box for every dock icon
+                  // (50×50). `transform: scale()` does the per-PNG
+                  // padding compensation so visible content reads at
+                  // roughly the same size across all 4 slots. flexShrink
+                  // + min-w/h locks the basis so the flex parent doesn't
+                  // squeeze the icon below ICON_SIZE.
+                  transform: `scale(${t.scale})`,
                   flexShrink: 0,
-                  minWidth: t.size,
-                  minHeight: t.size,
+                  minWidth: ICON_SIZE,
+                  minHeight: ICON_SIZE,
                 }}
               />
             ) : (
@@ -255,12 +269,16 @@ export function ToolDock() {
           alt=""
           draggable={false}
           style={{
-            width: 50,
-            height: 50,
+            // PR-11: same ICON_SIZE + transform-scale pattern as the
+            // tool slots above. bag PNG ships with a tight bbox so
+            // SCALE_TIGHT — visually balanced with the basket slot.
+            width: ICON_SIZE,
+            height: ICON_SIZE,
             objectFit: "contain",
+            transform: `scale(${SCALE_TIGHT})`,
             flexShrink: 0,
-            minWidth: 50,
-            minHeight: 50,
+            minWidth: ICON_SIZE,
+            minHeight: ICON_SIZE,
           }}
         />
         {speciesOwned > 0 && (
