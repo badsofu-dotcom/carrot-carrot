@@ -60,9 +60,13 @@ interface ToolDef {
  *  Centered inside the farm card. */
 const SLOT_SIZE = 64;
 const ICON_SIZE = 50;
-/** Compensates shovel/watering-can PNGs that ship with ~20% transparent
- *  margin. Same value reused for the bag slot below. */
-const SCALE_PADDED = 1.25;
+/** Compensates shovel/watering-can PNGs that ship with heavy transparent
+ *  margin. PR-11 chose 1.25; user reported they still read smaller than
+ *  basket/bag so PR-14 bumped to 1.45. Visible content lands at ~72.5 px
+ *  vs. basket/bag's ~50 px — slot has overflow:visible so the few px of
+ *  bleed past 64 stays inside the dock gap (6) without touching the
+ *  next slot. */
+const SCALE_PADDED = 1.45;
 const SCALE_TIGHT = 1.0;
 
 const TOOL_DEFS: ToolDef[] = [
