@@ -28,6 +28,7 @@ import { useSoundStore } from "../../store/soundStore";
 import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
+import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffIndicator } from "../../components/Farm/BuffIndicator";
@@ -394,6 +395,17 @@ export function FarmHub({
   };
   // --- Bunny gacha modal ----------------------------------------------
   const [gachaBunnyId, setGachaBunnyId] = useState<string | null>(null);
+  // PR-33 — GemTradeModal 의 legendary 옵션이 cc:bunny-gacha:show 로
+  // 결과를 surfacing. FarmHub 가 listener 로 모달 트리거.
+  useEffect(() => {
+    const onShow = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ bunnyId?: string }>).detail;
+      if (detail?.bunnyId) setGachaBunnyId(detail.bunnyId);
+    };
+    window.addEventListener("cc:bunny-gacha:show", onShow);
+    return () => window.removeEventListener("cc:bunny-gacha:show", onShow);
+  }, []);
+
   // Ad-reward channel modal — opened via cc:ad-channel:open from
   // ToolDock or any future ad-watch CTA.
   const [adChannelOpen, setAdChannelOpen] = useState(false);
@@ -813,6 +825,9 @@ export function FarmHub({
         open={adChannelOpen}
         onClose={() => setAdChannelOpen(false)}
       />
+
+      {/* PR-33 — 보석 사용 5 옵션 모달. cc:gem-trade:open 리스너. */}
+      <GemTradeModal />
 
       {/* CollectionPage's FarmView owns the compact header (carrot/plot
           inventory + dogam button). The in-card chips were removed to
