@@ -1,5 +1,4 @@
 import { useMemo, useState, useEffect } from "react";
-import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bunny } from "../components/Bunny";
 import { bunnyImages } from "../assets/characters";
@@ -788,7 +787,6 @@ function FarmView({
   const goldenCarrots = useFarmStore((s) => s.goldenCarrots);
   const plantedCount = stages.filter((s) => s >= 1 && s <= 3).length;
   const readyCount = stages.filter((s) => s === 4).length;
-  const [, navigate] = useLocation();
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
   const unlockMedal = useRewardsStore((s) => s.unlockMedal);
@@ -960,30 +958,11 @@ function FarmView({
           >
             🎁
           </button>
-          <button
-            type="button"
-            data-testid="farm-header-settings"
-            aria-label="설정 열기"
-            onClick={() => {
-              haptic("light");
-              navigate("/me");
-            }}
-            style={{
-              width: 32,
-              height: 32,
-              padding: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 999,
-              background: "rgba(0,0,0,0.04)",
-              border: "none",
-              fontSize: 16,
-              cursor: "pointer",
-            }}
-          >
-            ⚙
-          </button>
+          {/* PR-21 — settings 톱니바퀴 제거. 하단 네비 → 내 정보 → 설정
+              경로가 이미 있으므로 헤더 진입점 중복 제거. 헤더 우측은
+              📖 도감 + 🎁 보상함 둘만 남김 (선물박스는 daily reward
+              진입점이라 농장 첫화면에 두는 게 의미 있음). 라우트
+              자체는 그대로 유지. */}
         </div>
       </header>
 
