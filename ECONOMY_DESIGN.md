@@ -39,13 +39,60 @@ Roll table lives in `src/lib/seasonalBunny.ts` — see the `HARVEST_*` constants
 
 Header chips render the PNG icon at 18×18 with `object-fit: contain`. If the asset fails to load on the deploy host (nested-proxy path issues), the chip falls back to the emoji glyph through an `onError` handler.
 
-## Anti-abuse caps (KST per day, per user)
+## Anti-abuse caps (KST per day, per user) — PR-32 보정
 
-| Counter | Cap |
+| Counter | Cap | 비고 |
+| --- | --- | --- |
+| `carrot_count` (당근 수확 횟수) | 100 | 2 hr 풀 활용 = 4 세션 × 25 carrots (PR-32 보정) |
+| `reward_points_total` (포인트 합계) | **100** | EV 110 P, anti-abuse 자연 차단 (PR-32 보정 50 → 100) |
+| `ad_views_today` (광고 시청 횟수) | 10 | 5회 P 보상 + 5회 토큰 보상 |
+
+## 광고 보상 N-th tier (PR-32)
+
+광고 채널 (`AdRewardChannelModal`) claim 마다 누적 N 회 기준:
+
+| N | 추가 grant | 누적 P |
+| --- | --- | --- |
+| 1 | +5 carrot | 5 |
+| 2 | +5 carrot | 10 |
+| 3 | +10 carrot | 20 |
+| 4 | +10 carrot | 30 |
+| 5 | +20 carrot | **50 (보장)** |
+| 6 | +1 gem 또는 +1 bolt (50/50) | 50 |
+| 7 | +1 gem 또는 +1 bolt | 50 |
+| 8 | +1 gem 또는 +1 bolt | 50 |
+| 9 | +1 gem 또는 +1 bolt | 50 |
+| 10 | +1 gem 또는 +1 bolt | 50 |
+| 11+ | 보너스 없음 (자정 리셋) | 50 |
+
+`cc.ad.dailyCount.<YYYY-MM-DD>` safeStorage 키에 카운터 저장. 자정 KST 이후 키가 새로 생성되어 자동 0 리셋.
+
+기존 채널 보상 (watering refill / gift / treasure progress + 1 heart consume + 5 carrot_coin) 은 그대로 유지. N-th tier 는 **추가** 보너스.
+
+## EV 일일 (PR-32 calibration)
+
+| 소스 | 평균 EV (P) |
 | --- | --- |
-| `carrot_count` (당근 수확 횟수) | 24 |
-| `reward_points_total` (포인트 합계) | 50 |
-| `ad_views_today` (광고 시청 횟수) | 10 |
+| 농장 수확 (4 세션 × 25 carrots × 1 P × 0.75 ratio) | 75 |
+| 가챠 candy (7% × 약 100 harvests × 5 P) | 35 |
+| 가챠 golden (0.6% × 100 × 10 P) | 6 |
+| 광고 N-th P (5회 보장) | 50 |
+| Daily gift | 2 |
+| Weekly treasure (7 progress / 7 = 1 open/week 평균) | 5 |
+| **합계 EV** | **~173 P** (집중 시) |
+
+100 P 캡이 적중 — anti-abuse 자연 차단. 2 시간 풀 활용 시 100 P + tokens (gem/bolt) bonus 받음.
+
+## Harvest gacha rates (PR-32 보정)
+
+| 항목 | 이전 | 신규 |
+| --- | --- | --- |
+| Bunny | 0.5 % | 0.5 % |
+| Golden | 1 % | **0.6 %** |
+| Candy (base) | 4 % | **7 %** |
+| Candy (boost: perfect-combo) | 12 % | 12 % |
+| Combo batch bonus | +1 %p | +1 %p |
+| Juice buff | +5 %p | +5 %p |
 
 All caps live in the `daily_caps` table keyed by `(user_key, ymd)`.
 `ymd` is the KST date string (`YYYY-MM-DD`) — every grant looks up

@@ -18,10 +18,17 @@
  * session memory belongs to a follow-up DB migration.
  */
 
-export const HARVEST_BASE_CANDY = 0.04;
-export const HARVEST_BOOST_CANDY = 0.12; // active while perfect-combo
+// PR-32 calibration — daily 100 P 캡 가이드라인 정합. EV (per harvest):
+//   base candy 7% × 5 P = 0.35 P/harvest
+//   golden 0.6% × 10 P = 0.06 P/harvest
+//   carrot 91.9% × 1 P = 0.919 P/harvest
+//   = 1.33 P/harvest. 100 harvests/day ≈ 133 P 잠재 → 워커 daily cap 100 P 가
+//   anti-abuse 자연 차단. 광고 50P + 일일 gift 5P + 주간/7 5P → 110 P EV
+//   (집중 ratio 0.75 기준).
+export const HARVEST_BASE_CANDY = 0.07; // PR-32: 4% → 7%
+export const HARVEST_BOOST_CANDY = 0.12; // perfect-combo 시 (변경 없음)
 export const HARVEST_BUNNY_RATE = 0.005; // 0.5%
-export const HARVEST_GOLD = 0.01; // 1% golden carrot (5x value)
+export const HARVEST_GOLD = 0.006; // PR-32: 1% → 0.6%
 export const COMBO_BATCH_BONUS = 0.01; // +1%p per harvest while combo ≥ 5
 export const JUICE_CANDY_BONUS = 0.05; // +5%p next harvest after 당근 주스 사용
 

@@ -35,12 +35,20 @@ test("rollHarvestGacha: very low rng → seasonal bunny", () => {
   assert.match(out.bunnyId, /^seasonal_/);
 });
 
+// PR-32 calibration — bands:
+//   [0, 0.005): bunny (0.5%)
+//   [0.005, 0.011): golden (0.6%)
+//   [0.011, 0.081): candy (7%)
+//   [0.081, 1): carrot (91.9%)
+
 test("rollHarvestGacha: rng past bunny rate but inside golden → golden", () => {
-  const out = rollHarvestGacha({ rng: () => 0.01 });
+  // golden band [0.005, 0.011). rng 0.008 → golden.
+  const out = rollHarvestGacha({ rng: () => 0.008 });
   assert.equal(out.kind, "golden");
 });
 
 test("rollHarvestGacha: rng in candy base → candy", () => {
+  // candy band [0.011, 0.081). rng 0.05 → candy.
   const out = rollHarvestGacha({ rng: () => 0.05 });
   assert.equal(out.kind, "candy");
 });
@@ -51,15 +59,21 @@ test("rollHarvestGacha: rng above all → plain carrot", () => {
 });
 
 test("rollHarvestGacha: perfect-combo widens candy bucket", () => {
-  const baseline = rollHarvestGacha({ rng: () => 0.06 });
-  const boosted = rollHarvestGacha({ rng: () => 0.06, perfectCombo: true });
+  // base candy ends at 0.081; with boost ends at 0.131. rng 0.10 → carrot
+  // baseline, candy with boost.
+  const baseline = rollHarvestGacha({ rng: () => 0.1 });
+  const boosted = rollHarvestGacha({ rng: () => 0.1, perfectCombo: true });
   assert.equal(baseline.kind, "carrot");
   assert.equal(boosted.kind, "candy");
 });
 
 test("rollHarvestGacha: comboStreak ≥5 adds +1%p candy", () => {
-  const out = rollHarvestGacha({ rng: () => 0.06, comboStreak: 5 });
-  assert.equal(out.kind, "candy");
+  // base candy ends at 0.081; +1%p = 0.091. rng 0.085 → carrot baseline,
+  // candy with streak.
+  const baseline = rollHarvestGacha({ rng: () => 0.085 });
+  const streak = rollHarvestGacha({ rng: () => 0.085, comboStreak: 5 });
+  assert.equal(baseline.kind, "carrot");
+  assert.equal(streak.kind, "candy");
 });
 
 test("rollHarvestGacha: owned bunny excluded → falls through", () => {
@@ -101,24 +115,23 @@ test("constants are non-zero and sane", () => {
   assert.ok(JUICE_CANDY_BONUS > 0 && JUICE_CANDY_BONUS < 0.2);
 });
 
-// Base candy band: 0.005 (bunny) + 0.01 (gold) + 0.04 (base candy) = 0.055.
-// With juice (+0.05): 0.005 + 0.01 + 0.04 + 0.05 = 0.105.
+// PR-32 — Base candy band ends at 0.005 + 0.006 + 0.07 = 0.081.
+// With juice (+0.05): ends at 0.131.
 
 test("rollHarvestGacha: juice buff widens candy bucket past base", () => {
-  // r = 0.07 → past base candy cutoff (0.055) but inside juice cutoff (0.105)
-  const baseline = rollHarvestGacha({ rng: () => 0.07 });
-  const juiced = rollHarvestGacha({ rng: () => 0.07, juiceActive: true });
+  // r = 0.1 → past base candy cutoff (0.081) but inside juice cutoff (0.131)
+  const baseline = rollHarvestGacha({ rng: () => 0.1 });
+  const juiced = rollHarvestGacha({ rng: () => 0.1, juiceActive: true });
   assert.equal(baseline.kind, "carrot");
   assert.equal(juiced.kind, "candy");
 });
 
 test("rollHarvestGacha: juice stacks on top of perfect-combo boost", () => {
-  // boost candy = 0.12; with juice = 0.17. r = 0.16 falls inside the
-  // juice-stacked band but outside boost-only.
-  // Cumulative cutoffs:
-  //   bunny + gold = 0.015
-  //   bunny + gold + boost = 0.135
-  //   bunny + gold + boost + juice = 0.185
+  // PR-32 cumulative cutoffs:
+  //   bunny + gold = 0.011
+  //   bunny + gold + boost = 0.131
+  //   bunny + gold + boost + juice = 0.181
+  // r = 0.16 → carrot (boost only), candy (boost + juice).
   const boostOnly = rollHarvestGacha({ rng: () => 0.16, perfectCombo: true });
   const stacked = rollHarvestGacha({
     rng: () => 0.16,
@@ -137,7 +150,7 @@ test("rollHarvestGacha: juice does not push bunny or golden", () => {
     month: 3,
   });
   assert.equal(bunny.kind, "bunny");
-  // r = 0.012 → past bunny, inside golden — juice should not change kind
-  const gold = rollHarvestGacha({ rng: () => 0.012, juiceActive: true });
+  // r = 0.008 → past bunny, inside golden (PR-32 [0.005, 0.011))
+  const gold = rollHarvestGacha({ rng: () => 0.008, juiceActive: true });
   assert.equal(gold.kind, "golden");
 });

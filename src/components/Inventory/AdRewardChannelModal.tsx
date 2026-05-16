@@ -21,6 +21,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useToolStore } from "../../features/collection/toolStore";
 import { useRewardsStore } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
+import { useFarmStore } from "../../features/collection/farmStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
 import { safeStorage } from "../../lib/safeStorage";
 import { toast } from "../../design-system/ui";
@@ -37,6 +38,26 @@ function kstDayKey(): string {
 
 function dayClaimedKey(c: Channel): string {
   return `cc.ad.${c}.${kstDayKey()}`;
+}
+
+// PR-32 — daily ad-claim counter (any channel). safeStorage 의 키는
+// KST 일자별로 분리 → 자정 이후 자동 0 으로 리셋. Numeric coercion
+// 으로 corrupted JSON 도 안전.
+function adDailyKey(day: string): string {
+  return `cc.ad.dailyCount.${day}`;
+}
+function readAdDailyCount(day: string): number {
+  const raw = safeStorage.get(adDailyKey(day));
+  if (!raw) return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
+}
+function writeAdDailyCount(day: string, n: number): void {
+  try {
+    safeStorage.set(adDailyKey(day), String(n));
+  } catch {
+    /* ignore */
+  }
 }
 
 function alreadyClaimed(c: Channel): boolean {
@@ -123,11 +144,43 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
         toast("🌟 보물 진행 +1 (별 +1)");
         break;
     }
-    // PR-24 — heart consume + carrot_coin grant on success path. 채널
-    // 어디서든 toast+return 으로 일찍 빠지면 이 라인까지 도달 안 함
-    // → 자원 변동 없음.
+    // PR-24 — heart consume + carrot_coin grant on success path.
     items.consume("heart", 1);
     items.add("carrot_coin", 5);
+
+    // PR-32 — N-th daily ad-claim bonus (carrot/token). KST 일자 별
+    // 카운터로 5회 까지 P 보장 (1/5/5/10/10/20 carrot), 6~10회 토큰만
+    // (gem or bolt random), 11회 이상 보너스 없음 (영구 cooldown).
+    {
+      const today = kstDayKey();
+      const cur = readAdDailyCount(today);
+      const n = cur + 1;
+      writeAdDailyCount(today, n);
+      const farm = useFarmStore.getState();
+      if (n === 1 || n === 2) {
+        farm.incCarrots(5);
+        toast(`🎬 광고 ${n}회 → 당근 +5`);
+      } else if (n === 3 || n === 4) {
+        farm.incCarrots(10);
+        toast(`🎬 광고 ${n}회 → 당근 +10`);
+      } else if (n === 5) {
+        farm.incCarrots(20);
+        toast("🎬 광고 5회 달성 → 당근 +20 (오늘 50 P 보장 완료)");
+      } else if (n <= 10) {
+        // 6~10: 토큰 (gem or bolt 50/50)
+        const pickGem = Math.random() < 0.5;
+        if (pickGem) {
+          items.add("gem", 1);
+          toast(`🎬 광고 ${n}회 → 💎 보석 +1`);
+        } else {
+          items.add("bolt", 1);
+          toast(`🎬 광고 ${n}회 → ⚡ 번개 +1`);
+        }
+      } else {
+        toast(`🎬 광고 ${n}회 — 오늘 한도 도달 (자정 리셋)`);
+      }
+    }
+
     markClaimed(c);
     // TODO: post nonce + channel to worker `/economy/ad-view` once
     // the ad-token verification path is wired. The nonce stub here

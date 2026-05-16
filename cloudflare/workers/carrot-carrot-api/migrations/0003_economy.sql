@@ -48,9 +48,9 @@ CREATE INDEX IF NOT EXISTS point_grants_user_ymd_idx
 -- daily_caps
 --   Tracks per-day grant totals to enforce anti-abuse caps. One row per
 --   (user, ymd) — kept independent of point_grants so reads stay O(1).
---   - carrot_count: number of carrots harvested today (cap eg. 24)
---   - reward_points_total: sum of points granted today (cap eg. 50)
---   - ad_views_today: number of rewarded ads watched (cap eg. 10)
+--   - carrot_count: number of carrots harvested today (cap 100 — PR-32)
+--   - reward_points_total: sum of points granted today (cap 100 — PR-32)
+--   - ad_views_today: number of rewarded ads watched (cap 10)
 -- ----------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS daily_caps (
   user_key            TEXT NOT NULL REFERENCES users(user_key) ON DELETE CASCADE,
