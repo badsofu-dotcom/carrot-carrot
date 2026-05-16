@@ -140,8 +140,15 @@ export function InventoryModal({ open, onClose }: Props) {
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             style={{
               position: "fixed",
-              left: "50%",
-              transform: "translateX(-50%)",
+              // Center horizontally via margin auto. Don't use
+              // transform: translateX(-50%) here — framer-motion owns
+              // the transform property for the y slide-in animation and
+              // would clobber an inline X translation, which is what
+              // pushed the sheet off-screen-right on mobile (PR-6.5).
+              left: 0,
+              right: 0,
+              marginLeft: "auto",
+              marginRight: "auto",
               bottom: 0,
               zIndex: 1061,
               width: "100%",
@@ -151,10 +158,12 @@ export function InventoryModal({ open, onClose }: Props) {
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               padding:
-                "12px 20px calc(20px + env(safe-area-inset-bottom)) 20px",
+                "12px calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))",
               boxShadow: "0 -8px 28px rgba(0,0,0,0.18)",
               display: "flex",
               flexDirection: "column",
+              boxSizing: "border-box",
+              overflow: "hidden",
             }}
           >
             <div

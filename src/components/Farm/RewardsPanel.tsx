@@ -162,8 +162,15 @@ export function RewardsPanel({ open, onClose }: Props) {
             transition={{ type: "spring", stiffness: 320, damping: 32 }}
             style={{
               position: "fixed",
-              left: "50%",
-              transform: "translateX(-50%)",
+              // Center via margin auto. Don't use transform: translateX
+              // here — framer-motion drives the y slide-in via the same
+              // transform property and would clobber an inline X
+              // translation, pushing the sheet off-screen-right on
+              // mobile. Same fix as InventoryModal (PR-6.5).
+              left: 0,
+              right: 0,
+              marginLeft: "auto",
+              marginRight: "auto",
               bottom: 0,
               zIndex: 1051,
               width: "100%",
@@ -172,10 +179,11 @@ export function RewardsPanel({ open, onClose }: Props) {
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               padding:
-                "12px 20px calc(20px + env(safe-area-inset-bottom)) 20px",
+                "12px calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))",
               maxHeight: "82vh",
               overflowY: "auto",
               boxShadow: "0 -8px 28px rgba(0,0,0,0.18)",
+              boxSizing: "border-box",
             }}
           >
             <div
