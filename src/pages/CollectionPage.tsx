@@ -17,7 +17,6 @@ import { useFarmStore } from "../features/collection/farmStore";
 import { FarmOnboarding } from "../features/collection/FarmOnboarding";
 import { RewardsPanel } from "../components/Farm/RewardsPanel";
 import { InventoryModal } from "../components/Inventory/InventoryModal";
-import { useItemsStore } from "../features/collection/itemsStore";
 import { useRewardsStore } from "../features/collection/rewardsStore";
 import {
   RARITY_COLOR,
@@ -789,13 +788,15 @@ function FarmView({
   const [, navigate] = useLocation();
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
-  const itemCounts = useItemsStore((s) => s.counts);
-  const speciesOwned = (() => {
-    let n = 0;
-    for (const v of Object.values(itemCounts)) if (v > 0) n++;
-    return n;
-  })();
   const unlockMedal = useRewardsStore((s) => s.unlockMedal);
+
+  // The bag button now lives in ToolDock (PR-6 moved it off the header).
+  // Listen for its cc:bag:open dispatch so we can open the modal.
+  useEffect(() => {
+    const open = () => setBagOpen(true);
+    window.addEventListener("cc:bag:open", open);
+    return () => window.removeEventListener("cc:bag:open", open);
+  }, []);
 
   // Dogam threshold medals (25/50/75/100). Re-evaluated whenever the
   // unlock count crosses a boundary. unlockMedal() is idempotent.
@@ -920,62 +921,6 @@ function FarmView({
             }}
           >
             🎁
-          </button>
-          <button
-            type="button"
-            data-testid="farm-header-bag"
-            aria-label="가방 열기"
-            onClick={() => {
-              haptic("light");
-              setBagOpen(true);
-            }}
-            style={{
-              position: "relative",
-              width: 32,
-              height: 32,
-              padding: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 999,
-              background: "rgba(0,0,0,0.04)",
-              border: "none",
-              cursor: "pointer",
-              overflow: "visible",
-            }}
-          >
-            <img
-              src={`${import.meta.env.BASE_URL}assets/farm/items/item_bag.png`}
-              alt=""
-              width={32}
-              height={32}
-              style={{ objectFit: "contain" }}
-            />
-            {speciesOwned > 0 && (
-              <span
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  top: -3,
-                  right: -3,
-                  minWidth: 16,
-                  height: 14,
-                  borderRadius: 999,
-                  background: "#FF7B61",
-                  color: "#fff",
-                  fontSize: 9,
-                  fontWeight: 800,
-                  padding: "0 4px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border: "1px solid #fff",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
-                }}
-              >
-                {speciesOwned}
-              </span>
-            )}
           </button>
           <button
             type="button"

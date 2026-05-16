@@ -57,8 +57,8 @@ Local commands re-run by the handoff session (2026-05-14):
 
 What works in the working tree (verified by code reading):
 
-- ToolDock reduced to 3 slots (shovel / watering_can / basket). `seed_pack` removed from `ToolDef[]` and from `ToolId` union (`toolStore.ts`).
-- CollectionPage farm-header now has a 🎁 button (RewardsPanel), a 🏷 bag button (InventoryModal) with species-count badge, ⚙ settings button.
+- ToolDock has 3 tool slots (shovel / watering_can / basket) + 1 passive bag slot (PR-6) that dispatches `cc:bag:open`. `seed_pack` removed from `ToolDef[]` and from `ToolId` union (`toolStore.ts`).
+- CollectionPage farm-header is clean: 📖 도감 / 🎁 RewardsPanel / ⚙ settings. The bag (InventoryModal) opens from ToolDock's 4th slot, not the header (PR-6).
 - `InventoryModal.tsx` renders 13 item slots in 3 tabs (자원 / 도구 / 컬렉션), 4-column grid.
 - `itemsStore.ts` defines the 13-`ItemCode` union + add/consume/speciesOwned actions + safeStorage persist.
 - `rewardTables.ts` ships `DAILY_GIFT_TABLE` + `WEEKLY_TREASURE_TABLE` with pure-helper RNG + tests (8/8 pass, EVs match table).

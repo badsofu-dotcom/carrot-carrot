@@ -1,27 +1,30 @@
 /**
- * ToolDock — bottom-of-farm-card tool selector.
+ * ToolDock — bottom-of-farm-card tool selector + bag entry point.
  *
  * Lives inside the farm card (absolute, above the help-copy chip) and
- * never overlaps the BottomNav. Four 56×56 slots, gap 8. Active slot is
- * outlined in accent orange and scaled to 1.05.
+ * never overlaps the BottomNav. Three tool slots + one passive bag
+ * slot; active tool slot is outlined in accent orange and scaled 1.05.
  *
  * Tools:
  *   - shovel       → plant on tap
  *   - watering_can → water on tap (with daily 10-charge gate)
  *   - basket       → harvest on tap
+ *   - bag (passive) → dispatches `cc:bag:open`, no select state
  *
- * Asset fallbacks per assets-missing.md:
- *   - tool_basket image not present → 🧺 emoji glyph
- *   - the rest are PNGs under `${BASE}assets/farm/tools/…`.
+ * The bag slot replaces the old farm-header bag button (PR-6) so all
+ * "소지품류" entry points live on the bottom tray.
  *
  * Badges:
  *   - watering_can: shows `N/10` (KST-daily) in the bottom-right corner
+ *   - bag: shows owned-species count in the top-right corner
  *   - shovel / basket: no badge (infinite)
  *
- * The dock dispatches a `cc:tool:selected` CustomEvent so FarmHub's
- * click handler can branch without prop-drilling the active tool.
+ * The dock dispatches a `cc:tool:selected` CustomEvent for tool slots
+ * so FarmHub's click handler can branch without prop-drilling. The bag
+ * slot dispatches `cc:bag:open` (CollectionPage owns the modal).
  */
 import { useToolStore, type ToolId } from "../../features/collection/toolStore";
+import { useItemsStore } from "../../features/collection/itemsStore";
 import { haptic } from "../../design-system/haptic";
 
 const BASE = import.meta.env.BASE_URL;
@@ -89,6 +92,9 @@ export function ToolDock() {
   const wateringLeft = useToolStore((s) => s.wateringCanLeft);
   const adRefills = useToolStore((s) => s.adRefillsToday);
   const rollover = useToolStore((s) => s.rolloverIfNeeded);
+  const itemCounts = useItemsStore((s) => s.counts);
+  let speciesOwned = 0;
+  for (const v of Object.values(itemCounts)) if (v > 0) speciesOwned++;
 
   // Kick the rollover check on mount so the day key is fresh.
   rollover();
@@ -108,11 +114,20 @@ export function ToolDock() {
     window.dispatchEvent(new CustomEvent("cc:ad-channel:open"));
   };
 
+  const onOpenBag = () => {
+    haptic("light");
+    try {
+      window.dispatchEvent(new CustomEvent("cc:bag:open"));
+    } catch {
+      /* SSR */
+    }
+  };
+
   return (
     <div
       data-testid="tool-dock"
       role="toolbar"
-      aria-label="농장 도구"
+      aria-label="농장 도구 및 가방"
       style={{
         position: "absolute",
         left: "50%",
@@ -210,6 +225,71 @@ export function ToolDock() {
           </button>
         );
       })}
+
+      {/* Bag (inventory) — passive slot. Dispatches cc:bag:open so
+          CollectionPage opens the InventoryModal. Replaces the old farm
+          header bag button (PR-6). */}
+      <button
+        type="button"
+        onClick={onOpenBag}
+        data-testid="tool-bag"
+        aria-label="가방 열기"
+        style={{
+          position: "relative",
+          width: SLOT_SIZE,
+          height: SLOT_SIZE,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 12,
+          background: "rgba(255,255,255,0.6)",
+          border: "1px solid rgba(0,0,0,0.08)",
+          transition: "transform 0.18s ease",
+          cursor: "pointer",
+          padding: 0,
+          overflow: "visible",
+        }}
+      >
+        <img
+          src={`${BASE}assets/farm/items/item_bag.png`}
+          alt=""
+          draggable={false}
+          style={{
+            width: 50,
+            height: 50,
+            objectFit: "contain",
+            flexShrink: 0,
+            minWidth: 50,
+            minHeight: 50,
+          }}
+        />
+        {speciesOwned > 0 && (
+          <span
+            aria-hidden
+            data-testid="tool-bag-badge"
+            style={{
+              position: "absolute",
+              top: -3,
+              right: -3,
+              minWidth: 18,
+              height: 16,
+              borderRadius: 999,
+              background: ACCENT,
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 800,
+              padding: "0 4px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #fff",
+              boxShadow: "0 1px 2px rgba(0,0,0,0.18)",
+            }}
+          >
+            {speciesOwned}
+          </span>
+        )}
+      </button>
 
       {/* Watering-can refill button — only when out of charges. The
           preview/mock path increments locally; production will call the
