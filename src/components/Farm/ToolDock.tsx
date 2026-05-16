@@ -112,11 +112,15 @@ export function ToolDock() {
   const selected = useToolStore((s) => s.selected);
   const setSelected = useToolStore((s) => s.select);
   const wateringLeft = useToolStore((s) => s.wateringCanLeft);
-  const adRefills = useToolStore((s) => s.adRefillsToday);
   const rollover = useToolStore((s) => s.rolloverIfNeeded);
   const itemCounts = useItemsStore((s) => s.counts);
   let speciesOwned = 0;
   for (const v of Object.values(itemCounts)) if (v > 0) speciesOwned++;
+  // PR-28 — heart 토큰은 광고 시청 가능 잔여 횟수. PR-24 에서 KST
+  // 자정 리필 + ad-channel claim consume 가 wire 됨. 본 PR 은 슬롯
+  // UI + 표시만.
+  const heartCount = itemCounts.heart ?? 0;
+  const HEART_DAILY_MAX = 3;
 
   // Kick the rollover check on mount so the day key is fresh.
   rollover();
@@ -129,17 +133,28 @@ export function ToolDock() {
     emitToolSelected(nextId);
   };
 
-  // The refill button now opens the AdRewardChannelModal. The channel
-  // modal owns the per-day cap + nonce stub; it calls refillFromAd()
-  // internally when the user picks the watering channel.
-  const onRefill = () => {
-    window.dispatchEvent(new CustomEvent("cc:ad-channel:open"));
-  };
-
   const onOpenBag = () => {
     haptic("light");
     try {
       window.dispatchEvent(new CustomEvent("cc:bag:open"));
+    } catch {
+      /* SSR */
+    }
+  };
+
+  // PR-28 — 광고 슬롯 클릭. 하트 잔여 0 이면 안내 토스트 후 no-op.
+  // (PR-24 에서 AdRewardChannelModal 의 claim 측이 하트를 consume.)
+  const onOpenAdChannel = () => {
+    if (heartCount <= 0) {
+      // 토스트 — 동적 import 회피 위해 ui import 는 호출 시점에 read.
+      void import("../../design-system/ui").then((m) =>
+        m.toast("하트가 부족해요 — 내일 자정에 다시 채워져요"),
+      );
+      return;
+    }
+    haptic("light");
+    try {
+      window.dispatchEvent(new CustomEvent("cc:ad-channel:open"));
     } catch {
       /* SSR */
     }
@@ -319,34 +334,65 @@ export function ToolDock() {
         )}
       </button>
 
-      {/* Watering-can refill button — only when out of charges. The
-          preview/mock path increments locally; production will call the
-          worker /tools/refill route after ad-verify. */}
-      {wateringLeft === 0 && adRefills < 3 && (
-        <button
-          type="button"
-          onClick={onRefill}
-          data-testid="tool-refill"
-          aria-label="광고 보고 물뿌리개 3회 충전"
+      {/* PR-28 — 5번째 슬롯: 광고 (AdRewardChannelModal 진입).
+          Badge: heart 잔여 N/3. heart 0 일 때 disabled + 안내 토스트.
+          이전 PR-6 부터의 conditional "🎬 +3 충전" 버튼은 ad 슬롯이
+          광고 채널 진입을 항상 노출하므로 제거. */}
+      <button
+        type="button"
+        onClick={onOpenAdChannel}
+        disabled={heartCount <= 0}
+        data-testid="tool-ad"
+        aria-label={
+          heartCount > 0
+            ? `광고 보고 보상 받기 (${heartCount}/${HEART_DAILY_MAX})`
+            : "광고 보상 — 하트 부족"
+        }
+        style={{
+          position: "relative",
+          width: SLOT_SIZE,
+          height: SLOT_SIZE,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 12,
+          background: heartCount > 0 ? ACCENT : "rgba(0,0,0,0.08)",
+          color: heartCount > 0 ? "#fff" : "#888",
+          border: "1px solid rgba(0,0,0,0.08)",
+          transition: "transform 0.18s ease, background 0.18s ease",
+          cursor: heartCount > 0 ? "pointer" : "not-allowed",
+          padding: 0,
+          overflow: "visible",
+          fontSize: 26,
+          lineHeight: 1,
+        }}
+      >
+        <span aria-hidden>🎬</span>
+        <span
+          aria-hidden
+          data-testid="tool-ad-badge"
           style={{
-            height: SLOT_SIZE,
-            padding: "0 10px",
-            borderRadius: 12,
-            background: ACCENT,
-            color: "#fff",
+            position: "absolute",
+            bottom: -3,
+            right: -3,
+            minWidth: 22,
+            height: 16,
+            borderRadius: 999,
+            background: "#fff",
+            color: heartCount > 0 ? "#222" : "#888",
             fontSize: 10,
-            fontWeight: 700,
-            border: "none",
-            cursor: "pointer",
-            lineHeight: 1.1,
-            whiteSpace: "nowrap",
+            fontWeight: 800,
+            padding: "0 4px",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "1px solid rgba(0,0,0,0.08)",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
         >
-          🎬 +3
-          <br />
-          충전
-        </button>
-      )}
+          {heartCount}/{HEART_DAILY_MAX}
+        </span>
+      </button>
     </div>
   );
 }
