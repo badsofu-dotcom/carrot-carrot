@@ -382,11 +382,15 @@ export function FarmHub({
 
   const plantedCount = stages.filter((s) => s >= 1 && s <= 3).length;
   const readyCount = stages.filter((s) => s === 4).length;
+  // R28 PHASE 2 — "5분 이상 집중하면 작물이 자라요" 카피는 홈 화면 전용.
+  // HomePage idle 상태에서 노출되므로 농장에서 중복 노출하면 사용자가
+  // "왜 또 보여?" → 농장에서는 planted 상태 안내 자체를 생략.
+  // empty / ready 상태 hint 만 유지.
   const helpCopy =
     readyCount > 0
       ? "수확 가능! 익은 밭을 눌러 당근을 거두자"
       : plantedCount > 0
-        ? "5분 이상 집중하면 작물이 자라요"
+        ? ""
         : "빈 밭을 눌러 씨앗을 심자";
 
   // --- FX layer --------------------------------------------------------
@@ -987,32 +991,36 @@ export function FarmHub({
           Carrot/plot state hooks below are still used by the click logic
           and the help copy. */}
 
-      {/* Bottom-center help copy — non-interactive, no timer */}
-      <div
-        data-testid="farm-help-copy"
-        style={{
-          position: "absolute",
-          left: "50%",
-          bottom: 10,
-          transform: "translateX(-50%)",
-          padding: "5px 11px",
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.85)",
-          color: "var(--text-secondary, #5a5a5a)",
-          border: "1px solid rgba(0,0,0,0.05)",
-          fontSize: 11,
-          fontWeight: 500,
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
-          whiteSpace: "nowrap",
-          maxWidth: "calc(100% - 24px)",
-          textAlign: "center",
-          pointerEvents: "none",
-        }}
-      >
-        {helpCopy}
-      </div>
+      {/* Bottom-center help copy — non-interactive, no timer.
+          R28 PHASE 2 — helpCopy 가 empty 면 pill 자체를 렌더 X (planted
+          상태는 농장에서 안내 생략). */}
+      {helpCopy && (
+        <div
+          data-testid="farm-help-copy"
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: 10,
+            transform: "translateX(-50%)",
+            padding: "5px 11px",
+            borderRadius: 999,
+            background: "rgba(255,255,255,0.85)",
+            color: "var(--text-secondary, #5a5a5a)",
+            border: "1px solid rgba(0,0,0,0.05)",
+            fontSize: 11,
+            fontWeight: 500,
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+            whiteSpace: "nowrap",
+            maxWidth: "calc(100% - 24px)",
+            textAlign: "center",
+            pointerEvents: "none",
+          }}
+        >
+          {helpCopy}
+        </div>
+      )}
 
       {import.meta.env.DEV && (
         <button
