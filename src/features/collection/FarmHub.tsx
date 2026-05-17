@@ -769,11 +769,14 @@ export function FarmHub({
       >
         {/* Crops rendered as SVG images so they share the polygon's
             percent-space and scale perfectly with the bg.
-            One element per plot (stable key); when stage===0 we render
-            nothing and skip the fade-out so harvest is an immediate snap
-            (no ghost/afterimage). Stage 1↔4 transitions animate via the
-            stage-keyed `animate` prop without remount, so the old sprite
-            does not overlap the new one. */}
+            PR-144 (Round 21 베타7) — stage 를 key 에 포함시켜 stage
+            전환 시 component 가 명시적으로 unmount → remount 한다.
+            이전 코드는 key={b.id} 라 stage 가 바뀌어도 같은 motion.image
+            인스턴스를 재활용했는데, framer-motion 내부 transform 잔여
+            상태 + SVG href 비동기 swap 이 겹쳐 새 sprite 위에 이전
+            sprite 가 잠시 겹쳐 보이는 "잔상" 으로 보고됨. stage 별 fresh
+            mount 면 initial/animate 가 다시 돌아 항상 0→1 페이드인.
+            harvest 시 (stage===0) asset null → null 반환 (unmount). */}
         {plotBounds.map((b) => {
           const stage = stages[b.id];
           const asset = stageAsset(stage);
@@ -783,7 +786,7 @@ export function FarmHub({
           const y = b.cy - size * 0.75;
           return (
             <motion.image
-              key={b.id}
+              key={`${b.id}-${stage}`}
               href={asset}
               x={x}
               y={y}
