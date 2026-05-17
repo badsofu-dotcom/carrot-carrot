@@ -53,6 +53,12 @@ interface FarmState {
   /** Direct-grant carrot count (PR-17b weekly treasure rewards). */
   incCarrots: (n?: number) => void;
   /**
+   * Atomic carrot debit. Returns true if `carrots >= n` and decrement
+   * applied, false otherwise. Server sync is NOT triggered — callers
+   * (e.g. farmhubStore.buyNextStep) are local-only sinks for now.
+   */
+  spendCarrots: (n: number) => boolean;
+  /**
    * Grow every planted plot by `steps` (capped at stage 4).
    * `snapshotId` is the unique focus-complete snapshot id (e.g. lastSnapshot.at).
    * Pass it to guarantee idempotency: a repeated call with the same id is a
@@ -129,6 +135,15 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     if (!Number.isFinite(n) || n <= 0) return;
     void addPoints("carrot", Math.floor(n));
     set({ carrots: get().carrots + Math.floor(n) });
+  },
+
+  spendCarrots: (n) => {
+    if (!Number.isFinite(n) || n <= 0) return false;
+    const cost = Math.floor(n);
+    const cur = get().carrots;
+    if (cur < cost) return false;
+    set({ carrots: cur - cost });
+    return true;
   },
 
   growAllPlanted: (steps = 1, snapshotId = null) => {

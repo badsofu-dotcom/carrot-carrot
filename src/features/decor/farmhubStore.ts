@@ -19,6 +19,13 @@ import {
   FARMHUB_BY_STEP,
   FARMHUB_FINAL_STEP,
 } from "./farmhubCatalog";
+import { useFarmStore } from "../collection/farmStore";
+import { useCollectionStore } from "../collection/collectionStore";
+import {
+  evaluateBuyNextStep,
+  type BuyEval,
+  type BuyReason,
+} from "./farmhubBuyLogic";
 
 const STORAGE_KEY = "cc.farmhub.v2";
 
@@ -84,12 +91,37 @@ export interface PlaceResult {
   newStep?: FarmhubStep;
 }
 
+export interface BuyResult {
+  ok: boolean;
+  reason?: BuyReason;
+  /** 통과 시: 차감된 가격. */
+  spent?: number;
+  /** 통과 시: 보관함에 입고된 가구 id. */
+  furnitureId?: string;
+}
+
 interface FarmhubState {
   step: FarmhubStep;
   pendingFurnitureId: string | null;
   onboardingShown: number[];
   /** Grant next-step furniture into pending slot. */
   grantNext: () => GrantResult;
+  /**
+   * R27 PHASE 2.B — 사용자가 BuyFurnitureModal 의 "✨ 구매하기" 탭.
+   * 도감 자격 + 당근 잔액 + pending/max 가드 통과 시 farmStore 에서
+   * 가격만큼 당근 차감 + pendingFurnitureId 설정 (한 트랜잭션, 실패
+   * 시 farmStore 변경 X).
+   *
+   * 도감 자격 (dogamCount) 은 useCollectionStore 에서 직접 읽음.
+   */
+  buyNextStep: () => BuyResult;
+  /**
+   * R27 PHASE 3 — DEV 치트. 가격 무시 + 도감 자격 무시 + pending
+   * 무시하고 다음 step 의 가구를 보관함에 즉시 입고. step 8 도달 시
+   * no-op. production 빌드에서 IS_DEV 가드로 차단되어야 함 (호출처
+   * 책임).
+   */
+  devGrantFreeNext: () => GrantResult;
   /** User taps pending furniture in storage strip → place into room. */
   place: () => PlaceResult;
   /** Mark a step's onboarding speech as shown (no re-show). */
@@ -112,6 +144,86 @@ export const useFarmhubStore = create<FarmhubState>((set, get) => {
       }
       if (cur.pendingFurnitureId !== null) {
         return { ok: false, reason: "already_pending" };
+      }
+      const nextStep = (cur.step + 1) as FarmhubStep;
+      const def = FARMHUB_BY_STEP[nextStep];
+      if (!def) return { ok: false, reason: "all_placed" };
+      const next: PersistShape = {
+        step: cur.step,
+        pendingFurnitureId: def.id,
+        onboardingShown: cur.onboardingShown,
+      };
+      set({ pendingFurnitureId: def.id });
+      savePersist(next);
+      return { ok: true, furnitureId: def.id };
+    },
+
+    buyNextStep: () => {
+      const cur = get();
+      const dogamCount =
+        useCollectionStore.getState().ownedCharacters.length;
+      const carrots = useFarmStore.getState().carrots;
+      const evalResult: BuyEval = evaluateBuyNextStep({
+        step: cur.step,
+        pendingFurnitureId: cur.pendingFurnitureId,
+        dogamCount,
+        carrots,
+      });
+      if (!evalResult.ok || !evalResult.furnitureId || !evalResult.price) {
+        return { ok: false, reason: evalResult.reason };
+      }
+      // Atomic — spendCarrots 가 race 로 false 면 (불가 — 같은 tick),
+      // pending 도 설정 X.
+      const debited = useFarmStore.getState().spendCarrots(evalResult.price);
+      if (!debited) {
+        return { ok: false, reason: "insufficient_carrot" };
+      }
+      const next: PersistShape = {
+        step: cur.step,
+        pendingFurnitureId: evalResult.furnitureId,
+        onboardingShown: cur.onboardingShown,
+      };
+      set({ pendingFurnitureId: evalResult.furnitureId });
+      savePersist(next);
+      return {
+        ok: true,
+        spent: evalResult.price,
+        furnitureId: evalResult.furnitureId,
+      };
+    },
+
+    devGrantFreeNext: () => {
+      const cur = get();
+      if (cur.step >= FARMHUB_FINAL_STEP) {
+        return { ok: false, reason: "all_placed" };
+      }
+      if (cur.pendingFurnitureId !== null) {
+        // pending 이 있으면 자동 place 후 다음 step grant.
+        const placedStep = Math.min(
+          FARMHUB_FINAL_STEP,
+          cur.step + 1,
+        ) as FarmhubStep;
+        if (placedStep >= FARMHUB_FINAL_STEP) {
+          const final: PersistShape = {
+            step: placedStep,
+            pendingFurnitureId: null,
+            onboardingShown: cur.onboardingShown,
+          };
+          set({ step: placedStep, pendingFurnitureId: null });
+          savePersist(final);
+          return { ok: false, reason: "all_placed" };
+        }
+        const targetStep = (placedStep + 1) as FarmhubStep;
+        const def = FARMHUB_BY_STEP[targetStep];
+        if (!def) return { ok: false, reason: "all_placed" };
+        const next: PersistShape = {
+          step: placedStep,
+          pendingFurnitureId: def.id,
+          onboardingShown: cur.onboardingShown,
+        };
+        set({ step: placedStep, pendingFurnitureId: def.id });
+        savePersist(next);
+        return { ok: true, furnitureId: def.id };
       }
       const nextStep = (cur.step + 1) as FarmhubStep;
       const def = FARMHUB_BY_STEP[nextStep];
