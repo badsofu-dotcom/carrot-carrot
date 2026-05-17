@@ -108,8 +108,12 @@ export function TabBar() {
     <nav
       aria-label="주요 메뉴"
       style={{
+        // R28 PHASE 3 — 캡슐 (radius pill + 좌우 16px margin) 폐기.
+        // 하단 edge 에 딱 붙는 full-width bar. safe-area-inset-bottom 은
+        // bar 내부 padding 으로 흡수 → 시스템 gesture 영역까지 frosted
+        // background 가 덮음 (콘솔의 hairline 만 가시).
         position: "fixed",
-        bottom: "calc(var(--tabbar-offset) + env(safe-area-inset-bottom))",
+        bottom: 0,
         left: 0,
         right: 0,
         display: "flex",
@@ -118,7 +122,18 @@ export function TabBar() {
         zIndex: 100,
       }}
     >
-      <div style={{ width: "calc(100% - 32px)", maxWidth: "calc(var(--app-max-width) - 32px)", pointerEvents: "auto" }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "var(--app-max-width)",
+          pointerEvents: "auto",
+          background: "color-mix(in oklab, var(--bg-elevated) 92%, transparent)",
+          backdropFilter: "var(--backdrop-blur)",
+          WebkitBackdropFilter: "var(--backdrop-blur)",
+          borderTop: "1px solid var(--border-subtle)",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+      >
       <LayoutGroup id="tabbar">
         <div
           style={{
@@ -126,12 +141,6 @@ export function TabBar() {
             gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
             gap: 4,
             padding: 6,
-            borderRadius: "var(--radius-pill)",
-            background: "color-mix(in oklab, var(--bg-elevated) 78%, transparent)",
-            backdropFilter: "var(--backdrop-blur)",
-            WebkitBackdropFilter: "var(--backdrop-blur)",
-            border: "1px solid var(--border-subtle)",
-            boxShadow: "var(--shadow-lg)",
             height: "var(--tabbar-height)",
           }}
         >
