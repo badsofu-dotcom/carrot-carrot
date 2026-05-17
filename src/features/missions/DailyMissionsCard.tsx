@@ -26,7 +26,8 @@ const SESSION_KEY = "cc.missions.expanded.v1";
 
 export function DailyMissionsCard({
   forceCollapsed = false,
-}: { forceCollapsed?: boolean } = {}) {
+  alwaysExpanded = false,
+}: { forceCollapsed?: boolean; alwaysExpanded?: boolean } = {}) {
   const missions = useMissionsStore((s) => s.missions);
   const progress = useMissionsStore((s) => s.progress);
   const claimed = useMissionsStore((s) => s.claimed);
@@ -36,11 +37,16 @@ export function DailyMissionsCard({
   const incCarrots = useFarmStore((s) => s.incCarrots);
   // PR-100 — sessionStorage 영속 (세션 끝나면 다시 접힘).
   // PR-104 — toggle 로직을 missionToggle.ts pure helper 로 추출.
+  // PR-138 (Round 19.5) — alwaysExpanded (MissionsSheet 진입) 시
+  // collapse 자체가 무의미하므로 expand 강제 + 토글 비활성.
   const [userExpanded, setUserExpanded] = useState<boolean>(
     () => safeSessionStorage.get(SESSION_KEY) === "1",
   );
-  const expanded = computeExpanded(forceCollapsed, userExpanded);
+  const expanded = alwaysExpanded
+    ? true
+    : computeExpanded(forceCollapsed, userExpanded);
   const toggle = () => {
+    if (alwaysExpanded) return;
     if (!canToggle(forceCollapsed)) return;
     const next = nextUserExpanded(forceCollapsed, userExpanded);
     setUserExpanded(next);
@@ -84,40 +90,67 @@ export function DailyMissionsCard({
       }}
     >
       {/* PR-100 — 접힘 트리거 헤더. 탭하면 expand/collapse 토글.
-          forceCollapsed (RUNNING) 시 cursor: default, 토글 disabled. */}
-      <button
-        type="button"
-        onClick={toggle}
-        disabled={forceCollapsed}
-        data-testid="daily-missions-toggle"
-        aria-expanded={expanded}
-        aria-label={`오늘의 목표 ${claimed.size}/${missions.length} 완료 — ${expanded ? "접기" : "펼치기"}`}
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          marginBottom: expanded ? 10 : 0,
-          width: "100%",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          cursor: forceCollapsed ? "default" : "pointer",
-          textAlign: "left",
-        }}
-      >
-        <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>
-          🎯 오늘 목표 {claimed.size}/{missions.length} {expanded ? "▲" : "▼"}
-        </h3>
-        <span
+          PR-138 (Round 19.5) — alwaysExpanded 시 button → div 로 강등.
+          chevron(▲/▼) 미렌더, cursor / pointer 제거. */}
+      {alwaysExpanded ? (
+        <div
+          data-testid="daily-missions-toggle"
           style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "var(--text-tertiary, #888)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 10,
+            width: "100%",
           }}
         >
-          {claimed.size} / {missions.length}
-        </span>
-      </button>
+          <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>
+            🎯 오늘 목표 {claimed.size}/{missions.length}
+          </h3>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-tertiary, #888)",
+            }}
+          >
+            {claimed.size} / {missions.length}
+          </span>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={forceCollapsed}
+          data-testid="daily-missions-toggle"
+          aria-expanded={expanded}
+          aria-label={`오늘의 목표 ${claimed.size}/${missions.length} 완료 — ${expanded ? "접기" : "펼치기"}`}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: expanded ? 10 : 0,
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            cursor: forceCollapsed ? "default" : "pointer",
+            textAlign: "left",
+          }}
+        >
+          <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>
+            🎯 오늘 목표 {claimed.size}/{missions.length} {expanded ? "▲" : "▼"}
+          </h3>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "var(--text-tertiary, #888)",
+            }}
+          >
+            {claimed.size} / {missions.length}
+          </span>
+        </button>
+      )}
       {expanded && (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {missions.map((m) => {

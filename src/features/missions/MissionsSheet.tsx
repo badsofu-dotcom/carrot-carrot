@@ -29,8 +29,8 @@ export function MissionsSheet({ open, onClose }: MissionsSheetProps) {
       title="🎯 오늘 / 이번 주 목표"
     >
       <div data-testid="missions-sheet-body">
-        <DailyMissionsCard forceCollapsed={false} />
-        <WeeklyMissionsCard forceCollapsed={false} />
+        <DailyMissionsCard alwaysExpanded />
+        <WeeklyMissionsCard alwaysExpanded />
       </div>
     </BottomSheet>
   );
