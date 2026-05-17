@@ -58,8 +58,11 @@ interface ToolDef {
  *  Icon bounding box ICON_SIZE for all; per-icon `scale` compensates
  *  the PNG-padding asymmetry without resizing the slot box.
  *  Centered inside the farm card. */
-const SLOT_SIZE = 64;
-const ICON_SIZE = 50;
+// PR-131 (Round 18 베타4 feedback A3): toolbox 크기 축소.
+// 슬롯 64 → 52, 아이콘 50 → 40. 아이콘 비율은 유지하면서 도구 영역이
+// 화면을 덜 가리도록.
+const SLOT_SIZE = 52;
+const ICON_SIZE = 40;
 /** Per-PNG bbox compensation.
  *  - SCALE_PADDED (모종삽/물뿌리개): PNG ships with heavy transparent
  *    margin so visible content fills ~70% of the box. 1.45 brings the
@@ -180,11 +183,14 @@ export function ToolDock() {
       style={{
         position: "absolute",
         left: "50%",
-        bottom: 8,
+        // PR-131 — 8 → 12 to keep ≥12px clear above the floating tabbar
+        // (which sits at --tabbar-offset 8px from the screen bottom).
+        bottom: 12,
         transform: "translateX(-50%)",
         display: "flex",
-        gap: 6,
-        padding: "4px 6px",
+        // PR-131 — 슬롯 사이 gap 6 → 8, padding 축소.
+        gap: 8,
+        padding: "3px 4px",
         borderRadius: 14,
         background: "rgba(255,255,255,0.88)",
         backdropFilter: "blur(8px)",

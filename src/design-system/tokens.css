@@ -214,11 +214,12 @@
   /* App layout */
   --app-max-width: 480px;
   --tabbar-height: 68px;
-  /* Floating pill gap above the bottom edge — PR-127 (Round 16): reduced
-     16px → 4px after beta feedback that Apps in Toss WebView reports a
-     large safe-area-inset-bottom which, summed with the 16px floating
-     offset, made the bar look detached from the screen. */
-  --tabbar-offset: 4px;
+  /* Floating pill gap above the bottom edge:
+     - PR-127 (Round 16): 16 → 4px (overlap with WebView safe-area)
+     - PR-131 (Round 18 베타4 A3): 4 → 8px — user reported 4px felt too
+       glued; 8px restores a hint of floating without re-introducing the
+       Round-15-era detachment. Toolbox 위 12px 여백 동시 확보. */
+  --tabbar-offset: 8px;
   /* Total reserved space at the bottom for the floating nav (height + offsets) */
   --tabbar-reserved: calc(var(--tabbar-height) + var(--tabbar-offset) * 2);
   /* Scrim height above the tab bar so content fades into the bg before sliding under */
