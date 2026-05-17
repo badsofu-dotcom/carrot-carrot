@@ -115,7 +115,11 @@ export function DailyMissionsCard() {
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      color: isDone ? "#22a06b" : "var(--text-tertiary, #888)",
+                      // PR-83 — mission item bg 가 fixed light (#fff8ee)
+                      // 이므로 var(--text-tertiary) 사용 시 dark mode
+                      // 에서 contrast 2.27:1 발생. fixed dark grey 로
+                      // AA 5.8:1 보장.
+                      color: isDone ? "#22a06b" : "#6a6055",
                       flexShrink: 0,
                     }}
                   >

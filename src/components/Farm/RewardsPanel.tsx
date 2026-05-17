@@ -368,7 +368,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                   style={{
                     margin: "8px 4px 0",
                     fontSize: 11,
-                    color: "var(--text-tertiary, #888)",
+                    color: "#6a6055",
                   }}
                 >
                   {MIN_PAYOUT}P 부터 출금할 수 있어요 · 1🥕=1P · 1🍬=5P · 1✨=10P
@@ -419,7 +419,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                   <div style={{ fontSize: 14, fontWeight: 700 }}>
                     {todayClaimed ? "오늘은 이미 받았어요" : "오늘의 선물 받기"}
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-tertiary, #888)", marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: "#6a6055", marginTop: 2 }}>
                     KST 자정에 다시 열려요
                   </div>
                   {claimedThisOpen && (
@@ -513,7 +513,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                       }}
                     />
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-tertiary, #888)", marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: "#6a6055", marginTop: 4 }}>
                     광고 보상 → "보물 진행" 채널로 진행도 누적
                   </div>
                   {lastTreasureText && (

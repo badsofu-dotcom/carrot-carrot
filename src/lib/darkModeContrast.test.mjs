@@ -18,6 +18,16 @@ const tokensPath = new URL(
 const css = await readFile(tokensPath, "utf8");
 
 function hexToRgb(hex) {
+  // 3-digit shorthand (#abc) 도 지원 — `#666` 같은 입력 안전.
+  const short = /^#([0-9a-f]{3})$/i.exec(hex);
+  if (short) {
+    const s = short[1];
+    return [
+      parseInt(s[0] + s[0], 16),
+      parseInt(s[1] + s[1], 16),
+      parseInt(s[2] + s[2], 16),
+    ];
+  }
   const m = /^#([0-9a-f]{6})$/i.exec(hex);
   if (!m) throw new Error(`bad hex: ${hex}`);
   const v = parseInt(m[1], 16);
@@ -104,4 +114,52 @@ test("PR-80: 구 #807260 (dark text-tertiary) 잔여 없음 — 회귀 차단", 
     false,
     "#807260 잔여 — text-tertiary dark contrast 회귀",
   );
+});
+
+// PR-83 — fixed-light surface (#FFF8EE / #fff) 위에서의 텍스트 contrast.
+// var(--text-tertiary) 는 theme-aware 라 dark mode 에서 light gray 가
+// 되는데, 모달 bg 는 fixed #FFF8EE 이므로 light+light = contrast 실패.
+// fixed `#6a6055` 로 5.8:1 보장.
+
+test("PR-83: fixed #6a6055 on #FFF8EE contrast >= 4.5 (AA)", () => {
+  const fg = hexToRgb("#6a6055");
+  const bg = hexToRgb("#FFF8EE");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(ratio >= 4.5, `${ratio.toFixed(2)}:1 < 4.5`);
+});
+
+test("PR-83: fixed #2b2b2b on #fff contrast >= 7 (AAA)", () => {
+  // AdRewardChannelModal ChannelRow label.
+  const fg = hexToRgb("#2b2b2b");
+  const bg = hexToRgb("#fff");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(ratio >= 7, `${ratio.toFixed(2)}:1 < 7`);
+});
+
+test("PR-83: fixed #666 on #fff contrast >= 5 (AA + 여유)", () => {
+  // AdRewardChannelModal ChannelRow hint.
+  const fg = hexToRgb("#666");
+  const bg = hexToRgb("#fff");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(ratio >= 5, `${ratio.toFixed(2)}:1 < 5`);
+});
+
+test("PR-83: var(--text-tertiary, #888) 잔여가 fixed light bg modal 에 없음", async () => {
+  // 8 modal/mission sites 가 fixed #FFF8EE / #fff bg 인데 var token
+  // 쓰면 dark mode contrast 깨짐. 회귀 차단 — fixed dark grey 사용.
+  const { readFile } = await import("node:fs/promises");
+  const filesToCheck = [
+    "../components/Inventory/InventoryModal.tsx",
+    "../components/Inventory/GemTradeModal.tsx",
+    "../components/Inventory/AdRewardChannelModal.tsx",
+    "../components/Farm/RewardsPanel.tsx",
+  ];
+  for (const rel of filesToCheck) {
+    const src = await readFile(new URL(rel, import.meta.url), "utf8");
+    assert.equal(
+      src.includes('color: "var(--text-tertiary, #888)"'),
+      false,
+      `${rel} 에 var(--text-tertiary) 잔여 — PR-83 회귀`,
+    );
+  }
 });

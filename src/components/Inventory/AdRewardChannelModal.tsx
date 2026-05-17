@@ -280,7 +280,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               style={{
                 margin: "6px 0 14px",
                 fontSize: 12,
-                color: "var(--text-tertiary, #888)",
+                color: "#6a6055",
                 textAlign: "center",
               }}
             >
@@ -323,7 +323,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
                 fontWeight: 700,
                 background: "transparent",
                 border: "none",
-                color: "var(--text-tertiary, #888)",
+                color: "#6a6055",
                 cursor: "pointer",
               }}
             >
@@ -372,7 +372,10 @@ function ChannelRow({
     >
       <img src={icon} alt="" width={40} height={40} style={{ objectFit: "contain", flexShrink: 0 }} />
       <span style={{ flex: 1 }}>
-        <span style={{ display: "block", fontSize: 13, fontWeight: 800 }}>{label}</span>
+        {/* PR-83 — card bg 가 fixed #fff 이므로 label 도 fixed dark
+            (이전엔 미지정 → dark mode 에서 body inherited light text →
+            흰 카드 위 흰 글씨로 가독성 상실). hint #666 contrast 5.7:1 유지. */}
+        <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#2b2b2b" }}>{label}</span>
         <span style={{ display: "block", fontSize: 11, color: "#666" }}>{hint}</span>
       </span>
       <span style={{ fontSize: 18, color: "var(--accent-carrot, #FF7B61)" }}>›</span>

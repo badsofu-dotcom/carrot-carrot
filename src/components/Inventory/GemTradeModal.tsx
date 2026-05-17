@@ -186,7 +186,7 @@ export function GemTradeModal() {
               style={{
                 margin: "4px 0 12px",
                 fontSize: 11,
-                color: "var(--text-tertiary, #888)",
+                color: "#6a6055",
               }}
             >
               비용을 충족하면 즉시 효과 발동.

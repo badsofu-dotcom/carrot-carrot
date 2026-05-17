@@ -128,7 +128,8 @@ export function WeeklyMissionsCard() {
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      color: isDone ? "#22a06b" : "var(--text-tertiary, #888)",
+                      // PR-83 — fixed bg → fixed dark text for AA.
+                      color: isDone ? "#22a06b" : "#6a6055",
                       flexShrink: 0,
                     }}
                   >
