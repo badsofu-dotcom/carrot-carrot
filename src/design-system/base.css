@@ -570,3 +570,24 @@ button:focus-visible {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,123,97,0.55); }
   50% { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(255,123,97,0.25); }
 }
+
+/* MushroomHouseHitRegion — 농장 카드의 버섯집 그림 위 투명 탭 영역.
+   탭 시만 micro feedback (brightness + scale), reduced-motion 존중.
+   Round 26 PR-154. */
+.mushroom-hit {
+  transition: transform 0.15s ease-out, filter 0.15s ease-out;
+}
+@media (hover: hover) {
+  .mushroom-hit:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+  }
+}
+.mushroom-hit:active {
+  transform: scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mushroom-hit { transition: opacity 0.15s ease-out; }
+  .mushroom-hit:hover { filter: none; transform: none; opacity: 0.85; }
+  .mushroom-hit:active { transform: none; opacity: 0.7; }
+}

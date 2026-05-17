@@ -39,6 +39,10 @@ import {
 } from "../../lib/farmBackground";
 import { UnlockOverlay } from "../collection/UnlockOverlay";
 import { useFarmhubStore } from "../decor/farmhubStore";
+import {
+  useDevHitRegionStore,
+  DEFAULT_FARMHUB_HIT_REGION,
+} from "./devHitRegionStore";
 
 const ALL_MEDALS: readonly MedalId[] = [
   "first_harvest",
@@ -72,6 +76,13 @@ const REFILLABLE_ITEM_CODES: readonly ItemCode[] = [
 ];
 
 export function DevActionsGroup() {
+  // R26 PR-154 — 버섯집 hit-region 시각 보정.
+  const hitShow = useDevHitRegionStore((s) => s.show);
+  const hitRegion = useDevHitRegionStore((s) => s.region);
+  const hitToggle = useDevHitRegionStore((s) => s.toggleShow);
+  const hitSetRegion = useDevHitRegionStore((s) => s.setRegion);
+  const hitReset = useDevHitRegionStore((s) => s.resetRegion);
+
   const applySession = useCollectionStore((s) => s.applySession);
   const forceUnlock = useCollectionStore((s) => s.forceUnlock);
   const resetAll = useCollectionStore((s) => s.resetAll);
@@ -285,11 +296,11 @@ export function DevActionsGroup() {
         <DevRow label="메달 전부 unlock" sub={`정의된 ${ALL_MEDALS.length}개`} onClick={handleUnlockAllMedals} />
         <DevRow label="오늘의 선물 다시 받기" sub="giftClaimedDay 리셋" onClick={handleResetDailyGift} />
         <DevRow label="시간대 강제 사이클" sub="auto → day → evening → night → rainy → snowy → auto" onClick={handleForceSlotCycle} />
-        {/* PR-152 (Round 25) — 버섯집 v2 trigger 임시. R26 에서 정식
-            지급 경로 (도감 / 광고 / 미션) 결정 후 제거 예정. */}
+        {/* PR-152 (Round 25) — 버섯집 v2 trigger. R26 에서 도감 자동
+            지급 추가됐지만 dev 수동 trigger 는 디버그용 유지. */}
         <DevRow
           label="🐰 다음 가구 받기"
-          sub="버섯집 v2 — 보관함에 다음 가구 도착"
+          sub="(R26: 도감 자동 지급 추가. 이 버튼은 DEV 만)"
           onClick={() => {
             const r = useFarmhubStore.getState().grantNext();
             haptic(r.ok ? "success" : "warning");
@@ -311,6 +322,111 @@ export function DevActionsGroup() {
             toast("버섯집 리셋");
           }}
         />
+        {/* PR-154 (Round 26) — 농장 버섯집 hit-region 시각 보정. */}
+        <DevRow
+          label="🍄 버섯집 영역 표시"
+          sub={
+            hitShow
+              ? `ON · L${hitRegion.left} T${hitRegion.top} W${hitRegion.width} H${hitRegion.height}`
+              : "OFF — 켜고 농장 진입해서 빨간 박스가 버섯집 덮는지 확인"
+          }
+          onClick={() => {
+            hitToggle();
+            haptic("light");
+          }}
+        />
+        {hitShow && (
+          <>
+            <DevRow
+              label="◀ ▶  left"
+              sub={`현재 ${hitRegion.left}%`}
+              onClick={() => {
+                // Toggle row tap = +1; long-press 대신 별도 -1 row.
+                hitSetRegion({ left: hitRegion.left + 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="−  left -1%"
+              sub={`현재 ${hitRegion.left}%`}
+              onClick={() => {
+                hitSetRegion({ left: hitRegion.left - 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="▲ ▼  top"
+              sub={`현재 ${hitRegion.top}% (탭: +1%)`}
+              onClick={() => {
+                hitSetRegion({ top: hitRegion.top + 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="−  top -1%"
+              sub={`현재 ${hitRegion.top}%`}
+              onClick={() => {
+                hitSetRegion({ top: hitRegion.top - 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="⟷  width"
+              sub={`현재 ${hitRegion.width}% (탭: +1%)`}
+              onClick={() => {
+                hitSetRegion({ width: hitRegion.width + 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="−  width -1%"
+              sub={`현재 ${hitRegion.width}%`}
+              onClick={() => {
+                hitSetRegion({ width: hitRegion.width - 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="↕  height"
+              sub={`현재 ${hitRegion.height}% (탭: +1%)`}
+              onClick={() => {
+                hitSetRegion({ height: hitRegion.height + 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="−  height -1%"
+              sub={`현재 ${hitRegion.height}%`}
+              onClick={() => {
+                hitSetRegion({ height: hitRegion.height - 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="↩  기본값 복원"
+              sub={`L${DEFAULT_FARMHUB_HIT_REGION.left} T${DEFAULT_FARMHUB_HIT_REGION.top} W${DEFAULT_FARMHUB_HIT_REGION.width} H${DEFAULT_FARMHUB_HIT_REGION.height}`}
+              onClick={() => {
+                hitReset();
+                haptic("warning");
+                toast("기본값으로 복원했어요");
+              }}
+            />
+            <DevRow
+              label="📋 현재값 복사 안내"
+              sub="값 확정 시 채팅에 'L:X T:Y W:Z H:W' 형태로 알려주세요"
+              onClick={() => {
+                haptic("light");
+                const msg = `L:${hitRegion.left} T:${hitRegion.top} W:${hitRegion.width} H:${hitRegion.height}`;
+                toast(`현재값: ${msg}`);
+                try {
+                  void navigator?.clipboard?.writeText(msg);
+                } catch {
+                  /* clipboard unavailable */
+                }
+              }}
+            />
+          </>
+        )}
         <DevRow
           label="로컬 데이터 초기화"
           sub="도감/누적/연속 전부 지움"

@@ -56,6 +56,7 @@ import { useFriendsStore } from "./friendsStore";
 // FurnitureShopModal + fragmentStore) 는 features/_decor_v1_archive/ 로.
 // v2 는 MushroomHouseRoom 진입점만 — 가구 배치/지급은 별도 흐름.
 import { MushroomHouseRoom } from "../decor/MushroomHouseRoom";
+import { MushroomHouseHitRegion } from "./MushroomHouseHitRegion";
 
 // PR-137 — shared pill style for the top-center 하늘 보기 + BGM 토글
 // row. Keeping it as a CSSProperties const (not a CSS class) so the
@@ -855,10 +856,9 @@ export function FarmHub({
       {/* PR-145 (Round 22) — 야외 가구 슬롯 4개. PR-147 (Round 23) —
           R25 데코 v2 archive — OutdoorSlots / FurnitureShopModal /
           featureFlags 모두 _decor_v1_archive 로 이동. 농장 카드 자체에는
-          decor placeholder 없음. 버섯집 진입은 RewardsPanel "🛋️ 버섯집
-          들어가기" 카드를 통해서만 (R25 PR-152). 향후 농장 배경의 실제
-          버섯집 hit-region 좌표 도착 시 별도 commit 으로 invisible 버튼
-          추가 가능. */}
+          decor placeholder 없음. R26 PR-154 — 버섯집 그림 위에 투명
+          hit-region 추가. 보상함 진입점은 그대로 유지 (편의 진입점 2개). */}
+      <MushroomHouseHitRegion />
 
       {/* "하늘 보기" + BGM 빠른 토글 — 농장 카드 상단 중앙에 frosted
           pill 2개. PR-137 (Round 19) — BGM 토글이 Settings 까지 안 가도
