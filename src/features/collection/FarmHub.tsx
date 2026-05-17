@@ -50,7 +50,29 @@ import { FxLayer, type FxEvent, type FxKind } from "../../components/Farm/Effect
 import { Atmosphere, variantForSlot } from "../../components/Farm/Atmosphere";
 import { SkyView } from "../../components/Farm/SkyView";
 import { VisitorBunny } from "../../components/Farm/VisitorBunny";
+import { BgmQuickToggle } from "../../components/Farm/BgmQuickToggle";
 import { useFriendsStore } from "./friendsStore";
+
+// PR-137 — shared pill style for the top-center 하늘 보기 + BGM 토글
+// row. Keeping it as a CSSProperties const (not a CSS class) so the
+// existing inline-style pattern in this file doesn't fork.
+const pillStyle: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: "4px 10px",
+  borderRadius: 999,
+  background: "rgba(255,255,255,0.55)",
+  backdropFilter: "blur(8px)",
+  WebkitBackdropFilter: "blur(8px)",
+  border: "1px solid rgba(255,255,255,0.6)",
+  color: "rgba(43, 24, 16, 0.78)",
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: "pointer",
+  letterSpacing: "0.01em",
+  textShadow: "0 1px 1px rgba(255,255,255,0.4)",
+};
 
 // vite `base: "./"` 빌드 호환을 위해 절대 root 경로 (`/assets/...`) 대신
 // `import.meta.env.BASE_URL` prefix 를 쓴다. 일반 호스팅은 BASE_URL 이 `/`,
@@ -823,17 +845,11 @@ export function FarmHub({
       <FxLayer events={fxEvents} />
       </div>
 
-      {/* "하늘 보기" affordance — small subtle chip pinned to the upper
-          sky area. Tap opens SkyView with the current slot's sky image
-          + cozy message. */}
-      <button
-        type="button"
-        data-testid="farm-sky-open"
-        aria-label="하늘 보기"
-        onClick={() => {
-          haptic("light");
-          setSkyOpen(true);
-        }}
+      {/* "하늘 보기" + BGM 빠른 토글 — 농장 카드 상단 중앙에 frosted
+          pill 2개. PR-137 (Round 19) — BGM 토글이 Settings 까지 안 가도
+          농장에서 바로 켜고 끌 수 있도록 옆에 추가. 같은 store key
+          (farmBgmEnabled) 라 single source of truth 유지. */}
+      <div
         style={{
           position: "absolute",
           top: 10,
@@ -841,24 +857,24 @@ export function FarmHub({
           transform: "translateX(-50%)",
           display: "inline-flex",
           alignItems: "center",
-          gap: 4,
-          padding: "4px 10px",
-          borderRadius: 999,
-          background: "rgba(255,255,255,0.55)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          border: "1px solid rgba(255,255,255,0.6)",
-          color: "rgba(43, 24, 16, 0.78)",
-          fontSize: 11,
-          fontWeight: 700,
-          cursor: "pointer",
-          letterSpacing: "0.01em",
-          textShadow: "0 1px 1px rgba(255,255,255,0.4)",
+          gap: 8,
           zIndex: 5,
         }}
       >
-        ☁ 하늘 보기
-      </button>
+        <button
+          type="button"
+          data-testid="farm-sky-open"
+          aria-label="하늘 보기"
+          onClick={() => {
+            haptic("light");
+            setSkyOpen(true);
+          }}
+          style={pillStyle}
+        >
+          ☁ 하늘 보기
+        </button>
+        <BgmQuickToggle />
+      </div>
 
       {/* PR-59 — 활성 buff chips (juice / soup / cake). 잔여시간 +
           progress bar + 탭 시 BuffInfoPopover. 만료 5초 전 깜빡임.
