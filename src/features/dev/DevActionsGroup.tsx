@@ -42,6 +42,7 @@ import { useFarmhubStore } from "../decor/farmhubStore";
 import {
   useDevHitRegionStore,
   DEFAULT_FARMHUB_HIT_REGION,
+  DEFAULT_FARMHUB_LABEL_POS,
 } from "./devHitRegionStore";
 
 const ALL_MEDALS: readonly MedalId[] = [
@@ -77,11 +78,15 @@ const REFILLABLE_ITEM_CODES: readonly ItemCode[] = [
 
 export function DevActionsGroup() {
   // R26 PR-154 — 버섯집 hit-region 시각 보정.
+  // R26.1 PR-156 — 라벨 좌표 (labelPos) 도 동일 패널에서 보정.
   const hitShow = useDevHitRegionStore((s) => s.show);
   const hitRegion = useDevHitRegionStore((s) => s.region);
   const hitToggle = useDevHitRegionStore((s) => s.toggleShow);
   const hitSetRegion = useDevHitRegionStore((s) => s.setRegion);
   const hitReset = useDevHitRegionStore((s) => s.resetRegion);
+  const labelPos = useDevHitRegionStore((s) => s.labelPos);
+  const setLabelPos = useDevHitRegionStore((s) => s.setLabelPos);
+  const resetLabelPos = useDevHitRegionStore((s) => s.resetLabelPos);
 
   const applySession = useCollectionStore((s) => s.applySession);
   const forceUnlock = useCollectionStore((s) => s.forceUnlock);
@@ -411,13 +416,57 @@ export function DevActionsGroup() {
                 toast("기본값으로 복원했어요");
               }}
             />
+            {/* R26.1 — 라벨 좌표 ± */}
             <DevRow
-              label="📋 현재값 복사 안내"
-              sub="값 확정 시 채팅에 'L:X T:Y W:Z H:W' 형태로 알려주세요"
+              label="+  label left +1%"
+              sub={`현재 ${labelPos.left}%`}
+              onClick={() => {
+                setLabelPos({ left: labelPos.left + 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="−  label left -1%"
+              sub={`현재 ${labelPos.left}%`}
+              onClick={() => {
+                setLabelPos({ left: labelPos.left - 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="+  label top +1%"
+              sub={`현재 ${labelPos.top}%`}
+              onClick={() => {
+                setLabelPos({ top: labelPos.top + 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="−  label top -1%"
+              sub={`현재 ${labelPos.top}%`}
+              onClick={() => {
+                setLabelPos({ top: labelPos.top - 1 });
+                haptic("light");
+              }}
+            />
+            <DevRow
+              label="↩  라벨 기본값 복원"
+              sub={`L${DEFAULT_FARMHUB_LABEL_POS.left} T${DEFAULT_FARMHUB_LABEL_POS.top}`}
+              onClick={() => {
+                resetLabelPos();
+                haptic("warning");
+                toast("라벨 좌표 기본값으로 복원");
+              }}
+            />
+            <DevRow
+              label="📋 region + label 현재값 복사"
+              sub="값 확정 시 채팅에 복사된 값 붙여넣어 주세요"
               onClick={() => {
                 haptic("light");
-                const msg = `L:${hitRegion.left} T:${hitRegion.top} W:${hitRegion.width} H:${hitRegion.height}`;
-                toast(`현재값: ${msg}`);
+                const msg =
+                  `region L:${hitRegion.left} T:${hitRegion.top} W:${hitRegion.width} H:${hitRegion.height}\n` +
+                  `label  L:${labelPos.left} T:${labelPos.top}`;
+                toast(`복사됨 (region + label)`);
                 try {
                   void navigator?.clipboard?.writeText(msg);
                 } catch {

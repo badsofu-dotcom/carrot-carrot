@@ -591,3 +591,30 @@ button:focus-visible {
   .mushroom-hit:hover { filter: none; transform: none; opacity: 0.85; }
   .mushroom-hit:active { transform: none; opacity: 0.7; }
 }
+
+/* MushroomHouseEntryLabel — frosted pill "🍄 집 들어가기".
+   3초 주기 subtle bounce ("여기 봐" 신호) + hover/active scale.
+   R26.1 PR-156. */
+@keyframes mushroom-label-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.mushroom-label-pill {
+  animation: mushroom-label-bounce 3s ease-in-out infinite;
+  transition: transform 0.2s ease-out;
+}
+@media (hover: hover) {
+  .mushroom-label-pill:hover {
+    transform: scale(1.04);
+    animation-play-state: paused;
+  }
+}
+.mushroom-label-pill:active {
+  transform: scale(0.96);
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mushroom-label-pill { animation: none; }
+  .mushroom-label-pill:hover { transform: none; opacity: 0.85; }
+  .mushroom-label-pill:active { transform: none; opacity: 0.7; }
+}

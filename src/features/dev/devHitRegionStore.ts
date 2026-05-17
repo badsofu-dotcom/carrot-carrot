@@ -37,6 +37,22 @@ export const DEFAULT_FARMHUB_HIT_REGION: HitRegion = {
   height: 28,
 };
 
+export interface LabelPos {
+  /** % of farm card width. */
+  left: number;
+  /** % of farm card height. */
+  top: number;
+}
+
+/**
+ * Round 26.1 — 버섯집 진입 라벨 ("🍄 집 들어가기") 좌표. 모자 위
+ * 살짝 떠 있는 frosted pill. 베타 미세 조정 가능.
+ */
+export const DEFAULT_FARMHUB_LABEL_POS: LabelPos = {
+  left: 4,
+  top: 19,
+};
+
 const STORAGE_KEY = "cc.dev.farmhub.hitregion.v1";
 const IS_DEV =
   typeof import.meta !== "undefined" &&
@@ -45,16 +61,22 @@ const IS_DEV =
 interface PersistShape {
   show: boolean;
   region: HitRegion;
+  labelPos: LabelPos;
 }
 
 function loadPersist(): PersistShape {
   if (!IS_DEV) {
-    return { show: false, region: { ...DEFAULT_FARMHUB_HIT_REGION } };
+    return {
+      show: false,
+      region: { ...DEFAULT_FARMHUB_HIT_REGION },
+      labelPos: { ...DEFAULT_FARMHUB_LABEL_POS },
+    };
   }
   const raw = safeStorage.get(STORAGE_KEY);
   const blank: PersistShape = {
     show: false,
     region: { ...DEFAULT_FARMHUB_HIT_REGION },
+    labelPos: { ...DEFAULT_FARMHUB_LABEL_POS },
   };
   if (!raw) return blank;
   try {
@@ -75,9 +97,21 @@ function loadPersist(): PersistShape {
             height: Math.max(1, Math.min(100, Number(r.height))),
           }
         : { ...DEFAULT_FARMHUB_HIT_REGION };
+    const lp = parsed.labelPos;
+    const labelPos: LabelPos =
+      lp &&
+      typeof lp === "object" &&
+      Number.isFinite(lp.left) &&
+      Number.isFinite(lp.top)
+        ? {
+            left: Math.max(0, Math.min(100, Number(lp.left))),
+            top: Math.max(0, Math.min(100, Number(lp.top))),
+          }
+        : { ...DEFAULT_FARMHUB_LABEL_POS };
     return {
       show: parsed.show === true,
       region,
+      labelPos,
     };
   } catch {
     return blank;
@@ -96,22 +130,31 @@ function savePersist(s: PersistShape): void {
 interface DevHitRegionState {
   show: boolean;
   region: HitRegion;
+  labelPos: LabelPos;
   toggleShow: () => void;
   setRegion: (patch: Partial<HitRegion>) => void;
   resetRegion: () => void;
+  setLabelPos: (patch: Partial<LabelPos>) => void;
+  resetLabelPos: () => void;
 }
 
 export const useDevHitRegionStore = create<DevHitRegionState>((set, get) => {
   const init = loadPersist();
+  const snapshot = (): PersistShape => ({
+    show: get().show,
+    region: get().region,
+    labelPos: get().labelPos,
+  });
   return {
     show: init.show,
     region: init.region,
+    labelPos: init.labelPos,
 
     toggleShow: () => {
       if (!IS_DEV) return;
       const next = !get().show;
       set({ show: next });
-      savePersist({ show: next, region: get().region });
+      savePersist({ ...snapshot(), show: next });
     },
 
     setRegion: (patch) => {
@@ -124,15 +167,35 @@ export const useDevHitRegionStore = create<DevHitRegionState>((set, get) => {
         height: Math.max(1, Math.min(100, patch.height ?? cur.height)),
       };
       set({ region: next });
-      savePersist({ show: get().show, region: next });
+      savePersist({ ...snapshot(), region: next });
     },
 
     resetRegion: () => {
       if (!IS_DEV) return;
       set({ region: { ...DEFAULT_FARMHUB_HIT_REGION } });
       savePersist({
-        show: get().show,
+        ...snapshot(),
         region: { ...DEFAULT_FARMHUB_HIT_REGION },
+      });
+    },
+
+    setLabelPos: (patch) => {
+      if (!IS_DEV) return;
+      const cur = get().labelPos;
+      const next: LabelPos = {
+        left: Math.max(0, Math.min(100, patch.left ?? cur.left)),
+        top: Math.max(0, Math.min(100, patch.top ?? cur.top)),
+      };
+      set({ labelPos: next });
+      savePersist({ ...snapshot(), labelPos: next });
+    },
+
+    resetLabelPos: () => {
+      if (!IS_DEV) return;
+      set({ labelPos: { ...DEFAULT_FARMHUB_LABEL_POS } });
+      savePersist({
+        ...snapshot(),
+        labelPos: { ...DEFAULT_FARMHUB_LABEL_POS },
       });
     },
   };

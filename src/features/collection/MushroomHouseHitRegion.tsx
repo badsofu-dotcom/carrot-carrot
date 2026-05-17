@@ -14,12 +14,11 @@
  * 마운트: FarmHub.tsx 의 farm card absolute 영역 안.
  */
 
-import { MUSHROOM_HOUSE_OPEN_EVENT } from "../decor/MushroomHouseRoom";
 import {
   useDevHitRegionStore,
   DEFAULT_FARMHUB_HIT_REGION,
 } from "../dev/devHitRegionStore";
-import { haptic } from "../../design-system/haptic";
+import { openMushroomHouse } from "./MushroomHouseEntryLabel";
 
 const IS_DEV =
   typeof import.meta !== "undefined" &&
@@ -34,14 +33,9 @@ export function MushroomHouseHitRegion() {
 
   const effective = IS_DEV ? region : DEFAULT_FARMHUB_HIT_REGION;
 
-  const onClick = () => {
-    haptic("light");
-    try {
-      window.dispatchEvent(new CustomEvent(MUSHROOM_HOUSE_OPEN_EVENT));
-    } catch {
-      /* SSR */
-    }
-  };
+  // R26.1 — 라벨/hit-region 둘 다 동일 first-open 흐름. label 의 helper
+  // 가 haptic + toast + dispatch 일관성 보장.
+  const onClick = () => openMushroomHouse();
 
   return (
     <button
