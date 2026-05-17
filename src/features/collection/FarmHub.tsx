@@ -630,8 +630,10 @@ export function FarmHub({
       pushFx("perfect_combo", { cx: 50, cy: 50 });
       toast("🌟 퍼펙트 콤보! 다음 수확이 좋아질거에요");
       unlockMedal("perfect_combo");
-      // PR-52 mission trigger
+      // PR-52 mission trigger (legacy, inactive in PR-75 pool — no-op).
       useMissionsStore.getState().incrementProgress("perfect_combo", 1);
+      // PR-75 — 학습 중심 active 미션 트리거.
+      useMissionsStore.getState().incrementProgress("perfectCombo1", 1);
     }
     lastAllRipe.current = allRipe;
   }, [stages, pushFx, unlockMedal]);

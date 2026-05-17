@@ -19,10 +19,12 @@ import {
   type MissionType,
 } from "./dailyMissions";
 
-const STORAGE_KEY_DAY = "cc.missions.day.v1";
-const STORAGE_KEY_PROGRESS = "cc.missions.progress.v1";
-const STORAGE_KEY_CLAIMED = "cc.missions.claimed.v1";
-const STORAGE_KEY_BONUS = "cc.missions.bonusClaimed.v1";
+// PR-75 — pool 재설계로 mission type set 변경. v1 영속 데이터 무효화.
+// 구 v1 키는 무해하게 사이드에 남고, fresh start 로 새 미션 시작.
+const STORAGE_KEY_DAY = "cc.missions.day.v2";
+const STORAGE_KEY_PROGRESS = "cc.missions.progress.v2";
+const STORAGE_KEY_CLAIMED = "cc.missions.claimed.v2";
+const STORAGE_KEY_BONUS = "cc.missions.bonusClaimed.v2";
 
 interface MissionsState {
   day: string;
@@ -57,6 +59,12 @@ interface MissionsState {
 
 function emptyProgress(): Record<MissionType, number> {
   return {
+    // PR-75 active pool
+    min25Sessions2: 0,
+    totalFocusMin50: 0,
+    perfectCombo1: 0,
+    // PR-52 legacy (inactive — silent no-op when incremented, kept in
+    // union for backward-compat of trigger sites).
     focus_25: 0,
     focus_50: 0,
     focus_night: 0,

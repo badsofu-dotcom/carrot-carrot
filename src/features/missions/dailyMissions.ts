@@ -1,24 +1,28 @@
 /**
- * Daily missions (PR-52) — 매일 KST 자정 3개 random pick.
+ * Daily missions (PR-52 → PR-75) — 게임 중심에서 공부 중심으로 재설계.
  *
- * 12개 pool. 사용자 spec EV ~15~20 P/일 추가 → 100 P 캡 시너지.
+ * PR-52 (구버전): 12-pool 에서 KST 자정 결정적 3개 random pick.
+ *   - 도구 사용, 광고 시청, 캔디 수확 등 게임 plays 강제하는 미션 포함.
+ *   - 학습 도구 톤과 어긋남 (학습 무관 활동 강제).
  *
- * Mission type 별 트리거 사이트:
- *   - focus_25       : 25분 이상 집중 완료 (HomePage)
- *   - focus_50       : 50분 이상 집중 완료 (HomePage)
- *   - focus_night    : KST 22-06 시간대 집중 (HomePage)
- *   - ad_watch       : 광고 보상 채널 claim (AdRewardChannelModal)
- *   - bunny_new      : 도감 토끼 신규 unlock (collectionStore)
- *   - golden_harvest : 황금당근 수확 (FarmHub)
- *   - candy_harvest  : 캔디당근 수확 (FarmHub)
- *   - drop_pickup    : 농장 드랍 줍기 (FarmDropLayer)
- *   - medal_unlock   : 메달 신규 unlock (rewardsStore)
- *   - perfect_combo  : 퍼펙트 콤보 1회 (FarmHub)
- *   - tool_use       : 도구 아이템 사용 (InventoryModal)
- *   - friend_invite  : 친구 초대 (PR-54 stub)
+ * PR-75: **고정 3개 일일 미션**. 학습 중심 — 집중 세션 수 / 누적 시간 /
+ * 퍼펙트 콤보. 매일 같은 3개 (랜덤 X), 클리어 시 보상.
+ *
+ *   1) min25Sessions2  : 25분+ 집중 세션 2회 (+10P)
+ *   2) totalFocusMin50 : 오늘 누적 50분 집중   (+15P)
+ *   3) perfectCombo1   : 퍼펙트 콤보 1회       (+5P)
+ *
+ * 구 MissionType (focus_25 / focus_50 / ad_watch / tool_use 등) 은
+ * 유지되지만 MISSION_POOL 에 포함 안 됨 → 호출되는 incrementProgress 가
+ * silent no-op. 기존 trigger 사이트 코드는 손대지 않아도 안전.
  */
 
 export type MissionType =
+  // PR-75 — 신규 학습 중심 (active pool).
+  | "min25Sessions2"
+  | "totalFocusMin50"
+  | "perfectCombo1"
+  // PR-52 (legacy, inactive pool — silent no-op):
   | "focus_25"
   | "focus_50"
   | "focus_night"
@@ -40,19 +44,31 @@ export interface MissionDef {
   emoji: string;
 }
 
+/**
+ * PR-75 — 매일 고정 3개. pickDailyMissions 는 단순 반환.
+ */
 export const MISSION_POOL: readonly MissionDef[] = [
-  { type: "focus_25", threshold: 1, rewardP: 5, title: "25분 집중 1회", emoji: "⏱" },
-  { type: "focus_50", threshold: 1, rewardP: 10, title: "50분 집중 1회", emoji: "⌛" },
-  { type: "focus_night", threshold: 1, rewardP: 5, title: "야간 집중 1회 (22-06시)", emoji: "🌙" },
-  { type: "ad_watch", threshold: 3, rewardP: 5, title: "광고 3회 시청", emoji: "🎬" },
-  { type: "bunny_new", threshold: 1, rewardP: 3, title: "토끼 1마리 새로 만나기", emoji: "🐰" },
-  { type: "golden_harvest", threshold: 1, rewardP: 5, title: "황금당근 1개 수확", emoji: "✨" },
-  { type: "candy_harvest", threshold: 3, rewardP: 3, title: "캔디당근 3개 수확", emoji: "🍬" },
-  { type: "drop_pickup", threshold: 5, rewardP: 3, title: "농장 드랍 5개 줍기", emoji: "💎" },
-  { type: "medal_unlock", threshold: 1, rewardP: 5, title: "메달 1개 신규 unlock", emoji: "🏅" },
-  { type: "perfect_combo", threshold: 1, rewardP: 5, title: "퍼펙트 콤보 1회", emoji: "🎯" },
-  { type: "tool_use", threshold: 3, rewardP: 3, title: "도구 아이템 3개 사용", emoji: "🔧" },
-  { type: "friend_invite", threshold: 1, rewardP: 10, title: "친구 1명 초대", emoji: "💌" },
+  {
+    type: "min25Sessions2",
+    threshold: 2,
+    rewardP: 10,
+    title: "25분 이상 집중 2회",
+    emoji: "⏱",
+  },
+  {
+    type: "totalFocusMin50",
+    threshold: 50,
+    rewardP: 15,
+    title: "오늘 누적 50분 집중",
+    emoji: "📚",
+  },
+  {
+    type: "perfectCombo1",
+    threshold: 1,
+    rewardP: 5,
+    title: "퍼펙트 콤보 1회",
+    emoji: "🎯",
+  },
 ];
 
 export const DAILY_MISSION_COUNT = 3;
@@ -66,39 +82,16 @@ export function kstDayKey(now: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Deterministic hash — `(day, userKey?)` 같은 입력으로 같은 pick 보장.
- *  PR-5 의 fnv1a 와 같은 결정성 보장 패턴. */
-function fnv1aHash(input: string): number {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  return h >>> 0;
-}
-
 /**
- * Daily pick — KST 일자 기반 결정적 3개 선택. 같은 일자 같은 사용자는
- * 항상 같은 3개. 정렬 후 pop 으로 중복 없이.
+ * PR-75 — 일일 미션은 매일 고정 3개. 입력 `day` 는 결정적 시그니처
+ * 유지를 위해 받지만 결과는 모든 day 동일.
  */
 export function pickDailyMissions(
-  day: string = kstDayKey(),
+  _day: string = kstDayKey(),
   count: number = DAILY_MISSION_COUNT,
   pool: readonly MissionDef[] = MISSION_POOL,
 ): readonly MissionDef[] {
-  const base = fnv1aHash(day);
-  // Fisher-Yates 변형 — base + i 로 seeded index pick.
-  const indices = pool.map((_, i) => i);
-  for (let i = indices.length - 1; i > 0; i--) {
-    const j = fnv1aHash(`${day}#${i}`) % (i + 1);
-    [indices[i], indices[j]] = [indices[j], indices[i]];
-  }
-  void base;
-  const picked: MissionDef[] = [];
-  for (let i = 0; i < count && i < indices.length; i++) {
-    picked.push(pool[indices[i]]!);
-  }
-  return picked;
+  return pool.slice(0, count);
 }
 
 export function totalMissionEv(missions: readonly MissionDef[]): number {

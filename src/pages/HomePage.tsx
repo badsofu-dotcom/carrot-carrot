@@ -194,11 +194,24 @@ export function HomePage() {
         }
 
         // PR-52 — 일일 미션 트리거. focus_25 / focus_50 / focus_night.
+        // (PR-75: 위 3종은 legacy — 더 이상 active pool 에 없어 no-op.
+        //  유지 이유는 backward-compat. 새 active type 은 아래 추가.)
         const focusedMin = lastSnapshot.focusedMs / 60_000;
         const missions = useMissionsStore.getState();
         if (focusedMin >= 25) missions.incrementProgress("focus_25", 1);
         if (focusedMin >= 50) missions.incrementProgress("focus_50", 1);
         if (isNight) missions.incrementProgress("focus_night", 1);
+
+        // PR-75 — 학습 중심 active 미션 트리거.
+        // min25Sessions2: 25분+ 세션 1회 → +1 (threshold 2).
+        // totalFocusMin50: 누적 분 만큼 +N (threshold 50).
+        if (focusedMin >= 25) {
+          missions.incrementProgress("min25Sessions2", 1);
+        }
+        missions.incrementProgress(
+          "totalFocusMin50",
+          Math.floor(focusedMin),
+        );
 
         // PR-61 — 집중 완료 알림. notificationsStore 토글 ON + master ON
         // 일 때만 fire. native 권한 granted 면 system notification, 아니
