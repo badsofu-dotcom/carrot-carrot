@@ -23,8 +23,9 @@ import {
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
-import { canWithdraw, MIN_PAYOUT, totalPoints } from "../../lib/points";
-import { apiCall, apiBaseUrl, tokenStore } from "../../lib/api";
+// PR-145 (Round 22) — 토스포인트 / 출금 흐름 제거. canWithdraw /
+// MIN_PAYOUT / totalPoints + apiCall 출금 호출 모두 미사용. helper 들은
+// lib/points.ts 에 그대로 남아있어 정식 출시 시 재활성 가능.
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { playSfx } from "../../lib/soundFx";
@@ -45,10 +46,9 @@ interface Props {
 
 export function RewardsPanel({ open, onClose }: Props) {
   const carrots = useFarmStore((s) => s.carrots);
-  const candy = useFarmStore((s) => s.candyCarrots);
-  const golden = useFarmStore((s) => s.goldenCarrots);
-  // PR-109 — seeds 자원 폐기. 헤더 chip 표시 3개로 축소.
-
+  // PR-145 (Round 22) — candy / golden subscription 제거 (토스포인트
+  // 카드 헤더 표시 없어짐). gift / treasure 보상 grant 시 incCandy /
+  // incGolden 은 여전히 사용.
   const incCandy = useFarmStore((s) => s.incCandyCarrots);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
   const incCarrots = useFarmStore((s) => s.incCarrots);
@@ -58,18 +58,12 @@ export function RewardsPanel({ open, onClose }: Props) {
   const treasureProgress = useRewardsStore((s) => s.treasureProgress);
   const openTreasureChest = useRewardsStore((s) => s.openTreasureChest);
 
-  const points = totalPoints({ carrots, candyCarrots: candy, goldenCarrots: golden });
-  const withdrawable = canWithdraw(points);
-
   const [claimedThisOpen, setClaimedThisOpen] = useState<GiftReward | null>(null);
-  const [withdrawBusy, setWithdrawBusy] = useState(false);
-  const [withdrawStatus, setWithdrawStatus] = useState<string | null>(null);
   const [lastTreasureText, setLastTreasureText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setClaimedThisOpen(null);
-      setWithdrawStatus(null);
       setLastTreasureText(null);
     }
   }, [open]);
@@ -153,36 +147,8 @@ export function RewardsPanel({ open, onClose }: Props) {
     toast(`🎁 보물상자 — ${treasureToText(reward)}`);
   };
 
-  const onWithdraw = async () => {
-    if (!withdrawable || withdrawBusy) return;
-    setWithdrawBusy(true);
-    setWithdrawStatus(null);
-    try {
-      const canHitServer =
-        apiBaseUrl().length > 0 && !!tokenStore.getAccess();
-      if (!canHitServer) {
-        setWithdrawStatus("콘솔 설정 후 출금할 수 있어요");
-        return;
-      }
-      const res = await apiCall<{ ok: boolean }>("/economy/withdraw", {
-        method: "POST",
-        body: {},
-      });
-      if (res.ok) {
-        setWithdrawStatus("출금 요청 완료 — 잠시 후 토스에서 확인할 수 있어요");
-      } else {
-        setWithdrawStatus(
-          res.error?.code === "CONFIG_REQUIRED"
-            ? "콘솔 설정 후 출금할 수 있어요"
-            : "출금 처리 중 문제가 있어요. 잠시 후 다시 시도해주세요",
-        );
-      }
-    } catch {
-      setWithdrawStatus("네트워크 오류 — 다시 시도해주세요");
-    } finally {
-      setWithdrawBusy(false);
-    }
-  };
+  // PR-145 (Round 22) — onWithdraw 제거. /economy/withdraw 워커 라우트
+  // 코드는 그대로 유지 (정식 출시 시 재활성 가능).
 
   return (
     <AnimatePresence>
@@ -314,9 +280,24 @@ export function RewardsPanel({ open, onClose }: Props) {
             >
               <style>{`[data-testid="rewards-scroll"]::-webkit-scrollbar{display:none;}`}</style>
 
-            {/* Toss points section */}
-            <Section title="토스포인트">
-              <div
+            {/* PR-145 (Round 22) — 토스포인트 섹션 → 가구 상점 진입 카드.
+                당근 보유 + 가구 상점 진입점. 사용자가 수확한 당근을
+                꾸미기에 어떻게 쓸지 명확히. */}
+            <Section title="🛋️ 가구 상점">
+              <button
+                type="button"
+                data-testid="rewards-open-furniture"
+                onClick={() => {
+                  haptic("light");
+                  onClose();
+                  try {
+                    window.dispatchEvent(
+                      new CustomEvent("cc:furniture-shop:open"),
+                    );
+                  } catch {
+                    /* SSR */
+                  }
+                }}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -325,71 +306,26 @@ export function RewardsPanel({ open, onClose }: Props) {
                   borderRadius: 16,
                   padding: 14,
                   boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                  border: "none",
+                  cursor: "pointer",
+                  width: "100%",
+                  textAlign: "left",
                 }}
               >
-                <img
-                  src={`${BASE}assets/farm/icons/icon_coin.png`}
-                  alt=""
-                  width={40}
-                  height={40}
-                  style={{ flexShrink: 0, objectFit: "contain" }}
-                />
+                <span aria-hidden style={{ fontSize: 28, flexShrink: 0 }}>🛋️</span>
                 <div style={{ flex: 1 }}>
-                  {/* PR-84 — card bg #fff (fixed) 위에 inheriting color
-                      쓰면 dark mode 에서 흰 글씨 inheritance 로 invisible.
-                      fixed dark color 강제. */}
-                  <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.1, color: "#2b2b2b" }}>
-                    {points.toLocaleString()} P
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#2b2b2b" }}>
+                    가구 상점 열기
                   </div>
-                  <div style={{ fontSize: 11, color: "#6a6055" }}>
-                    🥕 {carrots} · 🍬 {candy} · ✨ {golden}
+                  <div style={{ fontSize: 11, color: "#6a6055", marginTop: 2 }}>
+                    🥕 {carrots} 보유 · 농장과 버섯집을 꾸며보세요
                   </div>
                 </div>
-                <button
-                  type="button"
-                  data-testid="rewards-withdraw"
-                  disabled={!withdrawable || withdrawBusy}
-                  onClick={onWithdraw}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: 12,
-                    border: "none",
-                    fontWeight: 800,
-                    fontSize: 13,
-                    background: withdrawable ? "#FF7B61" : "rgba(0,0,0,0.08)",
-                    color: withdrawable ? "#fff" : "#888",
-                    cursor: withdrawable ? "pointer" : "not-allowed",
-                  }}
-                >
-                  {withdrawBusy ? "처리 중…" : "출금하기"}
-                </button>
-              </div>
-              {!withdrawable && (
-                <p
-                  style={{
-                    margin: "8px 4px 0",
-                    fontSize: 11,
-                    color: "#6a6055",
-                  }}
-                >
-                  {MIN_PAYOUT}P 부터 출금할 수 있어요 · 1🥕=1P · 1🍬=5P · 1✨=10P
-                </p>
-              )}
-              {withdrawStatus && (
-                <p
-                  data-testid="rewards-withdraw-status"
-                  style={{
-                    margin: "8px 4px 0",
-                    fontSize: 12,
-                    color: "#444",
-                    fontWeight: 600,
-                  }}
-                >
-                  {withdrawStatus}
-                </p>
-              )}
-              {/* PR-90 — 일일 P 캡 진행도. earned 가 cap 에 가까울수록
-                  사용자에게 "오늘은 푹 쉬어요" 의 학습 도구 톤 안내. */}
+                <span aria-hidden style={{ color: "#FF7B61", fontWeight: 800, fontSize: 18 }}>›</span>
+              </button>
+              {/* PR-90 — 일일 cap 진행도. 가구 통화로 재정의됐어도 의미
+                  있는 보호 (일일 100 당근 cap). 라벨은 DailyCapProgress
+                  내부에서 R22 갱신. */}
               <DailyCapProgress />
             </Section>
 
@@ -664,7 +600,7 @@ function DailyCapProgress() {
         }}
       >
         <span style={{ fontSize: 11, fontWeight: 700, color: "#2b2b2b" }}>
-          {reached ? "🌙 오늘은 푹 쉬어요" : "오늘 모은 P"}
+          {reached ? "🌙 오늘은 푹 쉬어요" : "오늘 모은 당근"}
         </span>
         <span
           style={{
@@ -675,7 +611,7 @@ function DailyCapProgress() {
           }}
           data-testid="daily-cap-numbers"
         >
-          {earned} / {cap} P
+          {earned} / {cap} 🥕
         </span>
       </div>
       <div
