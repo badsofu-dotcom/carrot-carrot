@@ -29,8 +29,6 @@ import {
 } from "../../features/collection/collectionData";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
-import { playSfx } from "../../lib/soundFx";
-import { useSoundStore } from "../../store/soundStore";
 
 // PR-128 — rarity-specific entrance copy + glow tier.
 const RARITY_GREETING: Record<Rarity, string> = {
@@ -81,10 +79,9 @@ export function VisitorBunny({ visible }: Props) {
 
   useEffect(() => {
     if (!shouldShow) return;
-    // PR-13: visitor entrance SFX. Read sfxMuted/sfxVolume directly from
-    // the store so we don't subscribe just for this side-effect.
-    const s = useSoundStore.getState();
-    playSfx("bunny", { muted: s.sfxMuted, masterVolume: s.sfxVolume });
+    // Round 18 — entrance SFX removed per beta4 feedback. The visitor
+    // pop is already eye-catching (spring animation + rarity glow);
+    // adding a "ding" interrupted focus sessions running off-tab.
     const timer = window.setTimeout(() => setDismissed(true), AUTO_DISMISS_MS);
     return () => window.clearTimeout(timer);
   }, [shouldShow]);
