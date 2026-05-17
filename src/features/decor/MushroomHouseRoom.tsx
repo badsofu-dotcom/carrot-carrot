@@ -80,13 +80,19 @@ export function MushroomHouseRoom() {
 
   // R26.1 PHASE 1 — body scroll lock 동안 농장 UI 가 뒤에 스크롤되지
   // 않도록. cleanup 시 복원.
+  // R26.5 — body[data-fullscreen-modal-open="1"] 도 함께 마킹.
+  // .app-shell isolation:isolate 로 새 stacking context 만들어서 모달
+  // z 1100 이 TabBar z 100 보다 위인데도 TabBar 가 화면 위에 보이는
+  // 회귀. body class 로 TabBar 자체를 display:none — 가장 안전.
   useEffect(() => {
     if (!open) return;
     if (typeof document === "undefined") return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.body.setAttribute("data-fullscreen-modal-open", "1");
     return () => {
       document.body.style.overflow = prev;
+      document.body.removeAttribute("data-fullscreen-modal-open");
     };
   }, [open]);
 

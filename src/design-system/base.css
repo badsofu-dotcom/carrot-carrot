@@ -280,6 +280,14 @@ body[data-onboarding-open="1"] nav[aria-label="주요 메뉴"] {
   display: none !important;
 }
 
+/* R26.5 — MushroomHouseRoom 같은 fullscreen 모달 open 시 TabBar 숨김.
+   .app-shell isolation:isolate 로 stacking context 분리되어 모달 z 1100
+   이 TabBar z 100 보다 위인데도 화면상 TabBar 가 가리는 회귀. body
+   class 로 표시 후 CSS 로 display:none 처리 — 가장 안전. */
+body[data-fullscreen-modal-open="1"] nav[aria-label="주요 메뉴"] {
+  display: none !important;
+}
+
 .app-screen {
   padding: var(--space-5);
   padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-5));
