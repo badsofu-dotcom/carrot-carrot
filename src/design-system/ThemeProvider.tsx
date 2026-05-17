@@ -35,8 +35,10 @@ function safeWrite(mode: ThemeMode) {
 
 /**
  * Apps in Toss WebView 가 user-agent 에 `TossColorPreference/<light|dark>` 를
- * 노출한다. matchMedia 가 일부 WebView 에서 잘못 응답하는 경우가 있어
- * UA 가 명시적이면 그것을 우선 신뢰한다.
+ * 노출한다. PR-139 (Round 20) 까지는 UA 를 우선했으나 베타6 피드백 (실제 폰
+ * 다크인데 라이트로 표시) 으로 우선순위 반전: **matchMedia 가 진실**.
+ * UA 는 matchMedia 가 실패/예외일 때만 fallback. 일부 WebView 의 stale UA
+ * 문제를 회피하면서 brand-new WebView 의 명시적 라벨도 살림.
  */
 function getTossColorPreference(): ResolvedTheme | null {
   if (typeof navigator === "undefined") return null;
@@ -52,15 +54,19 @@ function getTossColorPreference(): ResolvedTheme | null {
 
 function getSystemPreference(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
-  const toss = getTossColorPreference();
-  if (toss) return toss;
+  // matchMedia 우선 — OS 실제 상태.
   try {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    // mql.media === "not all" 면 브라우저가 쿼리를 지원 안 함 → UA fallback.
+    if (mql.media !== "not all") {
+      return mql.matches ? "dark" : "light";
+    }
   } catch {
-    return "light";
+    /* matchMedia 미지원 또는 예외 — UA fallback */
   }
+  // matchMedia 가 무력화된 환경에서만 UA 신뢰.
+  const toss = getTossColorPreference();
+  return toss ?? "light";
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
