@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ITEMS, useItemsStore, type ItemCode, type ItemTab } from "../../features/collection/itemsStore";
 import { ITEM_META } from "../../lib/itemMeta";
+import { translateAcquisition } from "../../lib/i18n/sourceLabels";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useToolStore, TOOL_CONSTANTS } from "../../features/collection/toolStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
@@ -565,7 +566,7 @@ function DetailPanel({
             lineHeight: 1.3,
           }}
         >
-          획득 방법: {def.acquisition}
+          획득 방법: {translateAcquisition(def.acquisition)}
         </p>
       </div>
     </div>

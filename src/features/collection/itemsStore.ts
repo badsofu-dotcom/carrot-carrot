@@ -231,7 +231,7 @@ export const ITEMS: readonly ItemDef[] = [
     iconRel: "assets/farm/icons/icon_gem.png",
     // PR-33 — 가성비 재조정. 보석 사용 모달이 5 옵션 (씨앗/성장/세션/
     // 황금/레전더리) 제공. 본 PR 은 분류만 변경; 옵션 wiring 은 PR-33.
-    effect: "5개 사용 시 씨앗 9개 (또는 다른 옵션, PR-33)",
+    effect: "5개 사용 시 씨앗 9개 (또는 다른 옵션 — 사용 시 모달에서 선택)",
     usable: true,
     acquisition: "오늘의 선물상자 (2%) / 농장 드랍 (rare)",
     minToUse: 5,
