@@ -9,6 +9,7 @@
   "background_color": "#FFF8E7",
   "theme_color": "#FF9940",
   "lang": "ko",
+  "categories": ["productivity", "education", "lifestyle"],
   "icons": [
     {
       "src": "/icons/app-icon-192.png",
