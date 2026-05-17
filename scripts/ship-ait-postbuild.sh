@@ -33,6 +33,19 @@ ARTIFACT_SIZE="$(du -h "$ARTIFACT_PATH" 2>/dev/null | awk '{print $1}' || echo '
 if [ -d "$DOWNLOADS_DIR" ]; then
   cp "$ARTIFACT_PATH" "$DOWNLOADS_DIR/carrot-carrot.ait"
   echo "✓ copied to $DOWNLOADS_DIR/carrot-carrot.ait"
+
+  # R26.5 — WSL 한정: explorer.exe 로 Downloads 열어 사용자가
+  # 바로 .ait 를 끌어다 Apps-in-Toss 콘솔에 업로드할 수 있게 한다.
+  # explorer.exe 가 없는 환경(순수 Linux/Mac)에선 skip.
+  if command -v explorer.exe >/dev/null 2>&1; then
+    # explorer.exe 는 윈도 경로 인자가 필요. wslpath 로 변환.
+    WIN_PATH="$(wslpath -w "$DOWNLOADS_DIR" 2>/dev/null || echo "")"
+    if [ -n "$WIN_PATH" ]; then
+      # explorer.exe 는 폴더를 열면 exit code 1 을 자주 반환 — 무시.
+      explorer.exe "$WIN_PATH" >/dev/null 2>&1 || true
+      echo "✓ opened Downloads in Explorer ($WIN_PATH)"
+    fi
+  fi
 else
   echo "⚠ Downloads 폴더 없음 ($DOWNLOADS_DIR) — 복사 skip"
 fi
