@@ -400,7 +400,7 @@ export function SettingsPage() {
 /* ----------------------- Sound & notify settings ----------------------- */
 
 const END_ALERT_KEY = "cc.push.endAlert.v1";
-const HAPTIC_KEY = "cc.haptic.v1";
+// PR-78 — HAPTIC_KEY 제거 (haptic() stub no-op).
 const ADVANCED_OPEN_KEY = "cc.settings.advanced.open.v1";
 
 function loadFlag(key: string, fallback: boolean): boolean {
@@ -431,10 +431,11 @@ function SoundNotifyGroup() {
     <SettingsGroup title="알림 & 소리" emoji="🔔">
       <NotifyMasterRow />
       <SfxMutedRow />
-      <SfxVolumeRow />
       <FarmBgmToggleRow />
-      <FarmBgmVolumeRow />
-      <HapticToggleRow />
+      {/* PR-78 — SfxVolumeRow / FarmBgmVolumeRow / HapticToggleRow 제거.
+          볼륨은 soundStore default 상수 (PR-69 와 별개) 사용. 진동은
+          haptic() stub no-op 으로 전체 비활성. 미세조절 필요해지면
+          고급 설정 또는 별도 페이지로 이동. */}
       <AdvancedDisclosure>
         <PushReminderRow />
         <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때" />
@@ -566,23 +567,9 @@ function EndAlertRow({ last }: { last?: boolean }) {
   );
 }
 
-function HapticToggleRow() {
-  const [on, setOn] = useState<boolean>(() => loadFlag(HAPTIC_KEY, true));
-  const toggle = (v: boolean) => {
-    setOn(v);
-    saveFlag(HAPTIC_KEY, v);
-    haptic(v ? "light" : "warning");
-    toast(v ? "진동 켬" : "진동 끔");
-  };
-  return (
-    <Row
-      label="진동"
-      sub="당근 잡을 때 진동"
-      right={<Switch checked={on} onChange={toggle} label="진동" />}
-      testId="row-haptic-toggle"
-    />
-  );
-}
+// PR-78 — HapticToggleRow / HAPTIC_KEY 제거. haptic() 자체가 stub
+// no-op 이 되어서 토글 불필요. 향후 mission/session 클리어 햅틱이
+// 의도된 UX 로 다시 필요해지면 별도 PR.
 
 /* ---------------------- PR-61 알림 토글 ---------------------- */
 
@@ -694,31 +681,6 @@ function SfxMutedRow() {
   );
 }
 
-function SfxVolumeRow() {
-  const sfxVolume = useSoundStore((s) => s.sfxVolume);
-  const setSfxVolume = useSoundStore((s) => s.setSfxVolume);
-  return (
-    <Row
-      label="효과음 볼륨"
-      sub={`현재 ${sfxVolume}% — mp3 없으면 절차적 합성음 재생`}
-      right={
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={1}
-          value={sfxVolume}
-          onChange={(e) => setSfxVolume(Number(e.target.value))}
-          data-testid="row-sfx-volume"
-          aria-label="효과음 볼륨"
-          style={{ width: 120, accentColor: "var(--accent-carrot)" }}
-        />
-      }
-      testId="row-sfx-volume-wrap"
-    />
-  );
-}
-
 function FarmBgmToggleRow() {
   const enabled = useSoundStore((s) => s.farmBgmEnabled);
   const setEnabled = useSoundStore((s) => s.setFarmBgmEnabled);
@@ -735,38 +697,6 @@ function FarmBgmToggleRow() {
         <Switch checked={enabled} onChange={toggle} label="농장 BGM" />
       }
       testId="row-farm-bgm-toggle"
-    />
-  );
-}
-
-function FarmBgmVolumeRow() {
-  const enabled = useSoundStore((s) => s.farmBgmEnabled);
-  const farmBgmVolume = useSoundStore((s) => s.farmBgmVolume);
-  const setFarmBgmVolume = useSoundStore((s) => s.setFarmBgmVolume);
-  return (
-    <Row
-      label="BGM 볼륨"
-      sub={enabled ? `현재 ${farmBgmVolume}%` : "BGM 끔 상태"}
-      right={
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={1}
-          value={farmBgmVolume}
-          disabled={!enabled}
-          onChange={(e) => setFarmBgmVolume(Number(e.target.value))}
-          data-testid="row-farm-bgm-volume"
-          aria-label="BGM 볼륨"
-          style={{
-            width: 120,
-            accentColor: "var(--accent-carrot)",
-            opacity: enabled ? 1 : 0.4,
-          }}
-        />
-      }
-      last
-      testId="row-farm-bgm-volume-wrap"
     />
   );
 }
