@@ -7,6 +7,7 @@ import { safeStorage } from "./lib/safeStorage";
 
 import { TabBar } from "./components/TabBar";
 import { ThemeProvider } from "./design-system/ThemeProvider";
+import { useFarmhubDogamGrant } from "./features/decor/useFarmhubDogamGrant";
 import { ToastViewport } from "./design-system/ui";
 import { SplashScreen } from "./components/SplashScreen";
 import { AppsInTossLoginGate } from "./components/AppsInTossLoginGate";
@@ -214,6 +215,11 @@ export default function App() {
       alive = false;
     };
   }, [setAuth, setStats, setLoading]);
+
+  // R26 PR-155 — 도감 owned 변화 → 버섯집 가구 자동 지급 hook. App
+  // root 에서 1회 mount. 사용자가 농장 외 화면 (홈 / 리포트) 에 있어도
+  // 도감 새 unlock 시점에 toast 로 도착 안내.
+  useFarmhubDogamGrant();
 
   return (
     <ThemeProvider>
