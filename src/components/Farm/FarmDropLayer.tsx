@@ -23,7 +23,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useItemsStore } from "../../features/collection/itemsStore";
+import { useItemsStore, SEED_ICON_REL } from "../../features/collection/itemsStore";
 import { useMissionsStore } from "../../features/missions/missionsStore";
 import { useNotificationsStore } from "../../features/notifications/notificationsStore";
 import { notify } from "../../lib/webNotify";
@@ -114,8 +114,8 @@ const DROPS: readonly DropSpec[] = [
     kind: "seed",
     weight: 4,
     emoji: "🌱",
-    // PR-58 → PR-67 — fertilizer 자산 복원 (itemsStore seed iconRel 동일).
-    iconRel: "assets/farm/items/tool_fertilizer.png",
+    // PR-70 — itemsStore SEED_ICON_REL 와 동일 자산 사용 (single SoT).
+    iconRel: SEED_ICON_REL,
     toast: "🌱 씨앗 +1",
   },
   {

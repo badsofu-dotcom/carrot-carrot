@@ -13,6 +13,7 @@ import {
 import { haptic } from "../design-system/haptic";
 import { FarmHub } from "../features/collection/FarmHub";
 import { useFarmStore } from "../features/collection/farmStore";
+import { SEED_ICON_REL } from "../features/collection/itemsStore";
 import { FarmOnboarding } from "../features/collection/FarmOnboarding";
 import { RewardsPanel } from "../components/Farm/RewardsPanel";
 import { InventoryModal } from "../components/Inventory/InventoryModal";
@@ -924,11 +925,10 @@ function FarmView({
               대로 사용. 시각 발견성 위해 헤더에 노출 (이전엔 사용자가
               잔여량 확인 불가). 자산이 없으면 emoji fallback. */}
           <CurrencyChip
-            // PR-58 → PR-67 — 사용자가 tool_fertilizer.png 추가하여 원안
-            // 복원. itemsStore + FarmDropLayer 와 동일 자산. crop_stage1_
-            // seed (갈색 흙덩이) 는 농장 plot stage1 (어린 모종) 용으로
-            // 유지 — 인벤토리 / 헤더 / 드랍은 fertilizer 로 직관성 강화.
-            icon={`${import.meta.env.BASE_URL}assets/farm/items/tool_fertilizer.png`}
+            // PR-70 — itemsStore SEED_ICON_REL single SoT 사용. 3 site
+            // (인벤토리 / 헤더 / 드랍) 모두 동일 자산. label/emoji 는
+            // 일관되게 "씨앗" / 🌱.
+            icon={`${import.meta.env.BASE_URL}${SEED_ICON_REL}`}
             emoji="🌱"
             label="씨앗"
             count={seeds}

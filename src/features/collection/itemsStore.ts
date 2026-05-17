@@ -89,6 +89,16 @@ interface ItemDef {
   maxStack?: number;
 }
 
+/**
+ * PR-70 — 씨앗 아이콘 자산 경로 single source of truth.
+ *
+ * `tool_fertilizer.png` 은 비료봉투 비주얼 PNG 지만 사용자 UI 는
+ * 모두 "씨앗" / 🌱 으로 표시. itemsStore / FarmDropLayer /
+ * CollectionPage 의 CurrencyChip 세 site 가 동일 자산을 사용해야
+ * 시각 정합 — 그래서 이 상수에서 export.
+ */
+export const SEED_ICON_REL = "assets/farm/items/tool_fertilizer.png";
+
 export const ITEMS: readonly ItemDef[] = [
   // ── resources (currency + soft_currency) ────────────────────────
   {
@@ -126,9 +136,11 @@ export const ITEMS: readonly ItemDef[] = [
     ko: "씨앗",
     tab: "resources",
     category: "soft_currency",
-    // PR-58 → PR-67 — 사용자가 tool_fertilizer.png 추가하여 PR-58 의
-    // seed_pack 임시 대체 복원. 비료 봉투 비주얼 = 씨앗 의미 원안.
-    iconRel: "assets/farm/items/tool_fertilizer.png",
+    // PR-58 → PR-67 → PR-70 — 자산은 비료봉투 PNG (seed-pack 봉투 비주얼)
+    // 이지만 사용자 노출 label / emoji 는 일관되게 "씨앗" / 🌱. UI 가
+    // 다른 곳 (FarmDropLayer / CollectionPage CurrencyChip) 도 동일
+    // 자산 사용해야 시각적 정합. 그래서 SEED_ICON_REL 상수로 export.
+    iconRel: SEED_ICON_REL,
     // PR-31 — soft currency. 현재 sink 없음 (씨뿌리기는 무료).
     // PR-32 calibration 에서 씨뿌리기 -1 seed 룰 추가 검토.
     effect: "농장 씨뿌리기 자원 (현재 무료, 향후 sink 예정)",
