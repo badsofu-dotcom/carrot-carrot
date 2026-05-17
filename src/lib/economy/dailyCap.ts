@@ -26,6 +26,7 @@ import { safeStorage } from "../safeStorage";
 import { useCollectionStore } from "../../features/collection/collectionStore";
 import { passivesFromOwned } from "../dogamPassives";
 import { kstDayKey } from "../kst";
+import { grantOnServer } from "./grantSync";
 
 const STORAGE_KEY = "cc.economy.dailyP.v1";
 // PR-113 — first cap-reach toast 1회 dispatch 영속 flag (per KST day).
@@ -117,6 +118,9 @@ export function addPoints(source: string, amount: number): number {
   const grant = Math.min(Math.floor(amount), cap - state.earned);
   const next = { day: state.day, earned: state.earned + grant };
   save(next);
+  // PR-116 — fire-and-forget server grant (권위 quota tracking).
+  // Client cap 은 시각 진행도 / UI. Server 가 실 enforcement.
+  grantOnServer(source, grant);
   // PR-113 — cap cross 시 1회 event dispatch (per KST day).
   if (next.earned >= cap) {
     const flagKey = `${CAP_TOASTED_KEY}.${today}`;

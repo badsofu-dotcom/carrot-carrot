@@ -402,4 +402,134 @@ function placementToChannel(placement: string): "watering" | "gift" | "treasure"
   return "item_use";
 }
 
+// ----------------------------------------------------------------------
+// PR-116 — server-side dailyCap enforcement.
+//
+// 클라이언트 (lib/economy/dailyCap.ts) 가 100 P (+10 dogam) 캡을 추적
+// 하지만 localStorage tamper 가능. server 가 daily_caps 의
+// reward_points_total 로 권위 있는 quota 관리.
+//
+// 호출 패턴:
+//   POST /economy/grant { source, points }
+//   → server: check today's reward_points_total + points <= CAP_MAX
+//     - 통과 → INSERT point_grants + UPDATE daily_caps + UPDATE
+//       pending_points + return { granted: points }
+//     - 초과 → partial grant (cap 까지만) + return { granted: < points }
+//     - 이미 도달 → 0 grant + return { granted: 0, capReached: true }
+//
+// 클라이언트가 fire-and-forget 호출. 실패해도 클라 게임 흐름 막지 않음.
+// 클라 cap 은 시각 진행도 / "🌙 오늘은 푹 쉬어요" 안내 용.
+// ----------------------------------------------------------------------
+
+const SERVER_BASE_DAILY_CAP = 100;
+const SERVER_DOGAM_CAP_BOOST_MAX = 10; // dogam 100% 완성 시.
+
+/** YYYY-MM-DD in KST. KST = UTC+9. */
+function serverKstYmd(now: Date = new Date()): string {
+  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
+  return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`;
+}
+
+/**
+ * POST /economy/grant
+ * Body: { source: string, points: number }
+ *
+ * Response: { ok, data: { granted, totalToday, cap, capReached } }
+ */
+app.post("/grant", async (c) => {
+  const sub = await requireUser(c);
+  if (typeof sub !== "string") return sub;
+
+  let body: { source?: unknown; points?: unknown } = {};
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json(
+      { ok: false, error: { code: "BAD_BODY", message: "invalid json" } },
+      400,
+    );
+  }
+  const source = typeof body.source === "string" ? body.source : "unknown";
+  const requested =
+    typeof body.points === "number" &&
+    Number.isFinite(body.points) &&
+    body.points > 0
+      ? Math.floor(body.points)
+      : 0;
+
+  if (requested === 0) {
+    return c.json({
+      ok: true,
+      data: { granted: 0, totalToday: 0, cap: SERVER_BASE_DAILY_CAP, capReached: false },
+    });
+  }
+
+  const ymd = serverKstYmd();
+  // 현재 daily_caps row 조회.
+  const row = await c.env.DB.prepare(
+    "SELECT reward_points_total FROM daily_caps WHERE user_key = ?1 AND ymd = ?2",
+  )
+    .bind(sub, ymd)
+    .first<{ reward_points_total: number }>();
+  const currentTotal = row?.reward_points_total ?? 0;
+
+  // dogam boost — bunnies_owned 카운트 기반. 12+ 면 +10P.
+  const ownedRow = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS cnt FROM bunnies_owned WHERE user_key = ?1",
+  )
+    .bind(sub)
+    .first<{ cnt: number }>();
+  const dogamCount = ownedRow?.cnt ?? 0;
+  const cap =
+    SERVER_BASE_DAILY_CAP +
+    (dogamCount >= 12 ? SERVER_DOGAM_CAP_BOOST_MAX : 0);
+
+  const remaining = Math.max(0, cap - currentTotal);
+  const granted = Math.min(requested, remaining);
+  const nextTotal = currentTotal + granted;
+
+  if (granted > 0) {
+    // Upsert daily_caps.
+    await c.env.DB.prepare(
+      `INSERT INTO daily_caps (user_key, ymd, reward_points_total, updated_at)
+       VALUES (?1, ?2, ?3, unixepoch())
+       ON CONFLICT(user_key, ymd) DO UPDATE SET
+         reward_points_total = reward_points_total + ?3,
+         updated_at = unixepoch()`,
+    )
+      .bind(sub, ymd, granted)
+      .run();
+
+    // Append-only ledger.
+    await c.env.DB.prepare(
+      `INSERT INTO point_grants (user_key, ymd, source, kind, amount, created_at)
+       VALUES (?1, ?2, ?3, 'p', ?4, unixepoch())`,
+    )
+      .bind(sub, ymd, source, granted)
+      .run();
+
+    // Pending balance update.
+    await c.env.DB.prepare(
+      `INSERT INTO pending_points (user_key, pending, lifetime_total, updated_at)
+       VALUES (?1, ?2, ?2, unixepoch())
+       ON CONFLICT(user_key) DO UPDATE SET
+         pending = pending + ?2,
+         lifetime_total = lifetime_total + ?2,
+         updated_at = unixepoch()`,
+    )
+      .bind(sub, granted)
+      .run();
+  }
+
+  return c.json({
+    ok: true,
+    data: {
+      granted,
+      totalToday: nextTotal,
+      cap,
+      capReached: nextTotal >= cap,
+    },
+  });
+});
+
 export default app;
