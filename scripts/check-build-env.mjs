@@ -18,6 +18,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // granite.config.ts 가 콘솔 등록 CDN URL 을 기본값으로 박아두므로 더 이상
 // APPS_IN_TOSS_BRAND_ICON_URL 환경변수를 강제하지 않는다. 단, 누군가가
@@ -46,9 +47,20 @@ function loadDotEnv(path) {
   return out;
 }
 
-const ROOT = resolve(new URL(".", import.meta.url).pathname, "..");
-const fromFile = loadDotEnv(resolve(ROOT, ".env.production"));
+// Windows fix (PR-129): `new URL(...).pathname` returns "/C:/foo/..." on
+// Windows, which path.resolve then mangles into "C:\C:\foo". POSIX paths
+// happen to round-trip, so WSL/Linux/macOS never hit this. Always go
+// through `fileURLToPath` for a correct cross-platform absolute path.
+const ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
+const ENV_PATH = resolve(ROOT, ".env.production");
+const fromFile = loadDotEnv(ENV_PATH);
 const merged = { ...fromFile, ...process.env };
+// Diagnostic on miss so the user can see WHY the file wasn't loaded.
+if (Object.keys(fromFile).length === 0 && existsSync(ENV_PATH) === false) {
+  process.stderr.write(
+    `▸ .env.production not found at ${ENV_PATH} (using process.env only)\n`,
+  );
+}
 
 const missing = REQUIRED.filter((k) => !merged[k] || merged[k].trim() === "");
 
