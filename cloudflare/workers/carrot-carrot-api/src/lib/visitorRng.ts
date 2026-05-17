@@ -43,5 +43,50 @@ export function pickVisitor(
   return pool[h % pool.length] ?? null;
 }
 
+/**
+ * Weighted pool entry — id + integer weight (relative). The picker
+ * normalises by sum so weights can be any non-negative integers; e.g.
+ * `[{ id:"x", weight:60 }, { id:"y", weight:40 }]` yields 60/40 split.
+ */
+export interface WeightedEntry {
+  id: string;
+  weight: number;
+}
+
+/**
+ * Pick a deterministic visitor from a weighted pool.
+ *
+ *   - Same (userKey, ymd) → same id (idempotent reads).
+ *   - Hash space (32-bit) is wrapped onto the cumulative-weight axis,
+ *     so within-tier rotation across days happens naturally.
+ *   - Entries with weight ≤ 0 are skipped silently (they never win).
+ *
+ * Returns null if pool is empty or every weight is non-positive.
+ */
+export function pickWeightedVisitor(
+  userKey: string,
+  ymd: string,
+  pool: ReadonlyArray<WeightedEntry>,
+): string | null {
+  if (pool.length === 0) return null;
+  let total = 0;
+  for (const p of pool) {
+    if (p.weight > 0) total += p.weight;
+  }
+  if (total <= 0) return null;
+  const h = fnv1aHash(`${userKey}:${ymd}`);
+  let pick = h % total;
+  for (const p of pool) {
+    if (p.weight <= 0) continue;
+    if (pick < p.weight) return p.id;
+    pick -= p.weight;
+  }
+  // Floating defensive fallback — should be unreachable when total > 0.
+  for (let i = pool.length - 1; i >= 0; i--) {
+    if (pool[i].weight > 0) return pool[i].id;
+  }
+  return null;
+}
+
 /** Exposed for unit tests + cross-call determinism checks. */
 export { fnv1aHash };

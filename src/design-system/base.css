@@ -543,3 +543,10 @@ button:focus-visible {
   60% { transform: scale(1); opacity: 1; }
   100% { transform: scale(0.6); opacity: 0; }
 }
+
+/* VisitorBunny — sr/ssr/legendary glow pulse (PR-128). Brightness only;
+   no transform so it doesn't conflict with the framer-motion entrance. */
+@keyframes visitor-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}

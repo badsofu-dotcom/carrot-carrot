@@ -23,11 +23,42 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bunny } from "../Bunny";
 import { useFriendsStore } from "../../features/collection/friendsStore";
-import { CHARACTER_BY_ID } from "../../features/collection/collectionData";
+import {
+  CHARACTER_BY_ID,
+  type Rarity,
+} from "../../features/collection/collectionData";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { playSfx } from "../../lib/soundFx";
 import { useSoundStore } from "../../store/soundStore";
+
+// PR-128 — rarity-specific entrance copy + glow tier.
+const RARITY_GREETING: Record<Rarity, string> = {
+  common: "🐰 안녕! 놀러왔어",
+  rare: "🐰 오! 너 집중 잘하네!",
+  sr: "✨ 엄청난 손님이 왔어!",
+  ssr: "✨ SSR 손님이 왔어!",
+  legendary: "🌟 전설의 손님이 강림했다!",
+};
+
+// CSS box-shadow per rarity. common = none, others get a soft glow that
+// matches the rarity token color so the visitor "feels" rare without
+// shouting. legendary gets a stronger, slightly animated pulse via the
+// `--visitor-pulse` animation in base.css (added in this PR).
+function rarityGlow(r: Rarity | undefined): string {
+  switch (r) {
+    case "legendary":
+      return "0 0 0 2px rgba(255,200,80,0.85), 0 0 18px 4px rgba(255,180,60,0.6)";
+    case "ssr":
+      return "0 0 0 2px rgba(255,120,200,0.75), 0 0 14px 3px rgba(255,120,200,0.45)";
+    case "sr":
+      return "0 0 0 2px rgba(140,90,255,0.7), 0 0 12px 2px rgba(140,90,255,0.4)";
+    case "rare":
+      return "0 0 0 2px rgba(80,160,255,0.6), 0 0 10px 2px rgba(80,160,255,0.3)";
+    default:
+      return "none";
+  }
+}
 
 const AUTO_DISMISS_MS = 6_000;
 
@@ -65,6 +96,10 @@ export function VisitorBunny({ visible }: Props) {
   // If the server picked an id the client doesn't render, fall back to
   // a safe default so the sprite still appears.
   const safeBunnyKey = bunnyKey ?? "idle";
+  const rarity: Rarity = character?.rarity ?? "common";
+  const greeting = RARITY_GREETING[rarity];
+  const glow = rarityGlow(rarity);
+  const isHighTier = rarity === "sr" || rarity === "ssr" || rarity === "legendary";
 
   const handleTap = async () => {
     haptic("medium");
@@ -124,9 +159,19 @@ export function VisitorBunny({ visible }: Props) {
               whiteSpace: "nowrap",
             }}
           >
-            🐰 오늘 놀러왔어!
+            {greeting}
           </motion.div>
-          <Bunny variant={safeBunnyKey} size={64} frame="rounded" breathe alt="" />
+          <div
+            style={{
+              borderRadius: 18,
+              boxShadow: glow,
+              animation: isHighTier
+                ? "visitor-pulse 2.4s ease-in-out infinite"
+                : undefined,
+            }}
+          >
+            <Bunny variant={safeBunnyKey} size={64} frame="rounded" breathe alt="" />
+          </div>
           {/* Heart pop fx */}
           <AnimatePresence>
             {heartPop && (

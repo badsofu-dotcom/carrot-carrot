@@ -26,7 +26,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Env } from "../types.js";
 import { bearerToken, verifyAppJwt } from "../lib/jwt.js";
-import { pickVisitor } from "../lib/visitorRng.js";
+import { pickWeightedVisitor, type WeightedEntry } from "../lib/visitorRng.js";
 
 type AppContext = Context<{ Bindings: Env }>;
 const app = new Hono<{ Bindings: Env }>();
@@ -50,21 +50,35 @@ async function requireUser(c: AppContext): Promise<string | Response> {
 }
 
 /**
- * Visitor pool — drawn from the existing transparent-background bunny
- * set. Sticks to common + rare ids so the visitor card stays "friendly
- * neighbor" rather than "legendary boss appears." Must stay in sync
- * with `src/assets/characters/index.ts` bunny keys.
+ * Visitor pool — all 12 designated bunnies from collectionData with
+ * weighted rarity distribution. Sum = 1000 for easy mental math.
+ *
+ *   common (60%): 7 ids, ~8.5% each — idle/focus/eat25/eat50/eat75/cry/sleep
+ *   rare   (30%): 3 ids, ~10% each — success/rare-ninja/rare-king
+ *   sr     ( 8%): 1 id  — sr-wizard
+ *   legendary (2%): 1 id — legendary-demon
+ *
+ * Updated Round 16 (PR-128): was 9-id uniform; user wanted full 12-bunny
+ * roster with proper rarity feel. Must stay in sync with
+ * `src/features/collection/collectionData.ts` CHARACTERS ids.
  */
-const VISITOR_POOL: ReadonlyArray<string> = [
-  "idle",
-  "focus",
-  "eat25",
-  "eat50",
-  "eat75",
-  "sleep",
-  "success",
-  "rare-ninja",
-  "rare-king",
+const VISITOR_POOL: ReadonlyArray<WeightedEntry> = [
+  // common — 60% total
+  { id: "idle",            weight: 86 },
+  { id: "focus",           weight: 86 },
+  { id: "eat25",           weight: 86 },
+  { id: "eat50",           weight: 86 },
+  { id: "eat75",           weight: 86 },
+  { id: "cry",             weight: 85 },
+  { id: "sleep",           weight: 85 },
+  // rare — 30% total
+  { id: "success",         weight: 100 },
+  { id: "rare-ninja",      weight: 100 },
+  { id: "rare-king",       weight: 100 },
+  // sr — 8%
+  { id: "sr-wizard",       weight: 80 },
+  // legendary — 2%
+  { id: "legendary-demon", weight: 20 },
 ];
 
 const HEART_REWARD = 1;
@@ -84,7 +98,7 @@ app.get("/today", async (c) => {
   const sub = await requireUser(c);
   if (typeof sub !== "string") return sub;
   const ymd = kstYmd();
-  const visitor = pickVisitor(sub, ymd, VISITOR_POOL);
+  const visitor = pickWeightedVisitor(sub, ymd, VISITOR_POOL);
   if (!visitor) {
     return c.json(
       { ok: false, error: { code: "EMPTY_POOL", message: "no visitor pool configured" } },
@@ -130,7 +144,7 @@ app.post("/wave", async (c) => {
   const sub = await requireUser(c);
   if (typeof sub !== "string") return sub;
   const ymd = kstYmd();
-  const visitor = pickVisitor(sub, ymd, VISITOR_POOL);
+  const visitor = pickWeightedVisitor(sub, ymd, VISITOR_POOL);
   if (!visitor) {
     return c.json(
       { ok: false, error: { code: "EMPTY_POOL", message: "no visitor pool configured" } },

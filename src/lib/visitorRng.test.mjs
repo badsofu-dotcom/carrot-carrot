@@ -16,7 +16,7 @@ const mod = await loadTs(
   "../../cloudflare/workers/carrot-carrot-api/src/lib/visitorRng.ts",
   import.meta.url,
 );
-const { pickVisitor, fnv1aHash } = mod;
+const { pickVisitor, pickWeightedVisitor, fnv1aHash } = mod;
 
 const POOL = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
 
@@ -54,6 +54,86 @@ test("pickVisitor: different users get independent rotations", () => {
 
 test("pickVisitor: empty pool → null", () => {
   assert.equal(pickVisitor("user-1", "2026-05-15", []), null);
+});
+
+/* -------------------- pickWeightedVisitor (PR-128) -------------------- */
+
+const WEIGHTED_POOL = [
+  // common 60%, rare 30%, sr 8%, legendary 2% (sum 1000)
+  { id: "idle", weight: 86 },
+  { id: "focus", weight: 86 },
+  { id: "eat25", weight: 86 },
+  { id: "eat50", weight: 86 },
+  { id: "eat75", weight: 86 },
+  { id: "cry", weight: 85 },
+  { id: "sleep", weight: 85 },
+  { id: "success", weight: 100 },
+  { id: "rare-ninja", weight: 100 },
+  { id: "rare-king", weight: 100 },
+  { id: "sr-wizard", weight: 80 },
+  { id: "legendary-demon", weight: 20 },
+];
+
+test("pickWeightedVisitor: same (user, ymd) returns same id", () => {
+  const a = pickWeightedVisitor("user-1", "2026-05-15", WEIGHTED_POOL);
+  const b = pickWeightedVisitor("user-1", "2026-05-15", WEIGHTED_POOL);
+  assert.equal(a, b);
+});
+
+test("pickWeightedVisitor: empty pool → null", () => {
+  assert.equal(pickWeightedVisitor("u", "d", []), null);
+});
+
+test("pickWeightedVisitor: all-zero weights → null", () => {
+  assert.equal(
+    pickWeightedVisitor("u", "d", [
+      { id: "a", weight: 0 },
+      { id: "b", weight: 0 },
+    ]),
+    null,
+  );
+});
+
+test("pickWeightedVisitor: distribution matches weights within ±2.5%", () => {
+  // 10k samples (synthetic user×day grid) → check rarity-bucket totals.
+  const TIER_OF = {
+    idle: "common",
+    focus: "common",
+    eat25: "common",
+    eat50: "common",
+    eat75: "common",
+    cry: "common",
+    sleep: "common",
+    success: "rare",
+    "rare-ninja": "rare",
+    "rare-king": "rare",
+    "sr-wizard": "sr",
+    "legendary-demon": "legendary",
+  };
+  const buckets = { common: 0, rare: 0, sr: 0, legendary: 0 };
+  const SAMPLES = 10_000;
+  for (let i = 0; i < SAMPLES; i++) {
+    const day = `2026-${String(((i % 12) + 1)).padStart(2, "0")}-${String(((i % 28) + 1)).padStart(2, "0")}`;
+    const id = pickWeightedVisitor(`user-${i}`, day, WEIGHTED_POOL);
+    buckets[TIER_OF[id]] += 1;
+  }
+  const pct = (n) => (n / SAMPLES) * 100;
+  // Expected: common 60, rare 30, sr 8, legendary 2.
+  assert.ok(Math.abs(pct(buckets.common) - 60) < 2.5, `common ${pct(buckets.common).toFixed(2)}%`);
+  assert.ok(Math.abs(pct(buckets.rare) - 30) < 2.5, `rare ${pct(buckets.rare).toFixed(2)}%`);
+  assert.ok(Math.abs(pct(buckets.sr) - 8) < 2.5, `sr ${pct(buckets.sr).toFixed(2)}%`);
+  assert.ok(Math.abs(pct(buckets.legendary) - 2) < 2.5, `legendary ${pct(buckets.legendary).toFixed(2)}%`);
+});
+
+test("pickWeightedVisitor: zero-weight entry never wins", () => {
+  const pool = [
+    { id: "never", weight: 0 },
+    { id: "always", weight: 10 },
+  ];
+  for (let i = 0; i < 200; i++) {
+    const id = pickWeightedVisitor(`u-${i}`, "2026-05-15", pool);
+    assert.equal(id, "always");
+  }
 });
 
 test("fnv1aHash: stable, non-zero, well-distributed across 1k samples", () => {
