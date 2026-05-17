@@ -479,6 +479,24 @@ export function HomePage() {
         soundPlaying={soundPlaying}
       />
 
+      {/* PR-124 — 5분 gate 사전 hint. ONBOARDING_AUDIT 발견 1 적용.
+          IDLE 시에만 표시 — 신규 사용자가 시작 전 인지. FOCUSING /
+          PAUSED 중에는 noise 회피 위해 미표시. */}
+      {isIdle && (
+        <p
+          data-testid="five-min-gate-hint"
+          style={{
+            margin: "8px auto 0",
+            fontSize: 11,
+            color: "var(--text-tertiary)",
+            textAlign: "center",
+            opacity: 0.8,
+          }}
+        >
+          💡 5분 이상 집중해야 작물이 자라요
+        </p>
+      )}
+
       <SoundSheet
         open={soundSheetOpen}
         onClose={() => setSoundSheetOpen(false)}
