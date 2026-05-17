@@ -39,8 +39,6 @@ const STEPS: string[] = [
 ];
 
 const ACCENT = "#FF7B61";
-const INACTIVE_DOT = "#E5E5E5";
-const SKIP_COLOR = "#999";
 const SWIPE_THRESHOLD = 50;
 
 const BASE = import.meta.env.BASE_URL;
@@ -186,8 +184,17 @@ export function BunnyOnboardingModal({ forceOpen = false, onClose }: Props) {
             position: "fixed",
             inset: 0,
             zIndex: 1000,
-            background: "rgba(0,0,0,0.25)",
+            background: "rgba(0,0,0,0.55)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
             pointerEvents: "auto",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            paddingTop: "calc(env(safe-area-inset-top) + 56px)",
+            paddingBottom: "calc(env(safe-area-inset-bottom) + 32px)",
+            gap: 20,
           }}
         >
           {/* Skip — top right */}
@@ -202,7 +209,7 @@ export function BunnyOnboardingModal({ forceOpen = false, onClose }: Props) {
               right: 16,
               background: "transparent",
               border: "none",
-              color: SKIP_COLOR,
+              color: "rgba(255,255,255,0.78)",
               fontSize: 14,
               fontWeight: 500,
               padding: 6,
@@ -212,136 +219,141 @@ export function BunnyOnboardingModal({ forceOpen = false, onClose }: Props) {
             건너뛰기
           </button>
 
-          {/* 4-dot indicator — top center */}
+          {/* Center stack — bubble + bunny + dots, flexed to grow */}
           <div
-            aria-hidden
-            data-testid="onboarding-dots"
             style={{
-              position: "absolute",
-              top: "calc(env(safe-area-inset-top) + 16px)",
-              left: "50%",
-              transform: "translateX(-50%)",
+              flex: 1,
               display: "flex",
-              gap: 8,
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 16,
+              width: "100%",
+              maxWidth: 360,
+              padding: "0 24px",
             }}
           >
-            {STEPS.map((_, i) => (
+            {/* Speech bubble — above bunny, down-tail */}
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.22 }}
+              data-testid={`onboarding-step-${step}`}
+              data-bubble="onboarding-bubble"
+              data-step={step}
+              style={{
+                position: "relative",
+                background: "#ffffff",
+                borderRadius: 20,
+                padding: "16px 20px",
+                fontSize: 16,
+                lineHeight: 1.5,
+                fontWeight: 500,
+                color: "#222",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+                pointerEvents: "auto",
+                textAlign: "center",
+                maxWidth: "100%",
+              }}
+            >
+              {/* Down tail (center) */}
               <span
-                key={i}
+                aria-hidden
                 style={{
-                  width: i === step ? 22 : 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: i === step ? ACCENT : INACTIVE_DOT,
-                  transition: "width 0.25s ease",
+                  position: "absolute",
+                  bottom: -10,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 0,
+                  height: 0,
+                  borderLeft: "10px solid transparent",
+                  borderRight: "10px solid transparent",
+                  borderTop: "10px solid #ffffff",
+                  filter: "drop-shadow(0 1px 0 rgba(0,0,0,0.04))",
                 }}
               />
-            ))}
-          </div>
+              {STEPS[step]}
+            </motion.div>
 
-          {/* Bunny — vertical center / upper-third (NOT bottom-anchored).
-              Explicit `zIndex` to sit above the scrim background even
-              when AnimatePresence is mid-transition. Aria label keeps
-              the testid distinct from the speech bubble. */}
-          <img
-            data-testid="onboarding-bunny"
-            aria-label="콩이 토끼"
-            src={BUNNY_SRC}
-            alt=""
-            draggable={false}
-            onError={(e) => {
-              // Defensive: if BASE_URL resolution loses the file under a
-              // nested-proxy host, fall back to the absolute bundled path
-              // and emit a single console warning so QA sees it in DevTools.
-              const img = e.currentTarget;
-              if (!img.dataset.fallbackTried) {
-                img.dataset.fallbackTried = "1";
-                console.warn("[onboarding-bunny] primary src failed:", img.src);
-                img.src = "./assets/farm/bunny_planting.webp";
-              }
-            }}
-            style={{
-              position: "absolute",
-              left: 16,
-              top: "30vh",
-              width: "40vw",
-              maxWidth: 200,
-              height: "auto",
-              zIndex: 2,
-              filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.15))",
-              pointerEvents: "none",
-              userSelect: "none",
-            }}
-          />
-
-          {/* Speech bubble — alongside the bunny, visually higher than
-              before. Sits above the CTA region so the bubble + bunny
-              compose the dialogue panel and the button is its own row. */}
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22 }}
-            data-testid={`onboarding-step-${step}`}
-            data-bubble="onboarding-bubble"
-            data-step={step}
-            style={{
-              position: "absolute",
-              left: "calc(16px + 40vw + 12px)",
-              right: 16,
-              top: "30vh",
-              maxWidth: "60vw",
-              background: "#ffffff",
-              borderRadius: 20,
-              padding: "16px 20px",
-              fontSize: 16,
-              lineHeight: 1.5,
-              fontWeight: 500,
-              color: "#222",
-              boxShadow: "0 6px 16px rgba(0,0,0,0.12)",
-              pointerEvents: "auto",
-            }}
-          >
-            {/* Left tail */}
-            <span
-              aria-hidden
+            {/* Bunny — large center */}
+            <img
+              data-testid="onboarding-bunny"
+              aria-label="콩이 토끼"
+              src={BUNNY_SRC}
+              alt=""
+              draggable={false}
+              onError={(e) => {
+                // Defensive: if BASE_URL resolution loses the file under a
+                // nested-proxy host, fall back to the absolute bundled path
+                // and emit a single console warning so QA sees it in DevTools.
+                const img = e.currentTarget;
+                if (!img.dataset.fallbackTried) {
+                  img.dataset.fallbackTried = "1";
+                  console.warn("[onboarding-bunny] primary src failed:", img.src);
+                  img.src = "./assets/farm/bunny_planting.webp";
+                }
+              }}
               style={{
-                position: "absolute",
-                top: 22,
-                left: -10,
-                width: 0,
-                height: 0,
-                borderTop: "8px solid transparent",
-                borderBottom: "8px solid transparent",
-                borderRight: "10px solid #ffffff",
-                filter: "drop-shadow(-1px 0 0 rgba(0,0,0,0.04))",
+                width: 240,
+                height: 240,
+                maxWidth: "60vw",
+                maxHeight: "60vw",
+                objectFit: "contain",
+                filter: "drop-shadow(0 12px 24px rgba(0,0,0,0.28))",
+                pointerEvents: "none",
+                userSelect: "none",
               }}
             />
-            {STEPS[step]}
-          </motion.div>
 
-          {/* CTA — pinned to the bottom, 24px above the BottomNav safe-
-              area inset, full-width. Always visible, never covered. */}
+            {/* 4-dot indicator — below bunny */}
+            <div
+              aria-hidden
+              data-testid="onboarding-dots"
+              style={{
+                display: "flex",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              {STEPS.map((_, i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: i === step ? 22 : 8,
+                    height: 8,
+                    borderRadius: 999,
+                    background: i === step ? ACCENT : "rgba(255,255,255,0.42)",
+                    transition: "width 0.25s ease",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* CTA — centered, fixed width. Step 4 ("시작하기") gets a
+              subtle scale + brighter shadow to mark the end of the
+              flow without changing layout. */}
           <button
             type="button"
             onClick={onCta}
             data-testid={isLast ? "onboarding-start" : "onboarding-next"}
             style={{
-              position: "absolute",
-              left: 16,
-              right: 16,
-              bottom:
-                "calc(env(safe-area-inset-bottom) + var(--tabbar-reserved, 84px) + 24px)",
-              height: 52,
-              borderRadius: 14,
+              width: 240,
+              height: 56,
+              borderRadius: 16,
               background: ACCENT,
               color: "#ffffff",
               border: "none",
-              fontSize: 16,
+              fontSize: 17,
               fontWeight: 700,
               cursor: "pointer",
-              boxShadow: "0 6px 16px rgba(255,123,97,0.32)",
+              boxShadow: isLast
+                ? "0 10px 28px rgba(255,123,97,0.55), 0 0 0 4px rgba(255,123,97,0.18)"
+                : "0 6px 16px rgba(255,123,97,0.40)",
               pointerEvents: "auto",
+              transition: "transform 0.18s ease",
+              transform: isLast ? "scale(1.04)" : "scale(1)",
             }}
           >
             {ctaLabel}
