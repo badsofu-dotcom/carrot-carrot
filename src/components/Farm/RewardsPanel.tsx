@@ -280,19 +280,20 @@ export function RewardsPanel({ open, onClose }: Props) {
             >
               <style>{`[data-testid="rewards-scroll"]::-webkit-scrollbar{display:none;}`}</style>
 
-            {/* PR-145 (Round 22) — 토스포인트 섹션 → 가구 상점 진입 카드.
-                당근 보유 + 가구 상점 진입점. 사용자가 수확한 당근을
-                꾸미기에 어떻게 쓸지 명확히. */}
-            <Section title="🛋️ 가구 상점">
+            {/* PR-152 (Round 25) — 데코 v2: 가구 상점 카드 → 버섯집
+                들어가기 카드. 9-step 프리렌더 인테리어 + 토끼 온보딩
+                (MushroomHouseRoom). 카드 탭 시 cc:mushroom-house:open
+                dispatch — MushroomHouseRoom 이 listen. */}
+            <Section title="🍄 버섯집">
               <button
                 type="button"
-                data-testid="rewards-open-furniture"
+                data-testid="rewards-open-mushroom-house"
                 onClick={() => {
                   haptic("light");
                   onClose();
                   try {
                     window.dispatchEvent(
-                      new CustomEvent("cc:furniture-shop:open"),
+                      new CustomEvent("cc:mushroom-house:open"),
                     );
                   } catch {
                     /* SSR */
@@ -312,13 +313,13 @@ export function RewardsPanel({ open, onClose }: Props) {
                   textAlign: "left",
                 }}
               >
-                <span aria-hidden style={{ fontSize: 28, flexShrink: 0 }}>🛋️</span>
+                <span aria-hidden style={{ fontSize: 28, flexShrink: 0 }}>🍄</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 800, color: "#2b2b2b" }}>
-                    가구 상점 열기
+                    버섯집 들어가기
                   </div>
                   <div style={{ fontSize: 11, color: "#6a6055", marginTop: 2 }}>
-                    🥕 {carrots} 보유 · 농장과 버섯집을 꾸며보세요
+                    🥕 {carrots} 보유 · 9-step 인테리어 가구를 모으세요
                   </div>
                 </div>
                 <span aria-hidden style={{ color: "#FF7B61", fontWeight: 800, fontSize: 18 }}>›</span>

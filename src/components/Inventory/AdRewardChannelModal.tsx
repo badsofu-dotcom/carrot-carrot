@@ -155,12 +155,11 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       case "treasure": {
         // PR-48 — 보물 진행 +1 + 랜덤 보상 풀 1개.
         useRewardsStore.getState().addTreasureProgress(1);
-        // PR-151 (Round 24) — 가구 조각 0.05 추가, 다른 보상 비율 조정해
-        // 합 = 1.0 유지. star 0.35 → 0.30, gem 0.25 → 0.25 그대로,
-        // candy 0.25 → 0.25, bolt 0.10 → 0.10, golden 0.05 → 0.05,
-        // fragment 0.05 새로 추가. sum: 0.30 + 0.25 + 0.25 + 0.10 + 0.05 + 0.05 = 1.00.
+        // PR-152 (Round 25) — fragment entry 제거 (v1 archive). 비율 R21
+        // 원형으로 복원: star 0.35 / gem 0.25 / candy 0.25 / bolt 0.10 /
+        // golden 0.05. sum = 1.00.
         const rewards = [
-          { p: 0.30, label: "⭐ 별 +1", apply: () => addItem("star", 1) },
+          { p: 0.35, label: "⭐ 별 +1", apply: () => addItem("star", 1) },
           { p: 0.25, label: "💎 보석 +1", apply: () => addItem("gem", 1) },
           {
             p: 0.25,
@@ -172,17 +171,6 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
             p: 0.05,
             label: "✨ 황금당근 +1",
             apply: () => useFarmStore.getState().incGoldenCarrots(1),
-          },
-          {
-            p: 0.05,
-            label: "🧩 가구 조각 +1",
-            apply: () => {
-              // Lazy require to avoid bundler edge — fragmentStore
-              // self-persists.
-              import("../../features/decor/fragmentStore").then((m) =>
-                m.useFragmentStore.getState().add(1),
-              );
-            },
           },
         ];
         const r = Math.random();
