@@ -28,11 +28,9 @@ import { DevActionsGroup } from "../features/dev/DevActionsGroup";
 import { FriendInviteGroup } from "../features/friends/FriendInviteGroup";
 import { safeStorage } from "../lib/safeStorage";
 import { useSoundStore } from "../store/soundStore";
-import { useNotificationsStore } from "../features/notifications/notificationsStore";
-import {
-  notificationPermission,
-  requestNotificationPermission,
-} from "../lib/webNotify";
+// PR-130 (Round 18) — notification toggle UI removed; useNotificationsStore
+// kept as-is for legacy compat (existing user prefs aren't wiped), but no
+// longer surfaced in Settings.
 import { ONBOARDING_KEY } from "../features/collection/FarmOnboarding";
 import { reopenOnboarding } from "../features/collection/BunnyOnboardingModal";
 import { FARM_BG_AUTO_KEY, autoFromStorageValue } from "../lib/farmBackground";
@@ -180,10 +178,9 @@ export function SettingsPage() {
         <TimerPresetRow />
       </SettingsGroup>
 
-      {/* 2. 알림 (마스터만 — 세부는 고급) */}
-      <SettingsGroup title="알림" emoji="🔔">
-        <NotifyMasterRow />
-      </SettingsGroup>
+      {/* 2. 알림 그룹 제거 (Round 18 베타4 피드백) — 토스 앱 자체 알림
+          관리(좌상단 점 세개)로 충분. 매일 22시 리마인더 + 집중 종료 알림은
+          고급 설정 안에 남겨둠. */}
 
       {/* 3. 소리 (효과음 + BGM) */}
       <SettingsGroup title="소리" emoji="🔊">
@@ -285,12 +282,9 @@ export function SettingsPage() {
       {/* 7. 고급 설정 — 모든 rare actions */}
       <SettingsGroup title="고급 설정" emoji="⚙">
         <AdvancedDisclosure>
-          {/* 알림 세부 */}
+          {/* 알림 세부 — Round 18: kind-별 토글 제거 (위와 동일 사유).
+              22시 리마인더 + 집중 종료 깨워줘만 남김. */}
           <PushReminderRow />
-          <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때" />
-          <NotifyKindRow kind="session" label="집중 완료" sub="25분 / 50분 완료" />
-          <NotifyKindRow kind="mission" label="오늘의 목표" sub="미션 안내" />
-          <NotifyKindRow kind="treasure" label="주간 보물상자" sub="진행 7 충족 시" />
           <EndAlertRow />
           {/* 집중 세부 */}
           <CustomSlotToggleRow />
@@ -582,89 +576,11 @@ function EndAlertRow({ last }: { last?: boolean }) {
 // no-op 이 되어서 토글 불필요. 향후 mission/session 클리어 햅틱이
 // 의도된 UX 로 다시 필요해지면 별도 PR.
 
-/* ---------------------- PR-61 알림 토글 ---------------------- */
-
-function NotifyMasterRow() {
-  const masterEnabled = useNotificationsStore((s) => s.masterEnabled);
-  const setMaster = useNotificationsStore((s) => s.setMaster);
-  const byKind = useNotificationsStore((s) => s.byKind);
-  const [permission, setPermission] = useState(
-    () => notificationPermission(),
-  );
-  const onToggle = async (v: boolean) => {
-    setMaster(v);
-    haptic(v ? "light" : "warning");
-    if (v && permission === "default") {
-      const next = await requestNotificationPermission();
-      setPermission(next);
-      if (next === "granted") toast("알림 권한 허용됨");
-      else if (next === "denied") toast("권한 거부 — 앱 안에서 보여줌");
-      else toast("알림 ON");
-    } else {
-      toast(v ? "알림 ON" : "알림 OFF");
-    }
-  };
-  // PR-69 — master ON 시 active 알림 종류 카운터.
-  const KINDS = ["drop", "session", "mission", "treasure", "midnight"] as const;
-  const activeCount = KINDS.filter((k) => byKind[k] !== false).length;
-  const subText = (() => {
-    if (!masterEnabled) return "꺼짐";
-    if (permission === "granted") return `권한 OK · ${activeCount}개 활성`;
-    if (permission === "denied") return `권한 거부 — 앱 안에서 보여줌 · ${activeCount}개 활성`;
-    if (permission === "unsupported") return `미지원 — 앱 안에서 보여줌 · ${activeCount}개 활성`;
-    return `탭하면 권한 요청 · ${activeCount}개 활성`;
-  })();
-  return (
-    <Row
-      label="알림 받기"
-      sub={subText}
-      right={
-        <Switch
-          checked={masterEnabled}
-          onChange={onToggle}
-          label="알림 받기"
-        />
-      }
-      testId="row-notify-master"
-    />
-  );
-}
-
-function NotifyKindRow({
-  kind,
-  label,
-  sub,
-  last,
-}: {
-  kind: "drop" | "session" | "mission" | "treasure" | "midnight";
-  label: string;
-  sub?: string;
-  last?: boolean;
-}) {
-  const byKind = useNotificationsStore((s) => s.byKind);
-  const setKind = useNotificationsStore((s) => s.setKind);
-  const master = useNotificationsStore((s) => s.masterEnabled);
-  const value = byKind[kind] !== false;
-  return (
-    <Row
-      label={label}
-      sub={sub}
-      right={
-        <Switch
-          checked={master && value}
-          onChange={(v) => {
-            setKind(kind, v);
-            haptic("light");
-          }}
-          disabled={!master}
-          label={label}
-        />
-      }
-      last={last}
-      testId={`row-notify-${kind}`}
-    />
-  );
-}
+/* ---------------------- PR-61 알림 토글 — Round 18 제거 ---------------------- */
+// NotifyMasterRow / NotifyKindRow UI 컴포넌트는 베타4 피드백 ("토스 자체
+// 알림 점-세개 관리로 충분") 에 따라 제거. notificationsStore 자체는 legacy
+// 호환 유지 — 기존 사용자의 byKind 설정값을 wipe 하지 않음. PushReminderRow
+// (매일 22시) + EndAlertRow (집중 종료) 는 별도 채널이라 그대로.
 
 function SfxMutedRow() {
   const sfxMuted = useSoundStore((s) => s.sfxMuted);
