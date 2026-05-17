@@ -13,8 +13,13 @@
 /** 야외 가구 슬롯 4개 (점선 박스 + ＋ UI). */
 export const ENABLE_DECOR_OUTDOOR_SLOTS = false;
 
-/** 버섯집 클릭 placeholder. 토스트만 띄우는 거라 자산 의존 없음 → true 유지. */
-export const ENABLE_DECOR_MUSHROOM_HOUSE = true;
+/**
+ * 버섯집 클릭 placeholder. R22 PR-146 에서 🍄 emoji 버튼으로 wire 했으나
+ * R23 사용자 피드백: "저 버섯을 얘기한 게 아니라 배경화면에 있는 버섯
+ * 집을 얘기한 거야" — 배경 아트의 진짜 버섯집 hit-region 이 필요.
+ * 배경 좌표 매핑 도착 (R24+) 까지 placeholder 버튼 hidden.
+ */
+export const ENABLE_DECOR_MUSHROOM_HOUSE = false;
 
 /** 가구 상점 모달 (RewardsPanel → 진입). emoji sprite 로 카탈로그 노출
  *  가능하므로 자산 도착 전이라도 활성. R24 에서 sprite 만 emoji → image
