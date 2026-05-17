@@ -26,6 +26,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ITEMS, useItemsStore, type ItemCode, type ItemTab } from "../../features/collection/itemsStore";
 import { ITEM_META } from "../../lib/itemMeta";
 import { translateAcquisition } from "../../lib/i18n/sourceLabels";
+import { hourglassBlockReason } from "../../lib/farmHelpers";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useToolStore, TOOL_CONSTANTS } from "../../features/collection/toolStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
@@ -110,6 +111,20 @@ export function InventoryModal({ open, onClose }: Props) {
         /* SSR */
       }
       return;
+    }
+    // PR-91 — 모래시계 pre-check. consume 전에 사용 가능 여부 검증해서
+    // 효과 없는 케이스에서 아이템 낭비 방지.
+    if (code === "hourglass") {
+      const stages = useFarmStore.getState().stages;
+      const reason = hourglassBlockReason(stages);
+      if (reason === "empty") {
+        toast("심은 작물이 없어요. 씨앗을 심고 다시 시도해주세요");
+        return;
+      }
+      if (reason === "all-ripe" || reason === "all-grown-mixed") {
+        toast("이미 모든 작물이 다 자랐어요");
+        return;
+      }
     }
     const def = ITEMS.find((i) => i.code === code);
     const cost = def?.minToUse ?? 1;
@@ -591,17 +606,27 @@ function ActionBar({
   count: number;
   onUse: (c: ItemCode) => void;
 }) {
+  // PR-91 — hourglass 만 farm state 종속. hook 은 컴포넌트 top 에서
+  // 호출돼야 하므로 conditional return 전에 위치.
+  const stages = useFarmStore((s) => s.stages);
   if (!code) return null;
   const def = ITEMS.find((i) => i.code === code);
   if (!def || !def.usable) return null;
   const minToUse = def.minToUse ?? 1;
-  const canUse = count >= minToUse;
+  // PR-91 — hourglass 가드. 사용 가능 plot 없으면 disable.
+  const hourglassReason = code === "hourglass" ? hourglassBlockReason(stages) : null;
+  const hourglassBlocked = hourglassReason !== null;
+  const canUse = count >= minToUse && !hourglassBlocked;
   const label = (() => {
-    if (canUse) {
-      return minToUse > 1 ? `사용하기 (${minToUse}개 소비)` : "사용하기";
+    if (hourglassReason === "empty") return "심은 작물 없음";
+    if (hourglassReason === "all-ripe" || hourglassReason === "all-grown-mixed") {
+      return "모두 다 자람";
     }
-    if (count === 0) return "보유 부족";
-    return `최소 ${minToUse}개 필요`;
+    if (count < minToUse) {
+      if (count === 0) return "보유 부족";
+      return `최소 ${minToUse}개 필요`;
+    }
+    return minToUse > 1 ? `사용하기 (${minToUse}개 소비)` : "사용하기";
   })();
   return (
     <div
