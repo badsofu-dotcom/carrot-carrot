@@ -19,6 +19,42 @@ function b64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
+// Diagnostic helper — wraps b64ToBytes and logs head/tail/length on failure.
+// NEVER logs the full string. Safe to keep enabled during beta; remove once
+// SERVER_ENV_MISSING/InvalidCharacterError diagnosis is closed.
+function b64ToBytesDiag(b64: unknown, label: string): Uint8Array {
+  if (typeof b64 !== "string") {
+    console.error(
+      `[diag/decrypt] ${label} input not string:`,
+      `type=${typeof b64}`,
+      `isNull=${b64 === null}`,
+    );
+    throw new TypeError(`${label}: input is ${b64 === null ? "null" : typeof b64}, expected string`);
+  }
+  try {
+    return b64ToBytes(b64);
+  } catch (e) {
+    const errName = e instanceof Error ? e.name : "Unknown";
+    const errMsg = e instanceof Error ? e.message : String(e);
+    const head = b64.length > 0 ? b64.slice(0, 4) : "<empty>";
+    const tail = b64.length > 0 ? b64.slice(-4) : "<empty>";
+    // Charcode map of head/tail bytes — surfaces invisible chars (BOM/ZWSP/etc.)
+    const headCp = [...b64.slice(0, 4)].map((c) => c.charCodeAt(0).toString(16)).join(",");
+    const tailCp = [...b64.slice(-4)].map((c) => c.charCodeAt(0).toString(16)).join(",");
+    console.error(
+      `[diag/decrypt] ${label} atob failure:`,
+      `name=${errName}`,
+      `msg=${errMsg}`,
+      `len=${b64.length}`,
+      `head=${JSON.stringify(head)}`,
+      `tail=${JSON.stringify(tail)}`,
+      `headCp=[${headCp}]`,
+      `tailCp=[${tailCp}]`,
+    );
+    throw e;
+  }
+}
+
 function bytesToString(bytes: Uint8Array): string {
   return new TextDecoder("utf-8").decode(bytes);
 }
@@ -37,10 +73,11 @@ export type DecryptOutcome =
   | { ok: false; code: "SERVER_ENV_MISSING" | "DECRYPT_FAILED"; reason: string; failedFields?: string[] };
 
 async function importAesKey(keyB64: string): Promise<CryptoKey> {
-  const raw = b64ToBytes(keyB64);
+  const raw = b64ToBytesDiag(keyB64, "key");
   if (raw.length !== 32) {
     throw new Error(`invalid key length ${raw.length} (expected 32)`);
   }
+  console.log(`[diag/decrypt] key decoded ok, raw_len=${raw.length}`);
   return crypto.subtle.importKey(
     "raw",
     raw,
@@ -63,9 +100,10 @@ async function decryptField(
   ciphertextB64: string,
   key: CryptoKey,
   aadBytes: Uint8Array,
+  fieldLabel = "field",
 ): Promise<FieldDecryptResult> {
   try {
-    const blob = b64ToBytes(ciphertextB64);
+    const blob = b64ToBytesDiag(ciphertextB64, fieldLabel);
     if (blob.length < 12 + 16) {
       return { value: null, errorClass: "TOO_SHORT" };
     }
@@ -99,6 +137,22 @@ export async function decryptLoginMe(
   keyB64: string,
   aad: string,
 ): Promise<DecryptOutcome> {
+  // Diagnostic snapshot — presence + length only, never values.
+  const fieldShape = Object.keys(raw)
+    .map((k) => {
+      const v = raw[k];
+      if (v == null) return `${k}:null`;
+      if (typeof v === "string") return `${k}:str(${v.length})`;
+      return `${k}:${typeof v}`;
+    })
+    .join(",");
+  console.log(
+    `[diag/decrypt] start:`,
+    `keyLen=${typeof keyB64 === "string" ? keyB64.length : "non-string"}`,
+    `aadLen=${typeof aad === "string" ? aad.length : "non-string"}`,
+    `rawFields=[${fieldShape}]`,
+  );
+
   if (!keyB64) {
     return {
       ok: false,
@@ -166,7 +220,7 @@ export async function decryptLoginMe(
     const v = raw[field];
     if (typeof v !== "string" || v.length === 0) continue;
     anyAttempted = true;
-    const r = await decryptField(v, key, aadBytes);
+    const r = await decryptField(v, key, aadBytes, `field=${field}`);
     if (r.value === null) {
       // OperationError = GCM tag mismatch (key/AAD 잘못). InvalidCharacterError = base64 깨짐.
       // 둘 다 hard failure 로 본다.
