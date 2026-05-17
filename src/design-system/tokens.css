@@ -216,10 +216,12 @@
   --tabbar-height: 68px;
   /* Floating pill gap above the bottom edge:
      - PR-127 (Round 16): 16 → 4px (overlap with WebView safe-area)
-     - PR-131 (Round 18 베타4 A3): 4 → 8px — user reported 4px felt too
-       glued; 8px restores a hint of floating without re-introducing the
-       Round-15-era detachment. Toolbox 위 12px 여백 동시 확보. */
-  --tabbar-offset: 8px;
+     - PR-131 (Round 18 베타4 A3): 4 → 8px
+     - PR-139 (Round 20 베타6): 8 → 0px — 사용자가 "safe-area 까지
+       밀착" 명시. safe-area-inset-bottom 만 적용되어 iOS notch 디바이스
+       의 홈 인디케이터는 그대로 보호된다 (env(safe-area-inset-bottom)
+       기반 합산은 변동 없음). 추가 floating gap 만 제거. */
+  --tabbar-offset: 0px;
   /* Total reserved space at the bottom for the floating nav (height + offsets) */
   --tabbar-reserved: calc(var(--tabbar-height) + var(--tabbar-offset) * 2);
   /* Scrim height above the tab bar so content fades into the bg before sliding under */
