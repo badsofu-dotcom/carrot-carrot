@@ -18,10 +18,12 @@
   --accent-devil: #c73e1d;
   --accent-gold: #d4a017;
 
-  /* Text */
+  /* Text — PR-96 light text-tertiary contrast 정정.
+     이전 light tan 톤 (2.68:1, AA 4.5 미달) → 더 진한 톤 4.84:1 로
+     상향. secondary 와 시각 차이 유지. THEME_AUDIT.md 참조. */
   --text-primary: #1f1a15;
   --text-secondary: #6b5e4d;
-  --text-tertiary: #a99c87;
+  --text-tertiary: #7a6e58;
   /* Phase 7: white on #ff6b35 는 WCAG AA (4.5:1) 미팔.
    * 고대비 다크 브라운으로 전환해 5.4:1 확보. */
   --text-on-accent: #1a0a02;

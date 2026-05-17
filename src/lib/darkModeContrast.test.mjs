@@ -64,6 +64,17 @@ function extractDarkVar(name) {
   return hexToRgb(m[1]);
 }
 
+function extractLightVar(name) {
+  // :root, [data-theme="light"] { ... } block. :root 가 light 선언.
+  const blockRe = /:root,\s*\[data-theme="light"\]\s*\{([\s\S]*?)\}/;
+  const block = css.match(blockRe);
+  if (!block) throw new Error("light theme block not found");
+  const re = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`);
+  const m = block[1].match(re);
+  if (!m) throw new Error(`${name} not found in light block`);
+  return hexToRgb(m[1]);
+}
+
 test("dark theme: --text-tertiary contrast >= 4.5 on --bg-elevated (WCAG AA)", () => {
   const bg = extractDarkVar("bg-elevated");
   const fg = extractDarkVar("text-tertiary");
@@ -162,4 +173,40 @@ test("PR-83: var(--text-tertiary, #888) 잔여가 fixed light bg modal 에 없�
       `${rel} 에 var(--text-tertiary) 잔여 — PR-83 회귀`,
     );
   }
+});
+
+// PR-96 — light mode contrast 검증. Round 10 PR-80 의 dark fix 가
+// light 도 동일 문제 가졌음을 audit 발견.
+
+test("PR-96 light theme: --text-tertiary >= 4.5 on --bg-elevated (AA)", () => {
+  const fg = extractLightVar("text-tertiary");
+  const bg = extractLightVar("bg-elevated");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(ratio >= 4.5, `light text-tertiary ${ratio.toFixed(2)}:1 < 4.5`);
+});
+
+test("PR-96 light theme: --text-secondary >= 4.5", () => {
+  const fg = extractLightVar("text-secondary");
+  const bg = extractLightVar("bg-elevated");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(ratio >= 4.5, `${ratio.toFixed(2)}:1 < 4.5`);
+});
+
+test("PR-96 light theme: --text-primary >= 7 (AAA)", () => {
+  const fg = extractLightVar("text-primary");
+  const bg = extractLightVar("bg-elevated");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(ratio >= 7, `${ratio.toFixed(2)}:1 < 7`);
+});
+
+test("PR-96: 구 #a99c87 light text-tertiary 잔여 없음 — 회귀 차단", () => {
+  // tokens.css 의 light block 에서만 검사 (auto-dark prefers-color-scheme
+  // 안에는 dark variant 가 있을 수 있음).
+  const blockRe = /:root,\s*\[data-theme="light"\]\s*\{([\s\S]*?)\}/;
+  const block = css.match(blockRe);
+  assert.equal(
+    block[1].includes("#a99c87"),
+    false,
+    "#a99c87 잔여 — light text-tertiary contrast 회귀",
+  );
 });
