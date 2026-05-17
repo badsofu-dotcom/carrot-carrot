@@ -253,17 +253,22 @@ export function HomePage() {
           }
         }
 
-        // Reward 4: 농장 — duration-tier 적용. Cake buff (PR-10) adds
-        // +1 seed on top of the tier seedDelta. Consume only on a valid
-        // focus (this branch) so a sub-5-min abandon doesn't burn it.
+        // Reward 4: 농장 — duration-tier 적용.
+        // PR-92 — cake 재설계: 씨앗 +1 → 모든 농장 보상 × 1.5.
+        // Math.ceil 로 floor 가 아닌 보수적 올림 (사용자 유리).
+        // growSteps 도 1.5× 적용되지만 stages 자체가 0..4 cap.
         const cakeActive = useBuffsStore.getState().consume("cake");
-        const totalSeedDelta = reward.seedDelta + (cakeActive ? 1 : 0);
+        const mul = cakeActive ? 1.5 : 1;
+        const effectiveSteps = Math.ceil(reward.growSteps * mul);
+        const effectiveSeed = Math.ceil(reward.seedDelta * mul);
         const grown = useFarmStore
           .getState()
-          .growAllPlanted(reward.growSteps, lastSnapshot.at, totalSeedDelta);
-        if (grown > 0 || totalSeedDelta > 0) {
+          .growAllPlanted(effectiveSteps, lastSnapshot.at, effectiveSeed);
+        if (grown > 0 || effectiveSeed > 0) {
           toast(
-            cakeActive ? `${reward.message} · 🍰 케이크 효과 씨앗 +1` : reward.message,
+            cakeActive
+              ? `${reward.message} · 🍰 케이크 효과 모든 보상 1.5배`
+              : reward.message,
           );
         }
       }

@@ -142,16 +142,10 @@ export function InventoryModal({ open, onClose }: Props) {
       case "bolt": {
         // Mirror `tools/refill` locally: +3 wateringCan up to MAX_DAILY,
         // bypassing the per-day ad cap because the item itself is the
-        // ad reward. Uses refillFromAd to keep the path symmetric.
-        // Pre-consume soup buff (PR-9) so bolt also benefits; if the
-        // refill itself fails, restore the buff so it isn't wasted.
-        const soupActive = useBuffsStore.getState().consume("soup");
-        if (refillFromAd(soupActive ? 1 : 0)) {
-          toast(
-            soupActive ? "⚡ 물뿌리개 +4 충전 (수프 효과)" : "⚡ 물뿌리개 +3 충전",
-          );
+        // ad reward. PR-92 — soup combo 제거 (soup 가 황금 +5%p 로 재설계).
+        if (refillFromAd(0)) {
+          toast("⚡ 물뿌리개 +3 충전");
         } else {
-          if (soupActive) useBuffsStore.getState().activate("soup");
           toast("오늘 광고 충전 한도 가득");
         }
         break;

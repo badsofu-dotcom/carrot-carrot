@@ -15,6 +15,7 @@ const {
   HARVEST_BUNNY_RATE,
   HARVEST_GOLD,
   JUICE_CANDY_BONUS,
+  SOUP_GOLDEN_BONUS,
 } = mod;
 
 test("seasonForMonth covers all 12", () => {
@@ -153,4 +154,42 @@ test("rollHarvestGacha: juice does not push bunny or golden", () => {
   // r = 0.008 → past bunny, inside golden (PR-32 [0.005, 0.011))
   const gold = rollHarvestGacha({ rng: () => 0.008, juiceActive: true });
   assert.equal(gold.kind, "golden");
+});
+
+// PR-92 — soup 재설계: 다음 수확 황금당근 +5%p.
+
+test("SOUP_GOLDEN_BONUS: 양수 + JUICE_CANDY_BONUS 와 동일 (대칭 디자인)", () => {
+  assert.ok(SOUP_GOLDEN_BONUS > 0 && SOUP_GOLDEN_BONUS < 0.2);
+  assert.equal(SOUP_GOLDEN_BONUS, JUICE_CANDY_BONUS);
+});
+
+test("rollHarvestGacha: soup buff 가 golden bucket 확장", () => {
+  // 기본 golden 범위: [bunny=0.005, bunny + gold=0.011)
+  // soup 적용: [bunny=0.005, bunny + gold + 0.05 = 0.061)
+  // r = 0.04 → soup 없으면 candy (0.04 < 0.005+0.006+0.07=0.081),
+  //              soup 있으면 golden (0.04 < 0.061).
+  const baseline = rollHarvestGacha({ rng: () => 0.04 });
+  const souped = rollHarvestGacha({ rng: () => 0.04, soupActive: true });
+  assert.equal(baseline.kind, "candy");
+  assert.equal(souped.kind, "golden");
+});
+
+test("rollHarvestGacha: soup 는 candy bucket 영향 없음", () => {
+  // r = 0.08 → candy bucket (0.011 ≤ r < 0.081) — soup 무관.
+  const baseline = rollHarvestGacha({ rng: () => 0.08 });
+  const souped = rollHarvestGacha({ rng: () => 0.08, soupActive: true });
+  assert.equal(baseline.kind, "candy");
+  // soup 적용 시 0.08 < 0.061 거짓 → candy 그대로.
+  assert.equal(souped.kind, "candy");
+});
+
+test("rollHarvestGacha: soup + juice 동시 적용 — 각자 자기 bucket 만 확장", () => {
+  // soup → golden +5%p. juice → candy +5%p.
+  const both = rollHarvestGacha({
+    rng: () => 0.04,
+    soupActive: true,
+    juiceActive: true,
+  });
+  // 0.04 → bunny(0.005)+gold(0.006)+soup(0.05)=0.061 안에 → golden.
+  assert.equal(both.kind, "golden");
 });

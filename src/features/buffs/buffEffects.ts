@@ -40,15 +40,19 @@ export const BUFF_META: Record<BuffKind, BuffMeta> = {
   },
   soup: {
     displayName: "수프 버프",
-    description: "다음 물뿌리개 충전 시 +1 차지 (한도 일시적 +1)",
-    trigger: "다음 광고 충전 시 자동 발동",
+    // PR-92 — 재설계: 물뿌리개 +1 충전 → 다음 수확 황금당근 +5%p
+    // (당근주스의 황금 버전). 학습 도구 톤에 맞춰 직관 단순화.
+    description: "다음 수확 한 번 황금당근 확률 +5%p",
+    trigger: "다음 수확 시 자동 발동",
     emoji: "🍲",
     color: "#FFB266",
     durationMs: 30 * 60_000,
   },
   cake: {
     displayName: "케이크 버프",
-    description: "다음 포커스 완료 시 씨앗 +1 (5분 미만은 소비 안 함)",
+    // PR-92 — 재설계: 씨앗 +1 → 모든 보상 1.5배. 학습 후 큰 보상으로
+    // 동기 부여 강화. 5분 미만은 효과 소비 안 함 (기존 동일).
+    description: "다음 포커스 완료 시 모든 농장 보상 1.5배 (5분 미만 제외)",
     trigger: "다음 유효 집중 완료 시 자동 발동",
     emoji: "🍰",
     color: "#FF99CC",

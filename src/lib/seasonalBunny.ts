@@ -31,6 +31,7 @@ export const HARVEST_BUNNY_RATE = 0.005; // 0.5%
 export const HARVEST_GOLD = 0.006; // PR-32: 1% → 0.6%
 export const COMBO_BATCH_BONUS = 0.01; // +1%p per harvest while combo ≥ 5
 export const JUICE_CANDY_BONUS = 0.05; // +5%p next harvest after 당근 주스 사용
+export const SOUP_GOLDEN_BONUS = 0.05; // PR-92: +5%p next harvest after 당근 수프 사용 (golden 버전)
 
 export interface HarvestOutcome {
   kind: "carrot" | "candy" | "golden" | "bunny";
@@ -56,6 +57,11 @@ export interface RollOpts {
    * the buff after a single roll.
    */
   juiceActive?: boolean;
+  /**
+   * PR-92 — soup 재설계: 다음 수확 황금당근 +5%p (당근주스의 황금
+   * 버전). Caller 가 한 번 roll 후 buff clear.
+   */
+  soupActive?: boolean;
   /**
    * PR-38 — 도감 패시브 추가 %p. 캐스케이드 적용:
    *   candyBonusP  +0.1%p (1마리 이상)
@@ -119,8 +125,9 @@ export function rollHarvestGacha(opts: RollOpts = {}): HarvestOutcome {
     // No un-owned seasonal bunny — fall through.
   }
 
-  // 2) Golden carrot. PR-38 passive bonus 적용.
-  const goldP = HARVEST_GOLD + Math.max(0, opts.goldenBonusP ?? 0);
+  // 2) Golden carrot. PR-38 passive bonus + PR-92 soup buff 적용.
+  let goldP = HARVEST_GOLD + Math.max(0, opts.goldenBonusP ?? 0);
+  if (opts.soupActive) goldP += SOUP_GOLDEN_BONUS;
   if (r < HARVEST_BUNNY_RATE + goldP) {
     return { kind: "golden" };
   }

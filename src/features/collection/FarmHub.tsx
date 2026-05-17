@@ -508,11 +508,14 @@ export function FarmHub({
         // active. PR-8: one-shot +5%p candy on top of the existing
         // base / boost / batch bonuses.
         const juiceActive = useBuffsStore.getState().consume("juice");
+        // PR-92 — soup 재설계: 다음 수확 황금당근 +5%p.
+        const soupActive = useBuffsStore.getState().consume("soup");
         // PR-38 — 도감 패시브 (캔디 +0.1%p / 황금 +0.1%p) 적용.
         const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
         const passives = passivesFromOwned(dogamOwned);
         const outcome = rollHarvestGacha({
           juiceActive,
+          soupActive,
           candyBonusP: passives.candyBonusP,
           goldenBonusP: passives.goldenBonusP,
         });

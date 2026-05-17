@@ -23,7 +23,6 @@ import { useRewardsStore } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
-import { useBuffsStore } from "../../features/collection/buffsStore";
 import { useMissionsStore } from "../../features/missions/missionsStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
 import { safeStorage } from "../../lib/safeStorage";
@@ -122,16 +121,12 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
     haptic("medium");
     switch (c) {
       case "watering": {
-        // Soup buff (PR-9) — pre-consume so a no-op refill doesn't
-        // burn the buff. If we can't actually refill, restore it by
-        // re-activating; otherwise grant +1 on top of the standard +3.
-        const soupActive = useBuffsStore.getState().consume("soup");
-        if (!refill(soupActive ? 1 : 0)) {
-          if (soupActive) useBuffsStore.getState().activate("soup");
+        // PR-92 — soup 재설계로 +1 차지 combo 제거. 단순 +3 charge.
+        if (!refill(0)) {
           toast("오늘 충전 한도가 가득 찼어요");
           return;
         }
-        toast(soupActive ? "⚡ 물뿌리개 +4 충전 (수프 효과)" : "⚡ 물뿌리개 +3 충전");
+        toast("⚡ 물뿌리개 +3 충전");
         break;
       }
       case "gift":
