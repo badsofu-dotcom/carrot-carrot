@@ -1,22 +1,23 @@
 /**
- * Farm BGM player — 6-track context-aware (Round 18, PR-133).
+ * Farm BGM player — 4-track context-aware (Round 24, PR-149).
  *
- * Replaces the original 3-track (day/night/rainy) slot mapping with a
- * 6-track roster wired to game state:
+ * History:
+ *   R18 — 6 tracks
+ *   R21 — kerning 호출 제거 (브래스 의심), pickTrackForContext 단순화
+ *   R23 — BGM_DISABLED_PENDING_AUDIT (사용자 검수 대기)
+ *   R24 — 검수 결과 focus / henesys 영구 제거. 4 트랙만 유지.
  *
- *   dawn      — first-ever farm visit (one-shot per device until cleared)
+ * 활성 트랙:
+ *   dawn      — default (이전 henesys 의 역할 흡수) + 첫 진입
  *   skyview   — SkyView open
- *   focus     — focus timer running
- *   kerning   — 3+ ripe crops (harvest rush)
- *   ellinia   — all crops still growing (none ripe yet)
- *   henesys   — default / fallback
+ *   ellinia   — 모든 작물 성장 중 (사용자 검수 OK)
+ *   kerning   — 3+ ripe (검수 OK)
  *
  * Single global `HTMLAudioElement` looping the active track. Track
- * swaps are a 500 ms volume crossfade (eased linearly) — short enough
- * to feel responsive, long enough to mask the audible cut.
+ * swaps are a 500 ms volume crossfade.
  *
- * mp3 files live in `public/audio/farm-bgm-*.mp3`. If a file 404s we
- * mark that track dead so we don't thrash the network re-requesting.
+ * mp3 files live in `public/audio/farm-bgm-*.mp3`. focus / henesys
+ * 는 R24 에서 영구 제거 — banlist 테스트가 회귀 차단.
  *
  * Lifecycle:
  *   - `start(cfg)` from a user-gesture handler (browsers block autoplay).
@@ -34,25 +35,25 @@
 
 import { safeStorage } from "./safeStorage";
 
-export type BgmTrack =
-  | "henesys"
-  | "ellinia"
-  | "kerning"
-  | "skyview"
-  | "focus"
-  | "dawn";
+export type BgmTrack = "dawn" | "ellinia" | "kerning" | "skyview";
 
 const BASE: string =
   (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
 
 const TRACK_URLS: Record<BgmTrack, string> = {
-  henesys: `${BASE}audio/farm-bgm-henesys.mp3`,
+  dawn: `${BASE}audio/farm-bgm-dawn.mp3`,
   ellinia: `${BASE}audio/farm-bgm-ellinia.mp3`,
   kerning: `${BASE}audio/farm-bgm-kerning.mp3`,
   skyview: `${BASE}audio/farm-bgm-skyview.mp3`,
-  focus: `${BASE}audio/farm-bgm-focus.mp3`,
-  dawn: `${BASE}audio/farm-bgm-dawn.mp3`,
 };
+
+/** Exposed for banlist tests + future allowlist gating. */
+export const ACTIVE_BGM_TRACKS: readonly BgmTrack[] = [
+  "dawn",
+  "ellinia",
+  "kerning",
+  "skyview",
+];
 
 const FIRST_VISIT_KEY = "cc.farm.firstVisit.v1";
 
@@ -70,18 +71,24 @@ export interface BgmContext {
 }
 
 /**
- * Pure routing — Round 21 (PR-143) 베타7 피드백으로 단순화. 사용자:
- * "BGM 자주 바뀜 — 한 트랙으로 쭉" + "시끄러운 트럼펫 (kerning) 제거".
+ * Pure routing — Round 24 (PR-149). 사용자 검수 결과 4트랙으로 축소
+ * (focus / henesys 시끄러움 → 영구 제거). default = dawn 으로 이전.
  *
- * 농장 세션 = 기본 henesys 1트랙. SkyView 진입과 첫 방문 dawn 만 별도
- * (둘 다 명시적 컨텍스트 변경). focus / kerning / ellinia 트랙 라우팅
- * 제거 (mp3 파일은 그대로 두지만 호출 없음 → 정식 출시 시 dead
- * asset cleanup 후보).
+ *   firstVisit  → dawn       (첫 방문)
+ *   skyOpen     → skyview    (하늘 보기)
+ *   readyCrops≥3 → kerning   (수확 풍년)
+ *   growingCrops>0 && readyCrops===0 → ellinia (모두 성장 중)
+ *   else        → dawn       (기본)
+ *
+ * R21 의 "한 트랙으로 쭉" 단순화는 사용자 의도였지만 6→4 로 줄어든
+ * 지금은 다양성을 살려도 모두 잔잔 (검수 통과). 4트랙 균형 사용.
  */
 export function pickTrackForContext(ctx: BgmContext): BgmTrack {
   if (ctx.firstVisit) return "dawn";
   if (ctx.skyOpen) return "skyview";
-  return "henesys";
+  if (ctx.readyCrops >= 3) return "kerning";
+  if (ctx.growingCrops > 0 && ctx.readyCrops === 0) return "ellinia";
+  return "dawn";
 }
 
 /** Resolve + mark the per-device first-visit flag. Idempotent. */
@@ -102,19 +109,10 @@ const CROSSFADE_MS = 500;
 const FADE_STEP_MS = 50;
 
 /**
- * PR-148 (Round 23 베타10 회귀) — 사용자 보고 "트럼펫 신나는 BGM 아직
- * 나옴". R21 에서 kerning 라우팅 제거했으나 dawn / henesys / skyview
- * 중 어느 게 트럼펫인지 코드로 식별 불가 (Suno 생성 mp3, ID3 메타 없음).
- *
- * 안전 fix: 사용자가 음원 직접 검수할 때까지 BGM 전체 잠금. start() +
- * crossfadeTo() 가 silent. R24+ 에서 사용자가 잔잔한 트랙만 지정 후
- * false 로 토글 (또는 검수된 BGM_AUDITED_TRACKS allowlist 활성).
- *
- * `farmBgmEnabled` (Settings 토글 + BgmQuickToggle) 는 그대로 동작 —
- * 사용자 입장에선 토글 보이지만 audio 출력은 없음. R24 unlock 시
- * 사용자 prefs 그대로 복귀.
+ * R23 의 `BGM_DISABLED_PENDING_AUDIT` 잠금은 R24 에서 사용자 검수
+ * 결과 (focus/henesys 제거, dawn/ellinia/kerning/skyview OK) 반영
+ * 후 해제. const 자체 제거 — 다시 잠그려면 새 플래그로 시작.
  */
-export const BGM_DISABLED_PENDING_AUDIT = true;
 
 let audio: HTMLAudioElement | null = null;
 let currentTrack: BgmTrack | null = null;
@@ -203,12 +201,6 @@ function startFade(target: number, durMs: number) {
 }
 
 function crossfadeTo(track: BgmTrack) {
-  if (BGM_DISABLED_PENDING_AUDIT) {
-    console.log(
-      `[bgm/play] disabled — pending audit. would-play: ${track} (${TRACK_URLS[track]})`,
-    );
-    return;
-  }
   const el = ensureAudio();
   if (!el) return;
   if (trackDead.has(track)) return;
@@ -246,17 +238,6 @@ export const bgmEngine = {
   start(initialCfg: BgmConfig, ctx?: BgmContext): void {
     cfg = { ...initialCfg };
     if (ctx) lastContext = { ...ctx };
-    if (BGM_DISABLED_PENDING_AUDIT) {
-      // R23 audit 모드 — start 진입 자체를 silent. console 로 사용자
-      // 디바이스 검수 기록만.
-      if (!started) {
-        console.log(
-          "[bgm/play] disabled — pending audit. start() no-op until BGM_DISABLED_PENDING_AUDIT=false",
-        );
-        started = true;
-      }
-      return;
-    }
     if (started) {
       if (audio && cfg.enabled && audio.paused) {
         try {

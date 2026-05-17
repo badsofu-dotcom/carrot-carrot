@@ -1,16 +1,16 @@
 /**
- * bgmEngine pure-helper tests — Round 21 (PR-143).
+ * bgmEngine pure-helper tests — Round 24 (PR-149).
  *
- * 베타7 피드백으로 routing 을 단순화: firstVisit / skyOpen / henesys
- * 3분기만. focus/kerning/ellinia 라우팅 제거 → 농장 세션 = 한 트랙으로
- * 쭉.
+ * 사용자 검수 완료: focus / henesys 영구 제거. dawn / ellinia / kerning /
+ * skyview 만 활성. pickTrackForContext 4트랙 routing 검증 + banlist 회귀
+ * 방지 강화.
  */
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import { loadTs } from "./_test-helpers.mjs";
 
 const mod = await loadTs("./bgmEngine.ts", import.meta.url);
-const { pickTrackForContext, BGM_DISABLED_PENDING_AUDIT } = mod;
+const { pickTrackForContext, ACTIVE_BGM_TRACKS } = mod;
 
 const BASE_CTX = {
   firstVisit: false,
@@ -20,13 +20,37 @@ const BASE_CTX = {
   growingCrops: 0,
 };
 
-test("pickTrackForContext: firstVisit overrides everything", () => {
+test("ACTIVE_BGM_TRACKS: 4 트랙 (dawn / ellinia / kerning / skyview)", () => {
+  assert.equal(ACTIVE_BGM_TRACKS.length, 4);
+  for (const t of ["dawn", "ellinia", "kerning", "skyview"]) {
+    assert.ok(ACTIVE_BGM_TRACKS.includes(t), `missing track: ${t}`);
+  }
+});
+
+test("ACTIVE_BGM_TRACKS: focus / henesys 영구 제거됨", () => {
+  // R24 사용자 검수 결과 — 다시 추가되면 사용자 보고 트럼펫 회귀.
+  assert.ok(
+    !ACTIVE_BGM_TRACKS.includes("focus"),
+    "focus 트랙 재추가됨 — 사용자 검수 위반",
+  );
+  assert.ok(
+    !ACTIVE_BGM_TRACKS.includes("henesys"),
+    "henesys 트랙 재추가됨 — 사용자 검수 위반",
+  );
+});
+
+test("pickTrackForContext: firstVisit → dawn (모든 다른 ctx 무관)", () => {
   assert.equal(
-    pickTrackForContext({ ...BASE_CTX, firstVisit: true, focusActive: true }),
+    pickTrackForContext({ ...BASE_CTX, firstVisit: true }),
     "dawn",
   );
   assert.equal(
-    pickTrackForContext({ ...BASE_CTX, firstVisit: true, skyOpen: true }),
+    pickTrackForContext({
+      ...BASE_CTX,
+      firstVisit: true,
+      skyOpen: true,
+      readyCrops: 9,
+    }),
     "dawn",
   );
 });
@@ -36,70 +60,93 @@ test("pickTrackForContext: skyOpen → skyview", () => {
     pickTrackForContext({ ...BASE_CTX, skyOpen: true }),
     "skyview",
   );
-  // crops / focus state 가 있어도 sky 가 우선
+  // 작물 상태 무관
   assert.equal(
     pickTrackForContext({
       ...BASE_CTX,
       skyOpen: true,
-      focusActive: true,
       readyCrops: 9,
     }),
     "skyview",
   );
 });
 
-test("pickTrackForContext: focusActive 무시 → henesys", () => {
-  // R20 까지는 "focus" 였으나 R21 베타7 피드백으로 henesys 통일.
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, focusActive: true }),
-    "henesys",
-  );
-});
-
-test("pickTrackForContext: crops 상태 무시 → henesys", () => {
-  // ≥3 ripe (이전 kerning), all growing (이전 ellinia) 모두 henesys.
+test("pickTrackForContext: ≥3 ripe → kerning", () => {
   assert.equal(
     pickTrackForContext({ ...BASE_CTX, readyCrops: 3 }),
-    "henesys",
+    "kerning",
   );
   assert.equal(
     pickTrackForContext({ ...BASE_CTX, readyCrops: 9 }),
-    "henesys",
+    "kerning",
+  );
+});
+
+test("pickTrackForContext: 모두 성장 중 (none ripe) → ellinia", () => {
+  assert.equal(
+    pickTrackForContext({ ...BASE_CTX, growingCrops: 1 }),
+    "ellinia",
   );
   assert.equal(
     pickTrackForContext({ ...BASE_CTX, growingCrops: 9 }),
-    "henesys",
-  );
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, growingCrops: 3, readyCrops: 1 }),
-    "henesys",
+    "ellinia",
   );
 });
 
-test("pickTrackForContext: 기본 idle → henesys", () => {
-  assert.equal(pickTrackForContext(BASE_CTX), "henesys");
+test("pickTrackForContext: 2 ripe + 성장 중 mix → dawn (default)", () => {
+  assert.equal(
+    pickTrackForContext({ ...BASE_CTX, growingCrops: 5, readyCrops: 2 }),
+    "dawn",
+  );
 });
 
-/* -------- 회귀 방지 (Round 23 PR-148) -------- */
+test("pickTrackForContext: 빈 농장 idle → dawn (default)", () => {
+  assert.equal(pickTrackForContext(BASE_CTX), "dawn");
+});
 
-test("BGM_DISABLED_PENDING_AUDIT: 베타10 트럼펫 회귀 후 잠금", () => {
-  // 자산 검수 전엔 항상 true. 사용자가 음원 검수 후 R24+ 에서 토글.
-  // 누군가 실수로 false 로 돌리면 사용자 보고 "트럼펫 들림" 재발.
-  // 본 assertion 은 cfg 의도 명시 — 풀려면 commit 메시지에 "decor
-  // 음원 검수 완료" 명시 + 사용자 confirm.
-  assert.equal(
-    BGM_DISABLED_PENDING_AUDIT,
-    true,
-    "사용자 음원 검수 전에 BGM_DISABLED_PENDING_AUDIT=false 로 풀지 말 것",
-  );
+test("pickTrackForContext: 모든 ctx 조합 → focus/henesys 반환 금지", () => {
+  // brute-force 64 ctx 조합 시뮬 (5 bool * 4 crop 변형 ≈ 충분).
+  const cropCombos = [
+    { readyCrops: 0, growingCrops: 0 },
+    { readyCrops: 0, growingCrops: 5 },
+    { readyCrops: 2, growingCrops: 3 },
+    { readyCrops: 5, growingCrops: 0 },
+  ];
+  for (const firstVisit of [false, true]) {
+    for (const skyOpen of [false, true]) {
+      for (const focusActive of [false, true]) {
+        for (const crops of cropCombos) {
+          const t = pickTrackForContext({
+            firstVisit,
+            skyOpen,
+            focusActive,
+            ...crops,
+          });
+          assert.ok(
+            ACTIVE_BGM_TRACKS.includes(t),
+            `pickTrackForContext returned banned track: ${t}`,
+          );
+          assert.notEqual(t, "focus");
+          assert.notEqual(t, "henesys");
+        }
+      }
+    }
+  }
 });
 
 test("BGM 트랙 키워드 banlist (회귀 방지)", () => {
-  // 모든 가능한 track key + url 에 brass/horn 류 키워드 없음 검증.
-  // 새 트랙 추가 시 이 테스트가 깨지면 회귀 발생 가능성 검토 필요.
-  const tracks = ["henesys", "ellinia", "kerning", "skyview", "focus", "dawn"];
-  const banned = ["trumpet", "fanfare", "march", "horn", "brass"];
-  for (const t of tracks) {
+  // 모든 활성 트랙 id 에 brass/horn 류 키워드 없음.
+  const banned = [
+    "trumpet",
+    "fanfare",
+    "march",
+    "horn",
+    "brass",
+    // R24 사용자 검수 결과 영구 제거된 트랙명도 차단:
+    "focus",
+    "henesys",
+  ];
+  for (const t of ACTIVE_BGM_TRACKS) {
     for (const b of banned) {
       assert.ok(
         !t.toLowerCase().includes(b),
