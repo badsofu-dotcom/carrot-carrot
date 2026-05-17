@@ -185,10 +185,12 @@ export const MEDAL_LABELS: Record<MedalId, string> = {
   perfect_combo: "퍼펙트 콤보",
   first_candy: "캔디 당근",
   first_golden: "황금 당근",
-  dogam_25: "도감 25",
-  dogam_50: "도감 50",
-  dogam_75: "도감 75",
-  dogam_100: "도감 100",
+  // PR-71 — display label 비율 기준 (실제 임계는 medalsConfig + CollectionPage
+  // 에서 DOGAM_TOTAL 비례 계산).
+  dogam_25: "도감 25%",
+  dogam_50: "도감 50%",
+  dogam_75: "도감 75%",
+  dogam_100: "도감 100%",
   quiet_sky: "조용한 시간",
 };
 
