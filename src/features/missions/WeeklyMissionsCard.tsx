@@ -6,14 +6,20 @@
  *   - weeklyAttendDays5 claim 시 rewardsStore.addTreasureProgress(7) 로
  *     주간 보물상자 보장 (user spec)
  */
+import { useState } from "react";
 import { useWeeklyMissionsStore } from "./weeklyMissionsStore";
 import { useFarmStore } from "../collection/farmStore";
 import { useRewardsStore } from "../collection/rewardsStore";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 import { WEEKLY_ALL_COMPLETE_BONUS_P } from "./weeklyMissions";
+import { safeSessionStorage } from "../../lib/safeStorage";
 
-export function WeeklyMissionsCard() {
+const SESSION_KEY = "cc.weeklyMissions.expanded.v1";
+
+export function WeeklyMissionsCard({
+  forceCollapsed = false,
+}: { forceCollapsed?: boolean } = {}) {
   const missions = useWeeklyMissionsStore((s) => s.missions);
   const progress = useWeeklyMissionsStore((s) => s.progress);
   const claimed = useWeeklyMissionsStore((s) => s.claimed);
@@ -22,6 +28,21 @@ export function WeeklyMissionsCard() {
   const claimAllBonus = useWeeklyMissionsStore((s) => s.claimAllBonus);
   const incCarrots = useFarmStore((s) => s.incCarrots);
   const addTreasureProgress = useRewardsStore((s) => s.addTreasureProgress);
+  // PR-100 — sessionStorage 영속.
+  const [userExpanded, setUserExpanded] = useState<boolean>(
+    () => safeSessionStorage.get(SESSION_KEY) === "1",
+  );
+  const expanded = !forceCollapsed && userExpanded;
+  const toggle = () => {
+    if (forceCollapsed) return;
+    const next = !userExpanded;
+    setUserExpanded(next);
+    try {
+      safeSessionStorage.set(SESSION_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const allDone = missions.every((m) => claimed.has(m.type));
 
@@ -63,16 +84,29 @@ export function WeeklyMissionsCard() {
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}
     >
-      <header
+      {/* PR-100 — 접힘 트리거. forceCollapsed 시 토글 disabled. */}
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={forceCollapsed}
+        data-testid="weekly-missions-toggle"
+        aria-expanded={expanded}
+        aria-label={`이번 주 목표 ${claimed.size}/${missions.length} — ${expanded ? "접기" : "펼치기"}`}
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
-          marginBottom: 10,
+          marginBottom: expanded ? 10 : 0,
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          cursor: forceCollapsed ? "default" : "pointer",
+          textAlign: "left",
         }}
       >
         <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>
-          이번 주 목표
+          📅 이번 주 목표 {claimed.size}/{missions.length} {expanded ? "▲" : "▼"}
         </h3>
         <span
           style={{
@@ -83,7 +117,8 @@ export function WeeklyMissionsCard() {
         >
           {claimed.size} / {missions.length}
         </span>
-      </header>
+      </button>
+      {expanded && (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {missions.map((m) => {
           const prog = progress[m.type] ?? 0;
@@ -183,8 +218,9 @@ export function WeeklyMissionsCard() {
           );
         })}
       </div>
+      )}
 
-      {allDone && !bonusClaimed && (
+      {expanded && allDone && !bonusClaimed && (
         <button
           type="button"
           onClick={onBonus}

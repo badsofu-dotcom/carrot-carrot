@@ -481,11 +481,11 @@ export function HomePage() {
         onClose={() => setSoundSheetOpen(false)}
       />
 
-      {/* PR-52 — 오늘의 목표 카드 (일일 미션). 컨트롤 아래에 위치. */}
-      <DailyMissionsCard />
+      {/* PR-52 / PR-100 — 오늘의 목표 카드. 기본 접힘 + RUNNING 강제 접힘. */}
+      <DailyMissionsCard forceCollapsed={isFocusing || isPaused} />
 
-      {/* PR-76 — 이번 주 목표 카드 (주간 미션). 일일 아래. */}
-      <WeeklyMissionsCard />
+      {/* PR-76 / PR-100 — 이번 주 목표 카드. 同 정책. */}
+      <WeeklyMissionsCard forceCollapsed={isFocusing || isPaused} />
 
       {/* Modals + overlays */}
       <AbandonModal

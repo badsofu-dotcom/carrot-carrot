@@ -3,13 +3,25 @@
  *
  * 3 daily missions + per-mission claim 버튼 + all-complete bonus.
  * P 그랜트 = `farmStore.incCarrots(rewardP)` (1 carrot = 1 P 환산).
+ *
+ * PR-100 — 기본 접힘 + RUNNING 시 강제 접힘. 학습 도구 톤 강화 —
+ * 집중 중 게임 정보 시야 차단.
+ *   - 기본: collapsed (1줄 헤더만)
+ *   - 사용자 탭: expand (sessionStorage 영속, 세션 재시작 시 다시 접힘)
+ *   - forceCollapsed prop (timer FOCUSING): expand 무효, 항상 접힘
  */
+import { useState } from "react";
 import { useMissionsStore } from "./missionsStore";
 import { useFarmStore } from "../collection/farmStore";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
+import { safeSessionStorage } from "../../lib/safeStorage";
 
-export function DailyMissionsCard() {
+const SESSION_KEY = "cc.missions.expanded.v1";
+
+export function DailyMissionsCard({
+  forceCollapsed = false,
+}: { forceCollapsed?: boolean } = {}) {
   const missions = useMissionsStore((s) => s.missions);
   const progress = useMissionsStore((s) => s.progress);
   const claimed = useMissionsStore((s) => s.claimed);
@@ -17,6 +29,21 @@ export function DailyMissionsCard() {
   const claim = useMissionsStore((s) => s.claim);
   const claimAllBonus = useMissionsStore((s) => s.claimAllBonus);
   const incCarrots = useFarmStore((s) => s.incCarrots);
+  // PR-100 — sessionStorage 영속 (세션 끝나면 다시 접힘).
+  const [userExpanded, setUserExpanded] = useState<boolean>(
+    () => safeSessionStorage.get(SESSION_KEY) === "1",
+  );
+  const expanded = !forceCollapsed && userExpanded;
+  const toggle = () => {
+    if (forceCollapsed) return;
+    const next = !userExpanded;
+    setUserExpanded(next);
+    try {
+      safeSessionStorage.set(SESSION_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
 
   const allDone = missions.every((m) => claimed.has(m.type));
 
@@ -50,16 +77,30 @@ export function DailyMissionsCard() {
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
       }}
     >
-      <header
+      {/* PR-100 — 접힘 트리거 헤더. 탭하면 expand/collapse 토글.
+          forceCollapsed (RUNNING) 시 cursor: default, 토글 disabled. */}
+      <button
+        type="button"
+        onClick={toggle}
+        disabled={forceCollapsed}
+        data-testid="daily-missions-toggle"
+        aria-expanded={expanded}
+        aria-label={`오늘의 목표 ${claimed.size}/${missions.length} 완료 — ${expanded ? "접기" : "펼치기"}`}
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
-          marginBottom: 10,
+          marginBottom: expanded ? 10 : 0,
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          cursor: forceCollapsed ? "default" : "pointer",
+          textAlign: "left",
         }}
       >
         <h3 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>
-          오늘의 목표
+          🎯 오늘 목표 {claimed.size}/{missions.length} {expanded ? "▲" : "▼"}
         </h3>
         <span
           style={{
@@ -70,7 +111,8 @@ export function DailyMissionsCard() {
         >
           {claimed.size} / {missions.length}
         </span>
-      </header>
+      </button>
+      {expanded && (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {missions.map((m) => {
           const prog = progress[m.type] ?? 0;
@@ -173,8 +215,9 @@ export function DailyMissionsCard() {
           );
         })}
       </div>
+      )}
 
-      {allDone && !bonusClaimed && (
+      {expanded && allDone && !bonusClaimed && (
         <button
           type="button"
           onClick={onBonus}
