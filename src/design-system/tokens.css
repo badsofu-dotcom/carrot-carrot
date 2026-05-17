@@ -213,7 +213,9 @@
 
   /* App layout */
   --app-max-width: 480px;
-  --tabbar-height: 68px;
+  /* PR-140 (Round 21 베타7): height 68 → 56 (offset 0 만으론 더 못 내려서
+     크기 자체를 축소). 아이콘/라벨 비율 같이 줄임 (TabBar.tsx). */
+  --tabbar-height: 56px;
   /* Floating pill gap above the bottom edge:
      - PR-127 (Round 16): 16 → 4px (overlap with WebView safe-area)
      - PR-131 (Round 18 베타4 A3): 4 → 8px

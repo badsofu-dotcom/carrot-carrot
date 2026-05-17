@@ -11,7 +11,8 @@ interface TabDef {
   icon: (active: boolean) => React.ReactNode;
 }
 
-const ICON_SIZE = 22;
+// PR-140 (Round 21 베타7): 22 → 20. tabbar-height 68 → 56 와 비례.
+const ICON_SIZE = 20;
 
 const stroke = (active: boolean) =>
   ({
@@ -154,10 +155,11 @@ export function TabBar() {
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 2,
+                  gap: 1,
                   borderRadius: "var(--radius-pill)",
-                  padding: "6px 4px",
-                  fontSize: 11,
+                  // PR-140 — padding 6px 4px → 4px 4px, label 11 → 10.
+                  padding: "4px 4px",
+                  fontSize: 10,
                   fontWeight: 600,
                   color: active ? "var(--accent-carrot)" : "var(--text-tertiary)",
                   cursor: "pointer",
