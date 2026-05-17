@@ -77,9 +77,13 @@
   --accent-devil: #e15639;
   --accent-gold: #e8b829;
 
+  /* PR-80 — dark mode contrast 정리. text-tertiary 이전 값은 bg-elevated
+     배경 대비 3.40:1 (WCAG AA normal text 4.5:1 미달). 상향 후
+     contrast ≈ 6.0:1, 안전 마진 포함. text-secondary / text-primary 는
+     이미 충분 (각 8.6:1, 15.4:1). darkModeContrast.test 가 회귀 차단. */
   --text-primary: #fff8e7;
   --text-secondary: #c9bba6;
-  --text-tertiary: #807260;
+  --text-tertiary: #b3a691;
   --text-on-accent: #1a1410;
 
   --border-subtle: rgba(255, 248, 231, 0.08);
@@ -123,9 +127,10 @@
     --accent-devil: #e15639;
     --accent-gold: #e8b829;
 
+    /* PR-80 — auto-dark 도 동일 contrast 상향 (위 [data-theme="dark"] 와 sync). */
     --text-primary: #fff8e7;
     --text-secondary: #c9bba6;
-    --text-tertiary: #807260;
+    --text-tertiary: #b3a691;
     --text-on-accent: #1a1410;
 
     --border-subtle: rgba(255, 248, 231, 0.08);

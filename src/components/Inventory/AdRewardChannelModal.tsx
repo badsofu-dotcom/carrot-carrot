@@ -280,7 +280,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               style={{
                 margin: "6px 0 14px",
                 fontSize: 12,
-                color: "#888",
+                color: "var(--text-tertiary, #888)",
                 textAlign: "center",
               }}
             >
@@ -323,7 +323,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
                 fontWeight: 700,
                 background: "transparent",
                 border: "none",
-                color: "#888",
+                color: "var(--text-tertiary, #888)",
                 cursor: "pointer",
               }}
             >

@@ -443,7 +443,7 @@ export function InventoryModal({ open, onClose }: Props) {
                 style={{
                   margin: "8px 4px 0",
                   fontSize: 11,
-                  color: "#888",
+                  color: "var(--text-tertiary, #888)",
                   textAlign: "center",
                   flexShrink: 0,
                 }}
@@ -562,7 +562,7 @@ function DetailPanel({
           style={{
             margin: "4px 0 0",
             fontSize: 11,
-            color: "#888",
+            color: "var(--text-tertiary, #888)",
             lineHeight: 1.3,
           }}
         >

@@ -1,0 +1,107 @@
+/**
+ * Dark mode contrast (PR-80) — WCAG AA 검증.
+ *
+ * PR-80 이 `--text-tertiary` dark variant 를 `#807260` → `#b3a691` 로
+ * 상향. WCAG normal text AA = 4.5:1. 본 테스트는 tokens.css 의 dark
+ * mode 변수 값들이 `--bg-elevated` 대비 4.5:1 이상임을 보장.
+ *
+ * 회귀 차단 — 향후 dark mode token 변경 시 contrast 자동 검증.
+ */
+import { test } from "node:test";
+import { strict as assert } from "node:assert";
+import { readFile } from "node:fs/promises";
+
+const tokensPath = new URL(
+  "../design-system/tokens.css",
+  import.meta.url,
+);
+const css = await readFile(tokensPath, "utf8");
+
+function hexToRgb(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) throw new Error(`bad hex: ${hex}`);
+  const v = parseInt(m[1], 16);
+  return [(v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff];
+}
+
+function relativeLuminance([r, g, b]) {
+  const toLin = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  const R = toLin(r);
+  const G = toLin(g);
+  const B = toLin(b);
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+
+function contrastRatio(fg, bg) {
+  const L1 = relativeLuminance(fg);
+  const L2 = relativeLuminance(bg);
+  const lighter = Math.max(L1, L2);
+  const darker = Math.min(L1, L2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function extractDarkVar(name) {
+  // [data-theme="dark"] { ... --VAR: VALUE; ... } block 안에서 추출.
+  const blockRe = /\[data-theme="dark"\]\s*\{([\s\S]*?)\}/;
+  const block = css.match(blockRe);
+  if (!block) throw new Error("dark theme block not found");
+  const re = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`);
+  const m = block[1].match(re);
+  if (!m) throw new Error(`${name} not found in dark block`);
+  return hexToRgb(m[1]);
+}
+
+test("dark theme: --text-tertiary contrast >= 4.5 on --bg-elevated (WCAG AA)", () => {
+  const bg = extractDarkVar("bg-elevated");
+  const fg = extractDarkVar("text-tertiary");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(
+    ratio >= 4.5,
+    `text-tertiary contrast ${ratio.toFixed(2)}:1 < 4.5 (실제 색 분석 필요)`,
+  );
+});
+
+test("dark theme: --text-secondary contrast >= 4.5 on --bg-elevated", () => {
+  const bg = extractDarkVar("bg-elevated");
+  const fg = extractDarkVar("text-secondary");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(
+    ratio >= 4.5,
+    `text-secondary contrast ${ratio.toFixed(2)}:1 < 4.5`,
+  );
+});
+
+test("dark theme: --text-primary contrast >= 7 on --bg-elevated (AAA)", () => {
+  const bg = extractDarkVar("bg-elevated");
+  const fg = extractDarkVar("text-primary");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(
+    ratio >= 7,
+    `text-primary contrast ${ratio.toFixed(2)}:1 < 7 (AAA threshold)`,
+  );
+});
+
+test("dark theme: --accent-carrot contrast >= 3 on --bg-elevated (button text AA)", () => {
+  // 광고 보기 등 accent 텍스트. 3:1 은 large text AA. 4.5 권장이나
+  // 광고 보기는 보통 14pt+ bold → 3 충족 시 acceptable.
+  const bg = extractDarkVar("bg-elevated");
+  const fg = extractDarkVar("accent-carrot");
+  const ratio = contrastRatio(fg, bg);
+  assert.ok(
+    ratio >= 3,
+    `accent-carrot contrast ${ratio.toFixed(2)}:1 < 3`,
+  );
+});
+
+test("PR-80: 구 #807260 (dark text-tertiary) 잔여 없음 — 회귀 차단", () => {
+  // 만약 미래에 누군가 #807260 으로 되돌리면 contrast fail. 양쪽
+  // dark block 모두 검사.
+  assert.equal(
+    css.includes("#807260"),
+    false,
+    "#807260 잔여 — text-tertiary dark contrast 회귀",
+  );
+});
