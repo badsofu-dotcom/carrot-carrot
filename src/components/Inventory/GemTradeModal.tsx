@@ -182,7 +182,8 @@ export function GemTradeModal() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "var(--accent-carrot, #FF7B61)",
+                  // PR-110 — small accent text contrast fix.
+                  color: "#c5462a",
                 }}
               >
                 보유 {gemCount}개

@@ -416,9 +416,12 @@ export function InventoryModal({ open, onClose }: Props) {
                         position: "absolute",
                         top: 4,
                         right: 6,
-                        fontSize: 10,
+                        // PR-110 — a11y polish. 10px + #FF7B61 on white =
+                        // 2.55:1 (AA fail). 12px + darker accent #c5462a
+                        // (4.84:1) 로 가독성 확보. 시각 hint 유지.
+                        fontSize: 12,
                         fontWeight: 800,
-                        color: owned ? "#FF7B61" : "#888",
+                        color: owned ? "#c5462a" : "#888",
                       }}
                     >
                       {count > 0 ? count : ""}
@@ -548,7 +551,9 @@ function DetailPanel({
             style={{
               fontSize: 12,
               fontWeight: 800,
-              color: count > 0 ? "#FF7B61" : "#888",
+              // PR-110 — small accent text contrast fix. count > 0 시
+              // darker accent (#c5462a, 4.84:1) 로 AA pass.
+              color: count > 0 ? "#c5462a" : "#6a6055",
             }}
           >
             보유 {count}
