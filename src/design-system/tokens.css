@@ -214,7 +214,11 @@
   /* App layout */
   --app-max-width: 480px;
   --tabbar-height: 68px;
-  --tabbar-offset: 16px;
+  /* Floating pill gap above the bottom edge — PR-127 (Round 16): reduced
+     16px → 4px after beta feedback that Apps in Toss WebView reports a
+     large safe-area-inset-bottom which, summed with the 16px floating
+     offset, made the bar look detached from the screen. */
+  --tabbar-offset: 4px;
   /* Total reserved space at the bottom for the floating nav (height + offsets) */
   --tabbar-reserved: calc(var(--tabbar-height) + var(--tabbar-offset) * 2);
   /* Scrim height above the tab bar so content fades into the bg before sliding under */
