@@ -41,10 +41,11 @@ interface Option {
 // candy3 (5 gem → 캔디당근 3개 = 15P) 로 대체. P 가치 유지 + 학습
 // 도구 톤 (씨앗 제거).
 const OPTIONS: readonly Option[] = [
-  { id: "candy3", cost: 5, emoji: "🍬", title: "캔디당근 +3", body: "캔디당근 3개 (+15 P)" },
+  // PR-145 (Round 22) — P 라벨 제거 (가구 통화로 재정의).
+  { id: "candy3", cost: 5, emoji: "🍬", title: "캔디당근 +3", body: "캔디당근 3개" },
   { id: "grow", cost: 5, emoji: "🌿", title: "전체 +1단계", body: "심은 모든 plot 한 단계 즉시 성장" },
   { id: "session", cost: 10, emoji: "🥕", title: "당근 +25", body: "25분 세션 1회분 즉시 보상" },
-  { id: "golden", cost: 20, emoji: "✨", title: "황금당근 +1", body: "확정 황금당근 1개 (+10 P)" },
+  { id: "golden", cost: 20, emoji: "✨", title: "황금당근 +1", body: "확정 황금당근 1개" },
   // PR-51 — GRAC 공시: 미보유 시 100% (전설 풀에 legendary-demon 1마리,
   // 미보유면 무조건 unlock), 이미 보유 시 보석 50 환불 (실패 P 손실
   // 없음). 확률형 아이템 정의 회피 — 결과 보장.
@@ -100,7 +101,7 @@ export function GemTradeModal() {
         break;
       case "golden":
         incGolden(1);
-        toast("💎 보석 20개 → 황금당근 +1 (+10 P)");
+        toast("💎 보석 20개 → 황금당근 +1");
         break;
       case "legend": {
         // 레전더리 풀에 현재 legendary-demon 1마리만 정의.

@@ -108,7 +108,9 @@ export function HomePage() {
   // PR-113 — 일일 P 캡 도달 1회 toast. cap cross 시 dailyCap 이 dispatch.
   useEffect(() => {
     const onCapReached = () => {
-      toast("🌙 오늘 100 P 다 모았어요. 자정에 다시 시작!", {
+      // PR-145 (Round 22) — P 라벨 → 당근 단위. 일일 cap 100 그대로
+      // 의미 있는 보호 (가구 가격 가산 reuse).
+      toast("🌙 오늘 당근 100개 다 모았어요. 자정에 다시 시작!", {
         duration: 4000,
       });
     };

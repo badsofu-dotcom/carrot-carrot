@@ -22,21 +22,21 @@ export interface ItemMeta {
 
 export const ITEM_META: Record<ItemCode, ItemMeta> = {
   carrot: {
+    // PR-145 (Round 22): 토스포인트 환산 → 가구 상점 통화로 재정의.
     longDescription:
-      "수확 시 자동 적립. 토스포인트로 1 P. 5분 이상 집중하면 작물이 자라 수확할 수 있어요.",
+      "수확 시 자동 적립. 농장의 가구를 사는 데 써요. 5분 이상 집중하면 작물이 자라 수확할 수 있어요.",
     emoji: "🥕",
   },
   candy: {
-    // PR-105 — 단순화: 토스포인트 환산 중심. 확률/버프 detail 은 버프 / 도구
-    // / 도감 description 에 위임.
+    // PR-145: 5 carrot 가치의 보너스 작물 (가구 5개 분).
     longDescription:
-      "5 토스포인트로 환산되는 보너스 당근. 수확 시 일정 확률로 등장.",
+      "당근 5개 가치의 보너스 캔디. 수확 시 일정 확률로 등장.",
     emoji: "🍬",
   },
   golden: {
-    // PR-105 — 동일 패턴.
+    // PR-145: 10 carrot 가치의 희귀 보너스.
     longDescription:
-      "10 토스포인트로 환산되는 희귀 당근. 수확 시 낮은 확률로 등장.",
+      "당근 10개 가치의 희귀 캔디. 수확 시 낮은 확률로 등장.",
     emoji: "✨",
   },
   // PR-109 — seed entry 제거 (씨앗 자원 폐기).

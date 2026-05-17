@@ -162,13 +162,13 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
           { p: 0.25, label: "💎 보석 +1", apply: () => addItem("gem", 1) },
           {
             p: 0.25,
-            label: "🍬 캔디당근 +1 (+5 P)",
+            label: "🍬 캔디당근 +1",
             apply: () => useFarmStore.getState().incCandyCarrots(1),
           },
           { p: 0.1, label: "⚡ 번개 +1", apply: () => addItem("bolt", 1) },
           {
             p: 0.05,
-            label: "✨ 황금당근 +1 (+10 P)",
+            label: "✨ 황금당근 +1",
             apply: () => useFarmStore.getState().incGoldenCarrots(1),
           },
         ];

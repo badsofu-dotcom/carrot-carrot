@@ -92,14 +92,14 @@ export const FARM_DROPS: readonly DropSpec[] = [
     weight: 4,
     emoji: "🍬",
     iconRel: "assets/farm/currency/candy_carrot.png",
-    toast: "🍬 캔디당근 +1 (+5 P)",
+    toast: "🍬 캔디당근 +1",
   },
   {
     kind: "golden",
     weight: 2,
     emoji: "✨",
     iconRel: "assets/farm/currency/golden_carrot.png",
-    toast: "✨ 황금당근 +1 (+10 P)",
+    toast: "✨ 황금당근 +1",
   },
   {
     kind: "hidden_bunny",
