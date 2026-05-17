@@ -141,11 +141,12 @@ export const ITEMS: readonly ItemDef[] = [
     // 다른 곳 (FarmDropLayer / CollectionPage CurrencyChip) 도 동일
     // 자산 사용해야 시각적 정합. 그래서 SEED_ICON_REL 상수로 export.
     iconRel: SEED_ICON_REL,
-    // PR-31 — soft currency. 현재 sink 없음 (씨뿌리기는 무료).
+    // PR-31 — soft currency. 현재 소비 없음 (씨뿌리기는 무료).
     // PR-32 calibration 에서 씨뿌리기 -1 seed 룰 추가 검토.
-    effect: "농장 씨뿌리기 자원 (현재 무료, 향후 sink 예정)",
+    // PR-77 — acquisition 도 Korean 원본 (이전엔 영어 token / 한국어 render).
+    effect: "농장 씨뿌리기 자원 (현재 무료, 향후 소비 예정)",
     usable: false,
-    acquisition: "daily-gift / focus-tier / cake / weekly-treasure / gem 5→9",
+    acquisition: "일일 선물 / 집중 보상 / 케이크 사용 / 주간 보물상자 / 보석 5개 → 씨앗 9개 교환",
   },
   {
     code: "carrot_coin",
@@ -233,7 +234,7 @@ export const ITEMS: readonly ItemDef[] = [
     // 황금/레전더리) 제공. 본 PR 은 분류만 변경; 옵션 wiring 은 PR-33.
     effect: "5개 사용 시 씨앗 9개 (또는 다른 옵션 — 사용 시 모달에서 선택)",
     usable: true,
-    acquisition: "오늘의 선물상자 (2%) / 농장 드랍 (rare)",
+    acquisition: "오늘의 선물상자 (2%) / 농장 드랍 (드물게)",
     minToUse: 5,
   },
   {
@@ -245,7 +246,7 @@ export const ITEMS: readonly ItemDef[] = [
     // PR-24 — 광고 시청 토큰. KST 자정 리필 (현재 < 3 이면 3 으로
     // 채움, 이상이면 유지). 친구 wave +1 (cap 5). AdRewardChannel
     // claim 시 1 consume.
-    effect: "광고 시청 토큰 (max 5, 자정 리필 3개)",
+    effect: "광고 시청 토큰 (최대 5개, 자정 리필 3개)",
     usable: false,
     acquisition: "자정 리필 + 이웃 토끼 wave / 농장 드랍",
     maxStack: 5,
