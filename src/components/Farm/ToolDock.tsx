@@ -136,6 +136,15 @@ export function ToolDock() {
 
   const onSelect = (t: ToolDef) => {
     if (t.passive) return;
+    // PR-88 — 물뿌리개 잔여 0 시 select 차단 + 안내 토스트.
+    // (이전엔 select 후 사용 시점 toast — 사용자가 이미 선택한 다음
+    // 좌절하는 흐름. 칩 차원에서 차단해서 시각 신호 일관성.)
+    if (t.id === "watering_can" && wateringLeft <= 0) {
+      void import("../../design-system/ui").then((m) =>
+        m.toast("오늘 10회 다 썼어요. 자정에 다시 채워져요"),
+      );
+      return;
+    }
     haptic("light");
     const nextId: ToolId | null = selected === t.id ? null : t.id;
     setSelected(nextId);
@@ -193,9 +202,19 @@ export function ToolDock() {
       {TOOL_DEFS.map((t) => {
         const isActive = selected === t.id;
         let badge: string | null = null;
-        if (t.id === "watering_can") badge = `${wateringLeft}/10`;
+        // PR-88 — 물뿌리개 badge 옵션 C:
+        //   wateringLeft > 5 → just "N"
+        //   1..5 → "N" + warning color (badge bg = warning yellow)
+        //   0    → "끝" + chip disabled
+        if (t.id === "watering_can") {
+          if (wateringLeft === 0) badge = "끝";
+          else badge = String(wateringLeft);
+        }
         // PR-87 — 모종삽 = 씨앗 심기 도구 → 보유 씨앗 informational 표시.
         if (t.id === "shovel") badge = `🌱 ${seeds}`;
+        const wateringDisabled = t.id === "watering_can" && wateringLeft <= 0;
+        const wateringWarning =
+          t.id === "watering_can" && wateringLeft > 0 && wateringLeft <= 5;
         return (
           <button
             key={t.id}
@@ -208,7 +227,11 @@ export function ToolDock() {
               t.id === "shovel"
                 ? `모종삽 — 씨앗 ${seeds}개 보유`
                 : t.id === "watering_can"
-                  ? `물뿌리개 — 오늘 ${wateringLeft}/10 남음`
+                  ? wateringLeft === 0
+                    ? "물뿌리개 — 오늘 사용 한도 도달"
+                    : wateringLeft <= 5
+                      ? `물뿌리개 — ${wateringLeft}회 남음 (오늘 마지막)`
+                      : `물뿌리개 — ${wateringLeft}회 남음`
                   : t.label
             }
             aria-pressed={isActive}
@@ -226,7 +249,13 @@ export function ToolDock() {
                 : "1px solid rgba(0,0,0,0.08)",
               transform: isActive ? "scale(1.05)" : "scale(1)",
               transition: "transform 0.18s ease, border-color 0.18s ease",
-              cursor: t.passive ? "default" : "pointer",
+              // PR-88 — 물뿌리개 잔여 0 시 disabled 시각 단서.
+              cursor: t.passive
+                ? "default"
+                : wateringDisabled
+                  ? "not-allowed"
+                  : "pointer",
+              opacity: wateringDisabled ? 0.45 : 1,
               padding: 0,
               overflow: "visible",
             }}
@@ -265,8 +294,14 @@ export function ToolDock() {
                   minWidth: 18,
                   height: 16,
                   borderRadius: 999,
-                  background: "#fff",
-                  color: "#222",
+                  // PR-88 — warning state (잔여 1..5): badge bg = soft amber.
+                  // Disabled (0): grey out. 그 외: 기본 white.
+                  background: wateringDisabled
+                    ? "rgba(0,0,0,0.08)"
+                    : wateringWarning
+                      ? "#FFE3A8"
+                      : "#fff",
+                  color: wateringDisabled ? "#888" : "#222",
                   fontSize: 10,
                   fontWeight: 700,
                   padding: "0 4px",
