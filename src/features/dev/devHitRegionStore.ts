@@ -45,12 +45,16 @@ export interface LabelPos {
 }
 
 /**
- * Round 26.1 — 버섯집 진입 라벨 ("🍄 집 들어가기") 좌표. 모자 위
- * 살짝 떠 있는 frosted pill. 베타 미세 조정 가능.
+ * 버섯집 진입 라벨 ("🍄 집 들어가기") 좌표.
+ *   R26.1 → R26.2 변경: { L4, T19 } (모자 위) → { L22, T47 } (문 옆).
+ *   사용자 베타 검증 결과 — 모자 위는 농장 헤더에 가깝고 시각 단서가
+ *   약함. 문 우측 바로 옆이 "여기 들어가" 메타포 더 명확.
+ *   hit-region (L2 T24 W26 H28 → 우측 끝 28%) 안에 위치 — label z 5 >
+ *   hit z 4 로 클릭 우선. 두 진입점이 시각적으로 일체.
  */
 export const DEFAULT_FARMHUB_LABEL_POS: LabelPos = {
-  left: 4,
-  top: 19,
+  left: 22,
+  top: 47,
 };
 
 const STORAGE_KEY = "cc.dev.farmhub.hitregion.v1";
