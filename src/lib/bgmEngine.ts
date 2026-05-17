@@ -1,43 +1,94 @@
 /**
- * Farm BGM player (PR-13).
+ * Farm BGM player — 6-track context-aware (Round 18, PR-133).
  *
- * One global `HTMLAudioElement` looping the current track, swapped via
- * a manual 2-second crossfade when the active sky slot changes. The
- * engine is **mp3-only**: drop `bgm_day.mp3` / `bgm_night.mp3` /
- * `bgm_rainy.mp3` into `public/sounds/` to enable. With no files, the
- * engine silently keeps trying — UI controls work but nothing plays.
+ * Replaces the original 3-track (day/night/rainy) slot mapping with a
+ * 6-track roster wired to game state:
  *
- * Why this isn't generated procedurally like SFX: a looping pad needs
- * minutes of varied content to feel non-grating; Web Audio API synth
- * produces robotic, fatiguing loops. mp3 is the right tool here. The
- * curated CC0 URL list lives in `public/sounds/README.md`.
+ *   dawn      — first-ever farm visit (one-shot per device until cleared)
+ *   skyview   — SkyView open
+ *   focus     — focus timer running
+ *   kerning   — 3+ ripe crops (harvest rush)
+ *   ellinia   — all crops still growing (none ripe yet)
+ *   henesys   — default / fallback
  *
- * Lifecycle expectations:
- *   - `start(cfg)` should be called from a user-gesture handler so the
- *     browser allows `audio.play()`. Idempotent — multiple calls past
- *     the first are no-ops (except resume from `setEnabled`).
- *   - `setEnabled` / `setVolume` are safe to call any time.
- *   - `destroy()` releases the audio element + timers for unit-test
- *     teardown; production never calls it.
+ * Single global `HTMLAudioElement` looping the active track. Track
+ * swaps are a 500 ms volume crossfade (eased linearly) — short enough
+ * to feel responsive, long enough to mask the audible cut.
+ *
+ * mp3 files live in `public/audio/farm-bgm-*.mp3`. If a file 404s we
+ * mark that track dead so we don't thrash the network re-requesting.
+ *
+ * Lifecycle:
+ *   - `start(cfg)` from a user-gesture handler (browsers block autoplay).
+ *     Idempotent — subsequent calls may attempt to resume after an
+ *     autoplay block.
+ *   - `setEnabled` / `setVolume` safe to call any time.
+ *   - `setContext(ctx)` recomputes the active track + crossfades on
+ *     change.
+ *   - `pause()` explicit silence (e.g. HomePage START).
+ *   - `destroy()` for unit-test teardown.
+ *
+ * Pure-helper `pickTrackForContext` is exported separately so the
+ * routing rules are unit-testable without DOM.
  */
 
-import { pickFarmBackgroundSlot, type FarmBgSlot } from "./farmBackground";
+import { safeStorage } from "./safeStorage";
 
-export type BgmTrack = "day" | "night" | "rainy";
+export type BgmTrack =
+  | "henesys"
+  | "ellinia"
+  | "kerning"
+  | "skyview"
+  | "focus"
+  | "dawn";
 
 const BASE: string =
   (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
 
 const TRACK_URLS: Record<BgmTrack, string> = {
-  day: `${BASE}sounds/bgm_day.mp3`,
-  night: `${BASE}sounds/bgm_night.mp3`,
-  rainy: `${BASE}sounds/bgm_rainy.mp3`,
+  henesys: `${BASE}audio/farm-bgm-henesys.mp3`,
+  ellinia: `${BASE}audio/farm-bgm-ellinia.mp3`,
+  kerning: `${BASE}audio/farm-bgm-kerning.mp3`,
+  skyview: `${BASE}audio/farm-bgm-skyview.mp3`,
+  focus: `${BASE}audio/farm-bgm-focus.mp3`,
+  dawn: `${BASE}audio/farm-bgm-dawn.mp3`,
 };
 
-export function trackForSlot(slot: FarmBgSlot): BgmTrack {
-  if (slot === "bg_night" || slot === "sky_dawn") return "night";
-  if (slot === "bg_rainy" || slot === "bg_snowy") return "rainy";
-  return "day";
+const FIRST_VISIT_KEY = "cc.farm.firstVisit.v1";
+
+export interface BgmContext {
+  /** True only on the very first farm mount (we set storage to flip false). */
+  firstVisit: boolean;
+  /** SkyView overlay open. */
+  skyOpen: boolean;
+  /** Focus timer in FOCUSING state. */
+  focusActive: boolean;
+  /** Crops at stage 4 (ripe / harvestable). */
+  readyCrops: number;
+  /** Crops at stages 1–3 (growing). */
+  growingCrops: number;
+}
+
+/**
+ * Pure routing — given the context, return the track that should be
+ * playing. Order of precedence matters: skyview/focus override the
+ * background state because they're explicit player intents.
+ */
+export function pickTrackForContext(ctx: BgmContext): BgmTrack {
+  if (ctx.firstVisit) return "dawn";
+  if (ctx.skyOpen) return "skyview";
+  if (ctx.focusActive) return "focus";
+  if (ctx.readyCrops >= 3) return "kerning";
+  if (ctx.growingCrops > 0 && ctx.readyCrops === 0) return "ellinia";
+  return "henesys";
+}
+
+/** Resolve + mark the per-device first-visit flag. Idempotent. */
+export function consumeFirstVisit(): boolean {
+  const seen = safeStorage.get(FIRST_VISIT_KEY);
+  if (seen === "1") return false;
+  safeStorage.set(FIRST_VISIT_KEY, "1");
+  return true;
 }
 
 interface BgmConfig {
@@ -46,14 +97,23 @@ interface BgmConfig {
   volume: number;
 }
 
+const CROSSFADE_MS = 500;
+const FADE_STEP_MS = 50;
+
 let audio: HTMLAudioElement | null = null;
 let currentTrack: BgmTrack | null = null;
 let started = false;
 let cfg: BgmConfig = { enabled: true, volume: 50 };
+let lastContext: BgmContext = {
+  firstVisit: false,
+  skyOpen: false,
+  focusActive: false,
+  readyCrops: 0,
+  growingCrops: 0,
+};
 let crossfadeTimer: ReturnType<typeof setInterval> | null = null;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 let visibilityHandlerInstalled = false;
-const mp3Dead = new Set<BgmTrack>();
+const trackDead = new Set<BgmTrack>();
 
 function clamp01(v: number): number {
   if (!Number.isFinite(v)) return 0;
@@ -61,7 +121,6 @@ function clamp01(v: number): number {
 }
 
 function targetVolume(): number {
-  // BGM tops out at half the slider so a maxed slider doesn't drown SFX.
   return clamp01(cfg.volume / 100) * 0.5;
 }
 
@@ -73,7 +132,10 @@ function ensureAudio(): HTMLAudioElement | null {
     try {
       audio = new Audio();
       audio.loop = true;
-      audio.preload = "auto";
+      // metadata-only by default; the browser caches the full body
+      // after first play() so context-switch latency is bounded to
+      // first-fetch only.
+      audio.preload = "metadata";
       audio.volume = 0;
     } catch {
       return null;
@@ -107,7 +169,7 @@ function installVisibilityHandler() {
 function startFade(target: number, durMs: number) {
   if (!audio) return;
   if (crossfadeTimer) clearInterval(crossfadeTimer);
-  const start = audio.volume;
+  const startVol = audio.volume;
   const startTime = Date.now();
   crossfadeTimer = setInterval(() => {
     if (!audio) {
@@ -116,25 +178,26 @@ function startFade(target: number, durMs: number) {
       return;
     }
     const t = Math.min(1, (Date.now() - startTime) / Math.max(1, durMs));
-    audio.volume = clamp01(start + (target - start) * t);
+    audio.volume = clamp01(startVol + (target - startVol) * t);
     if (t >= 1) {
       if (crossfadeTimer) clearInterval(crossfadeTimer);
       crossfadeTimer = null;
     }
-  }, 50);
+  }, FADE_STEP_MS);
 }
 
 function crossfadeTo(track: BgmTrack) {
   const el = ensureAudio();
   if (!el) return;
-  if (mp3Dead.has(track)) return;
+  if (trackDead.has(track)) return;
   if (currentTrack === track) return;
   currentTrack = track;
   el.src = TRACK_URLS[track];
+  el.preload = "auto";
   el.addEventListener(
     "error",
     () => {
-      mp3Dead.add(track);
+      trackDead.add(track);
     },
     { once: true },
   );
@@ -143,32 +206,25 @@ function crossfadeTo(track: BgmTrack) {
     const p = el.play();
     if (p && typeof p.catch === "function") {
       p.catch(() => {
-        // Autoplay still blocked. The next user gesture (which will
-        // call start() again or trigger setEnabled) provides another
-        // chance to resume.
+        // Autoplay still blocked. The next user gesture provides another
+        // chance via start().
       });
     }
   } catch {
     /* ignore */
   }
-  startFade(targetVolume(), 2000);
-}
-
-function pickTrack(): BgmTrack {
-  return trackForSlot(pickFarmBackgroundSlot());
+  startFade(targetVolume(), CROSSFADE_MS);
 }
 
 export const bgmEngine = {
   /**
    * Initialize on first user gesture. Idempotent — subsequent calls
-   * just check that audio is still flowing (helps after the browser
-   * suspends an autoplay-blocked element).
+   * just check that audio is still flowing.
    */
-  start(initialCfg: BgmConfig): void {
+  start(initialCfg: BgmConfig, ctx?: BgmContext): void {
     cfg = { ...initialCfg };
+    if (ctx) lastContext = { ...ctx };
     if (started) {
-      // Already running. If currently paused (autoplay block earlier),
-      // a fresh user gesture may now resume it.
       if (audio && cfg.enabled && audio.paused) {
         try {
           const p = audio.play();
@@ -185,35 +241,25 @@ export const bgmEngine = {
     }
     started = true;
     installVisibilityHandler();
-    crossfadeTo(pickTrack());
-    if (typeof window !== "undefined") {
-      pollTimer = setInterval(
-        () => {
-          if (!cfg.enabled || !started) return;
-          const next = pickTrack();
-          if (next !== currentTrack) crossfadeTo(next);
-        },
-        5 * 60 * 1000,
-      );
-    }
+    crossfadeTo(pickTrackForContext(lastContext));
   },
 
   setEnabled(v: boolean): void {
     cfg.enabled = v;
     if (!v) {
       if (audio) {
-        startFade(0, 500);
+        startFade(0, CROSSFADE_MS);
         setTimeout(() => {
           try {
             audio?.pause();
           } catch {
             /* ignore */
           }
-        }, 550);
+        }, CROSSFADE_MS + 50);
       }
       return;
     }
-    if (!started) return; // wait for first-gesture start()
+    if (!started) return;
     if (audio) {
       try {
         const p = audio.play();
@@ -221,10 +267,10 @@ export const bgmEngine = {
       } catch {
         /* ignore */
       }
-      if (!currentTrack) crossfadeTo(pickTrack());
-      else startFade(targetVolume(), 1000);
+      if (!currentTrack) crossfadeTo(pickTrackForContext(lastContext));
+      else startFade(targetVolume(), CROSSFADE_MS);
     } else {
-      crossfadeTo(pickTrack());
+      crossfadeTo(pickTrackForContext(lastContext));
     }
   },
 
@@ -233,6 +279,30 @@ export const bgmEngine = {
     if (audio && cfg.enabled && !audio.paused) {
       startFade(targetVolume(), 200);
     }
+  },
+
+  /**
+   * Push the current gameplay context. Engine recomputes the right
+   * track and crossfades if it differs from `currentTrack`.
+   */
+  setContext(ctx: BgmContext): void {
+    lastContext = { ...ctx };
+    if (!started || !cfg.enabled) return;
+    const next = pickTrackForContext(lastContext);
+    if (next !== currentTrack) crossfadeTo(next);
+  },
+
+  /** Explicit silence (e.g. HomePage START). Does not change `enabled`. */
+  pause(): void {
+    if (!audio) return;
+    startFade(0, 200);
+    setTimeout(() => {
+      try {
+        audio?.pause();
+      } catch {
+        /* ignore */
+      }
+    }, 250);
   },
 
   /** Inspect for tests; not part of the runtime contract. */
@@ -254,8 +324,6 @@ export const bgmEngine = {
     started = false;
     if (crossfadeTimer) clearInterval(crossfadeTimer);
     crossfadeTimer = null;
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = null;
     if (audio) {
       try {
         audio.pause();
@@ -266,6 +334,6 @@ export const bgmEngine = {
     }
     audio = null;
     currentTrack = null;
-    mp3Dead.clear();
+    trackDead.clear();
   },
 };

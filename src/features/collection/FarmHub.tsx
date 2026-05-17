@@ -366,6 +366,18 @@ export function FarmHub({
 
   // --- Sky-view -------------------------------------------------------
   const [skyOpen, setSkyOpen] = useState(false);
+  // PR-133 — broadcast sky state so CollectionPage can rebuild the
+  // bgm context (CollectionPage owns the bgmEngine wiring; FarmHub owns
+  // the toggle).
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent("cc:sky:state", { detail: { open: skyOpen } }),
+      );
+    } catch {
+      /* SSR */
+    }
+  }, [skyOpen]);
 
   // PR-130 (Round 17 beta2 feedback): natural-panning model — finger
   // moves DOWN on the farm → camera pans UP → sky comes into view.
