@@ -251,6 +251,29 @@ export function FarmHub({
     if (msg) toast(msg, { duration: 4000 });
   }, []);
 
+  // R27 PHASE 1 — 4 stage sprite preload. 빠른 연속 탭 (양손 / 1초 4+ plot)
+  // 시 새 stage 의 sprite href 가 비동기 로딩 → 1~2 frame "잔상" 으로
+  // 보고됨. mount 시 모든 stage 자산을 디코더 캐시에 미리 올려둔다.
+  // new Image() 는 가벼움; 4개 webp, ~80KB.
+  useEffect(() => {
+    const urls = [
+      CROP_ASSETS.seed,
+      CROP_ASSETS.sprout,
+      CROP_ASSETS.leaves,
+      CROP_ASSETS.ripe,
+    ];
+    const imgs: HTMLImageElement[] = [];
+    for (const u of urls) {
+      const img = new Image();
+      img.src = u;
+      imgs.push(img);
+    }
+    return () => {
+      // GC hint — 빠른 unmount 시 디코더 작업 취소.
+      for (const img of imgs) img.src = "";
+    };
+  }, []);
+
   // Pull canonical farm + inventory + bunny ownership + today's visitor
   // from the server on mount. No-op for guest/mock — every adapter
   // resolves silently when the API base / token is missing.
@@ -782,37 +805,46 @@ export function FarmHub({
             상태 + SVG href 비동기 swap 이 겹쳐 새 sprite 위에 이전
             sprite 가 잠시 겹쳐 보이는 "잔상" 으로 보고됨. stage 별 fresh
             mount 면 initial/animate 가 다시 돌아 항상 0→1 페이드인.
-            harvest 시 (stage===0) asset null → null 반환 (unmount). */}
-        {plotBounds.map((b) => {
-          const stage = stages[b.id];
-          const asset = stageAsset(stage);
-          if (!asset) return null;
-          const size = b.height * CROP_SIZE_RATIO;
-          const x = b.cx - size / 2;
-          const y = b.cy - size * 0.75;
-          return (
-            <motion.image
-              key={`${b.id}-${stage}`}
-              href={asset}
-              x={x}
-              y={y}
-              width={size}
-              height={size}
-              preserveAspectRatio="xMidYMax meet"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 360, damping: 22 }}
-              style={{
-                pointerEvents: "none",
-                filter:
-                  stage === 4
-                    ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
-                    : "drop-shadow(0 0.15px 0.4px rgba(0,0,0,0.25))",
-              }}
-              aria-label={stageLabel(stage)}
-            />
-          );
-        })}
+            harvest 시 (stage===0) asset null → null 반환 (unmount).
+
+            R27 PHASE 1 — AnimatePresence mode="popLayout" 로 감싸 exit
+            transition 을 명시. 이전 sprite 가 invisible (opacity 0) 까지
+            깔끔히 페이드아웃 후 사라지므로 양손 탭 / 1초 4+ plot 빠른
+            연속 탭 시 RAF cleanup 사이 1~2 frame 잔상 제거. */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {plotBounds.map((b) => {
+            const stage = stages[b.id];
+            const asset = stageAsset(stage);
+            if (!asset) return null;
+            const size = b.height * CROP_SIZE_RATIO;
+            const x = b.cx - size / 2;
+            const y = b.cy - size * 0.75;
+            return (
+              <motion.image
+                key={`${b.id}-${stage}`}
+                href={asset}
+                x={x}
+                y={y}
+                width={size}
+                height={size}
+                preserveAspectRatio="xMidYMax meet"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.12 } }}
+                transition={{ type: "spring", stiffness: 360, damping: 22 }}
+                style={{
+                  pointerEvents: "none",
+                  willChange: "opacity, transform",
+                  filter:
+                    stage === 4
+                      ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
+                      : "drop-shadow(0 0.15px 0.4px rgba(0,0,0,0.25))",
+                }}
+                aria-label={stageLabel(stage)}
+              />
+            );
+          })}
+        </AnimatePresence>
 
         {PLOT_POLYGONS.map((p) => {
           const isHovered = hoveredId === p.id;
