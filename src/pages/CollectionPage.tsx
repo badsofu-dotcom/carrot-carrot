@@ -78,7 +78,13 @@ export function CollectionPage() {
 
   const filtered = filter === "all" ? slots : slots.filter((s) => s.rarity === filter);
   const obtainedCount = ownedSet.size;
-  const progress = obtainedCount / TOTAL_SLOTS;
+  // PR-127 (Round 16): denominator is DOGAM_TOTAL (the number of real,
+  // unlockable characters — 12). The remaining TOTAL_SLOTS − DOGAM_TOTAL
+  // are "coming soon" placeholders and shouldn't dilute the progress
+  // percentage. Clamp to 1 in case future tooling unlocks beyond the
+  // designated set.
+  const progress = Math.min(1, obtainedCount / DOGAM_TOTAL);
+  const comingSoonCount = TOTAL_SLOTS - DOGAM_TOTAL;
 
   const selected = selectedId ? slots.find((s) => s.id === selectedId) : null;
 
@@ -175,7 +181,7 @@ export function CollectionPage() {
               className="t-micro"
               style={{ marginTop: 2, color: "var(--text-tertiary)" }}
             >
-              / {TOTAL_SLOTS}
+              / {DOGAM_TOTAL}
             </div>
           </div>
         </ProgressRing>
@@ -183,9 +189,19 @@ export function CollectionPage() {
           <p className="t-micro" style={{ margin: 0, marginBottom: 4 }}>
             수집 진행
           </p>
-          <h2 className="t-h2" style={{ margin: 0, marginBottom: 6 }}>
-            {obtainedCount} / {TOTAL_SLOTS} 마리
+          <h2 className="t-h2" style={{ margin: 0, marginBottom: 4 }}>
+            {obtainedCount} / {DOGAM_TOTAL} 마리
           </h2>
+          <p
+            className="t-micro"
+            style={{
+              margin: 0,
+              marginBottom: 6,
+              color: "var(--text-tertiary)",
+            }}
+          >
+            +{comingSoonCount} 칸은 곧 추가돼요
+          </p>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {(["legendary", "ssr", "sr", "rare"] as Rarity[]).map((r) => {
               const count = ownedByRarity[r];
@@ -267,7 +283,11 @@ export function CollectionPage() {
                 setSelectedId(slot.id);
               } else {
                 haptic("light");
-                toast("아직 못 만났어. 집중 한 판 더 가자 흐흐");
+                toast(
+                  slot.character
+                    ? "아직 못 만났어. 집중 한 판 더 가자 흐흐"
+                    : "이 칸은 곧 새 친구가 와요 ✨",
+                );
               }
             }}
           />
@@ -524,11 +544,13 @@ function SlotCard({ slot, index, onOpen }: SlotCardProps) {
   const [whisper, setWhisper] = useState<string | null>(null);
   const whisperText = useMemo(
     () =>
-      LOCKED_WHISPERS[
-        Math.abs(slot.id.charCodeAt(slot.id.length - 1)) %
-          LOCKED_WHISPERS.length
-      ],
-    [slot.id],
+      slot.character
+        ? LOCKED_WHISPERS[
+            Math.abs(slot.id.charCodeAt(slot.id.length - 1)) %
+              LOCKED_WHISPERS.length
+          ]
+        : "곧 새 친구",
+    [slot.id, slot.character],
   );
 
   const showWhisper = () => {
@@ -946,7 +968,7 @@ function FarmView({
               cursor: "pointer",
             }}
           >
-            📖 도감 {obtainedCount}/{TOTAL_SLOTS}
+            📖 도감 {obtainedCount}/{DOGAM_TOTAL}
           </button>
           <button
             type="button"
@@ -992,7 +1014,7 @@ function FarmView({
         <FarmHub
           onOpenDogam={onOpenDogam}
           obtainedCount={obtainedCount}
-          totalCount={TOTAL_SLOTS}
+          totalCount={DOGAM_TOTAL}
         />
       </div>
 
