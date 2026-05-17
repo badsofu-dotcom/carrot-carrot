@@ -12,11 +12,11 @@
  * 인라인으로 이미 값이 들어와 있으면 (process.env 우선) 그대로 사용한다.
  *
  * Windows 호환:
- *   `shell: true` 로 spawn 하면 Node 가 ComSpec(cmd.exe) 을 PATH 와 별개로
- *   resolve 하는데, 일부 Windows 환경에서 ComSpec 이 비어 있거나 경로가
- *   깨져 있어 `spawn C:\Windows\System32\cmd.exe ENOENT` 가 발생한다.
- *   대신 `node_modules/.bin/ait.cmd`(또는 POSIX 의 `ait`) 을 직접 resolve
- *   해 shell 없이 spawn 한다.
+ *   Node 18.20.2 / 20.12.2 / 21.7.3 부터 CVE-2024-27980 패치로 `.cmd`/`.bat`
+ *   파일은 `shell: true` 없이 spawn 하면 EINVAL 로 거부된다 (Node 24 동일).
+ *   → Windows 에서 `.cmd` 바이너리 (npm 이 생성한 shim) 를 호출할 때는
+ *     `shell: true` 로 spawn 한다. 경로/인자에 공백이 있을 수 있어 명시적
+ *     따옴표 처리. POSIX 에서는 직접 spawn (shell 불필요).
  */
 
 import { spawn } from "node:child_process";
@@ -69,19 +69,26 @@ if (aitBin) {
   cmd = aitBin;
   args = ["build"];
 } else {
-  // Fallback: use npx so users without a local install still work. On
-  // Windows, npm publishes `npx.cmd`; spawning bare `npx` without
-  // `shell: true` fails with ENOENT.
+  // Fallback: use npx so users without a local install still work.
   cmd = IS_WIN ? "npx.cmd" : "npx";
   args = ["--no-install", "ait", "build"];
 }
 
-const child = spawn(cmd, args, {
+// On Windows, `.cmd` / `.bat` shims must be spawned via the shell — direct
+// spawn returns EINVAL since the Node 18.20.2 / 20.12.2 / 21.7.3 CVE patch.
+// Quote the binary path and any arg containing whitespace so the shell
+// parser doesn't split on spaces in user paths (e.g. C:\Program Files\…).
+const isCmdShim = IS_WIN && /\.(cmd|bat)$/i.test(cmd);
+const useShell = isCmdShim;
+const quote = (s) => (/\s/.test(s) ? `"${s.replace(/"/g, '\\"')}"` : s);
+const spawnCmd = useShell ? quote(cmd) : cmd;
+const spawnArgs = useShell ? args.map(quote) : args;
+
+const child = spawn(spawnCmd, spawnArgs, {
   stdio: "inherit",
   env,
   cwd: ROOT,
-  // shell:false on every platform — avoids the Windows cmd.exe ENOENT path.
-  shell: false,
+  shell: useShell,
   windowsHide: true,
 });
 
