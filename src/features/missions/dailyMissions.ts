@@ -74,13 +74,10 @@ export const MISSION_POOL: readonly MissionDef[] = [
 export const DAILY_MISSION_COUNT = 3;
 export const ALL_COMPLETE_BONUS_P = 5;
 
-export function kstDayKey(now: Date = new Date()): string {
-  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
-  const y = kst.getUTCFullYear();
-  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(kst.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
+// PR-102 — kstDayKey re-export from single helper (lib/kst.ts).
+// 기존 import 위치 (`./dailyMissions`) 들과의 backward compat 유지.
+import { kstDayKey } from "../../lib/kst";
+export { kstDayKey };
 
 /**
  * PR-75 — 일일 미션은 매일 고정 3개. 입력 `day` 는 결정적 시그니처

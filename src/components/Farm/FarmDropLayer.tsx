@@ -32,6 +32,7 @@ import {
   pushSuppressedDrop,
   type SuppressibleKind,
 } from "../../lib/notify/focusGate";
+import { kstDayKey } from "../../lib/kst";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useSoundStore } from "../../store/soundStore";
 import { playSfx } from "../../lib/soundFx";
@@ -194,10 +195,7 @@ function pickSpot(rng: () => number): SpotCluster {
   return SPOT_CLUSTERS[0]!;
 }
 
-function kstDayKey(): string {
-  const kst = new Date(Date.now() + 9 * 3600 * 1000);
-  return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`;
-}
+// PR-102 — kstDayKey 단일 helper 사용 (lib/kst.ts).
 const STORAGE_COUNT_KEY = (day: string) => `cc.farmDrop.dailyCount.${day}`;
 
 function readCount(day: string): number {

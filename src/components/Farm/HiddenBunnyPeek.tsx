@@ -27,6 +27,7 @@ import { playSfx } from "../../lib/soundFx";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { safeStorage } from "../../lib/safeStorage";
+import { kstDayKey } from "../../lib/kst";
 
 const MIN_INTERVAL_MS = 10 * 60_000; // 10 min
 const MAX_INTERVAL_MS = 30 * 60_000; // 30 min
@@ -53,10 +54,7 @@ function pickSpot(): Spot {
   return SPOTS[Math.floor(Math.random() * SPOTS.length)]!;
 }
 
-function kstDayKey(): string {
-  const kst = new Date(Date.now() + 9 * 3600 * 1000);
-  return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`;
-}
+// PR-102 — kstDayKey 단일 helper.
 const KEY_COUNT = (d: string) => `cc.hiddenBunnyPeek.dailyCount.${d}`;
 function readCount(d: string): number {
   const raw = safeStorage.get(KEY_COUNT(d));

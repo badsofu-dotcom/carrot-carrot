@@ -26,6 +26,7 @@ import { useCollectionStore } from "../../features/collection/collectionStore";
 import { useMissionsStore } from "../../features/missions/missionsStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
 import { safeStorage } from "../../lib/safeStorage";
+import { kstDayKey } from "../../lib/kst";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 import {
@@ -37,11 +38,7 @@ type Channel = "watering" | "gift" | "treasure";
 
 const BASE = import.meta.env.BASE_URL;
 
-function kstDayKey(): string {
-  const kst = new Date(Date.now() + 9 * 3600 * 1000);
-  return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`;
-}
-
+// PR-102 — kstDayKey 단일 helper.
 function dayClaimedKey(c: Channel): string {
   return `cc.ad.${c}.${kstDayKey()}`;
 }

@@ -13,6 +13,7 @@
  */
 import { create } from "zustand";
 import { safeStorage } from "../../lib/safeStorage";
+import { kstDayKey } from "../../lib/kst";
 import {
   countsFromRemote,
   loadInventory,
@@ -313,14 +314,6 @@ interface ItemsState {
 
 const STORAGE_KEY_HEART_DAY = "cc.items.heartDay.v1";
 const HEART_DAILY_REFILL = 3;
-
-function kstDayKey(now: Date = new Date()): string {
-  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
-  const y = kst.getUTCFullYear();
-  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(kst.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 function loadHeartDayKey(): string | null {
   return safeStorage.get(STORAGE_KEY_HEART_DAY);
 }

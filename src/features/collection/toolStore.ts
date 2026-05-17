@@ -19,21 +19,13 @@
  * the same way.
  */
 import { create } from "zustand";
+import { kstDayKey } from "../../lib/kst";
 
 export type ToolId = "shovel" | "watering_can" | "basket";
 
 const MAX_DAILY = 10;
 const MAX_AD_REFILLS = 3;
 const AD_REFILL_AMOUNT = 3;
-
-/** YYYY-MM-DD in KST. Used as the daily-reset key. */
-function kstDayKey(now: Date = new Date()): string {
-  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
-  const y = kst.getUTCFullYear();
-  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(kst.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 
 interface ToolState {
   /** null = no tool selected; clicks fall back to default plant/harvest. */

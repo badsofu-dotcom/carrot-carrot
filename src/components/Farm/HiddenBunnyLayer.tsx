@@ -23,6 +23,7 @@ import { useSoundStore } from "../../store/soundStore";
 import { playSfx } from "../../lib/soundFx";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
+import { kstDayKey } from "../../lib/kst";
 import { safeStorage } from "../../lib/safeStorage";
 
 const MIN_INTERVAL_MS = 5 * 60_000; // 5 min
@@ -30,10 +31,6 @@ const MAX_INTERVAL_MS = 30 * 60_000; // 30 min
 const CROSS_DURATION_MS = 5_000;
 const DAILY_CAP = 4; // 너무 흔하지 않게
 
-function kstDayKey(): string {
-  const kst = new Date(Date.now() + 9 * 3600 * 1000);
-  return `${kst.getUTCFullYear()}-${String(kst.getUTCMonth() + 1).padStart(2, "0")}-${String(kst.getUTCDate()).padStart(2, "0")}`;
-}
 const KEY_COUNT = (d: string) => `cc.hiddenBunny.dailyCount.${d}`;
 
 function readCount(day: string): number {

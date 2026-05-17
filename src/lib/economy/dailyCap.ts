@@ -25,19 +25,11 @@
 import { safeStorage } from "../safeStorage";
 import { useCollectionStore } from "../../features/collection/collectionStore";
 import { passivesFromOwned } from "../dogamPassives";
+import { kstDayKey } from "../kst";
 
 const STORAGE_KEY = "cc.economy.dailyP.v1";
 
 export const BASE_DAILY_CAP = 100;
-
-/** YYYY-MM-DD KST. */
-function kstDayKey(now: Date = new Date()): string {
-  const kst = new Date(now.getTime() + 9 * 3600 * 1000);
-  const y = kst.getUTCFullYear();
-  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(kst.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 
 interface DailyState {
   day: string;
