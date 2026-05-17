@@ -24,13 +24,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useItemsStore } from "../../features/collection/itemsStore";
-import { useNotificationsStore } from "../../features/notifications/notificationsStore";
-import { notify } from "../../lib/webNotify";
-import {
-  isFocusBlackout,
-  pushSuppressedDrop,
-  type SuppressibleKind,
-} from "../../lib/notify/focusGate";
+// R26.5 — drop 알림 호출 제거 후 unused.
+// useNotificationsStore / notify / isFocusBlackout / pushSuppressedDrop /
+// SuppressibleKind 모두 본 컴포넌트에서 더 이상 사용 X.
 import { kstDayKey } from "../../lib/kst";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useSoundStore } from "../../store/soundStore";
@@ -226,19 +222,11 @@ export function FarmDropLayer() {
       };
       const next = [...cur, newDrop];
       persist(next);
-      // PR-53 — drop spawn 시 알림.
-      // PR-74 — 홈(/) 에서 집중 중일 때는 suppress + 큐에 누적. 타이머
-      // DONE 또는 농장 진입 시 batch 메시지로 한 번에 표시.
-      const notifStore = useNotificationsStore.getState();
-      if (isFocusBlackout()) {
-        pushSuppressedDrop(spec.kind as SuppressibleKind);
-      } else if (notifStore.shouldNotify("drop")) {
-        notify({
-          kind: "drop",
-          title: "🌟 농장에 뭔가 떨어졌어요",
-          body: spec.toast,
-        });
-      }
+      // R26.5 — "농장에 뭔가 떨어졌어요" 팝업 제거 (사용자 회귀 보고).
+      // R18 PR-130 에서 NotifyKindRow drop 토글 UI 가 제거됐는데 store
+      // default 가 true 라 사용자가 끌 방법이 없었음 — 의도 위반. drop
+      // 은 사용자가 농장 진입 시 직접 sprite 보고 줍는 즐거움이 핵심.
+      // notify 호출 + isFocusBlackout 큐 batch 둘 다 제거.
       scheduleNext();
       return next;
     });
