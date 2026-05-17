@@ -183,9 +183,11 @@ export function ToolDock() {
       style={{
         position: "absolute",
         left: "50%",
-        // PR-131 — 8 → 12 to keep ≥12px clear above the floating tabbar
-        // (which sits at --tabbar-offset 8px from the screen bottom).
-        bottom: 12,
+        // R26.5 — `vh - tabbar-reserved` (CollectionPage main height) does
+        // not account for safe-area-inset-bottom, so on iOS Apps-in-Toss
+        // the farm card bottom sits `safe-bottom` px below the TabBar top.
+        // Add safe-bottom to ToolDock offset so it always clears the TabBar.
+        bottom: "calc(12px + env(safe-area-inset-bottom))",
         transform: "translateX(-50%)",
         display: "flex",
         // PR-131 — 슬롯 사이 gap 6 → 8, padding 축소.
