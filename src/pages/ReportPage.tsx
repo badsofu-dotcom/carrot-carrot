@@ -323,20 +323,25 @@ export function ReportPage() {
                       transformOrigin: "bottom",
                     }}
                   />
-                  <span
-                    className="tabular-nums"
-                    style={{
-                      position: "absolute",
-                      top: -2,
-                      left: "50%",
-                      transform: "translate(-50%, -100%)",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: isToday ? "var(--accent-carrot)" : "var(--text-tertiary)",
-                    }}
-                  >
-                    {d.carrots}
-                  </span>
+                  {/* PR-108 — 0 수확 day 는 숫자 label 미표시.
+                      시각 노이즈 감소 + 의미 있는 값만 강조. 합계는
+                      header 의 totalMinutesWeek 가 유지. */}
+                  {d.carrots > 0 && (
+                    <span
+                      className="tabular-nums"
+                      style={{
+                        position: "absolute",
+                        top: -2,
+                        left: "50%",
+                        transform: "translate(-50%, -100%)",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: isToday ? "var(--accent-carrot)" : "var(--text-tertiary)",
+                      }}
+                    >
+                      {d.carrots}
+                    </span>
+                  )}
                 </div>
                 <span
                   className="t-micro"
