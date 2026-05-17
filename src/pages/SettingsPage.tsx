@@ -233,6 +233,25 @@ export function SettingsPage() {
       {/* 5. 친구 초대 (발견성 위해 visible) */}
       <FriendInviteGroup />
 
+      {/* PR-122 — 피드백 보내기 (베타 채널). */}
+      <SettingsGroup title="피드백" emoji="💬">
+        <Row
+          label="피드백 보내기"
+          sub="버그 · 아이디어 · 불만 환영"
+          right={<Chevron />}
+          onClick={() => {
+            haptic("light");
+            try {
+              window.dispatchEvent(new CustomEvent("cc:feedback:open"));
+            } catch {
+              /* SSR */
+            }
+          }}
+          last
+          testId="row-feedback"
+        />
+      </SettingsGroup>
+
       {/* 6. 계정 (가장 아래) */}
       <SettingsGroup title="계정" emoji="👤">
         <Row
