@@ -77,10 +77,21 @@ function isInTossLikeEnv(): boolean {
 /**
  * 보상형 광고 1회 시청 흐름.
  * `simulationFallbackMs` 만큼 simulated 진행을 보장하고 싶다면 호출자가 추가로 대기하면 된다.
+ *
+ * PR-139 (Round 20) — 진단 로그 추가. 베타6 피드백 "광고 재생 안 됨"
+ * 원인 추적을 위해 흐름의 각 분기에 `[ad/diag]` prefix 로 console.log.
+ * 토스 미니앱 WebView 콘솔 또는 `wrangler tail` 로 확인 가능.
  */
 export async function watchRewardedAd(): Promise<RewardedAdResult> {
+  console.log("[ad/diag] watchRewardedAd called", {
+    mockForced: isMockForced(),
+    tossLike: isInTossLikeEnv(),
+    adGroup: adGroupId(),
+  });
+
   // 1) 강제 mock(개발/preview) — SDK 시도 안 함.
   if (isMockForced() && !isInTossLikeEnv()) {
+    console.log("[ad/diag] mock forced (non-toss env) → simulated");
     await delay(SIMULATION_DELAY_MS);
     return { kind: "simulated", via: "mock" };
   }
@@ -89,6 +100,7 @@ export async function watchRewardedAd(): Promise<RewardedAdResult> {
   //    안전망: 만약 어떤 이유로 빈 값이면 simulation fallback.
   const adGroup = adGroupId();
   if (!adGroup) {
+    console.warn("[ad/diag] adGroupId empty → simulated");
     await delay(SIMULATION_DELAY_MS);
     return { kind: "simulated", via: "mock" };
   }
@@ -139,10 +151,17 @@ export async function watchRewardedAd(): Promise<RewardedAdResult> {
     !loadFn.isSupported() ||
     !showFn.isSupported()
   ) {
+    console.warn("[ad/diag] SDK isSupported() false → simulated", {
+      hasLoad: !!loadFn,
+      hasShow: !!showFn,
+      loadSupported: loadFn ? !!loadFn.isSupported?.() : false,
+      showSupported: showFn ? !!showFn.isSupported?.() : false,
+    });
     // 이 환경에선 실제 광고 노출 불가 — simulation 으로 대체.
     await delay(SIMULATION_DELAY_MS);
     return { kind: "simulated", via: "mock" };
   }
+  console.log("[ad/diag] SDK ready — load + show isSupported=true, calling load…");
 
   // 4) 실제 보상형 광고 — load 후 show.
   return await new Promise<RewardedAdResult>((resolve) => {
@@ -172,11 +191,13 @@ export async function watchRewardedAd(): Promise<RewardedAdResult> {
       cleanupLoad = loadFn({
         options: { adGroupId: adGroup },
         onEvent: (event) => {
+          console.log("[ad/diag] load event:", event.type);
           if (event.type === "loaded") {
             try {
               cleanupShow = showFn({
                 options: { adGroupId: adGroup },
                 onEvent: (e) => {
+                  console.log("[ad/diag] show event:", e.type);
                   if (e.type === "userEarnedReward") {
                     settle({
                       kind: "granted",
@@ -192,19 +213,23 @@ export async function watchRewardedAd(): Promise<RewardedAdResult> {
                   }
                 },
                 onError: (err) => {
+                  console.error("[ad/diag] show error:", err);
                   settle({ kind: "failed", reason: humanError(err) });
                 },
               });
             } catch (err) {
+              console.error("[ad/diag] show throw:", err);
               settle({ kind: "failed", reason: humanError(err) });
             }
           }
         },
         onError: (err) => {
+          console.error("[ad/diag] load error:", err);
           settle({ kind: "failed", reason: humanError(err) });
         },
       });
     } catch (err) {
+      console.error("[ad/diag] load throw:", err);
       settle({ kind: "failed", reason: humanError(err) });
     }
 
