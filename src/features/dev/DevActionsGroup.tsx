@@ -39,6 +39,8 @@ import {
 } from "../../lib/farmBackground";
 import { UnlockOverlay } from "../collection/UnlockOverlay";
 import { useFarmhubStore } from "../decor/farmhubStore";
+import { FARMHUB_PRICES, FARMHUB_PRICE_TOTAL } from "../decor/farmhubFurniturePrices";
+import { FARMHUB_FINAL_STEP } from "../decor/farmhubCatalog";
 import {
   useDevHitRegionStore,
   DEFAULT_FARMHUB_HIT_REGION,
@@ -316,6 +318,43 @@ export function DevActionsGroup() {
             } else if (r.reason === "already_pending") {
               toast("이미 보관함에 가구가 있어요");
             }
+          }}
+        />
+        {/* R27 PHASE 3.A — 당근 cheat + 무료 풀세트 + 가격표. */}
+        <DevRow
+          label="🥕 당근 +1000"
+          sub="가구 구매 검증용"
+          onClick={() => {
+            incCarrots(1000);
+            haptic("success");
+            toast("🥕 +1000 당근");
+          }}
+        />
+        <DevRow
+          label="🥕 가구 무료 풀세트"
+          sub="step 1..8 즉시 grant + place (가격 무시)"
+          onClick={() => {
+            // devGrantFreeNext: pending 있으면 자동 place + 다음 grant.
+            // FINAL+1 회 호출하면 step 0→8 풀세트 도달.
+            const store = useFarmhubStore.getState();
+            for (let i = 0; i <= FARMHUB_FINAL_STEP; i++) {
+              store.devGrantFreeNext();
+            }
+            haptic("success");
+            toast("✨ 풀세트 완성 (DEV)");
+          }}
+        />
+        <DevRow
+          label="🥕 가구 가격표 보기"
+          sub={`총 ${FARMHUB_PRICE_TOTAL} 당근`}
+          onClick={() => {
+            const summary = Object.entries(FARMHUB_PRICES)
+              .map(([s, p]) => `${s}=${p}`)
+              .join(" ");
+            haptic("light");
+            toast(`🥕 ${summary} (총 ${FARMHUB_PRICE_TOTAL})`, {
+              duration: 6000,
+            });
           }}
         />
         <DevRow
