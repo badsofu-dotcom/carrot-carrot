@@ -12,6 +12,7 @@
     "build:ait": "node scripts/check-build-env.mjs && node scripts/run-ait-build.mjs",
     "ait:build": "node scripts/check-build-env.mjs && node scripts/run-ait-build.mjs",
     "ait:deploy": "ait deploy",
+    "ship:ait": "VITE_APPS_IN_TOSS_PROXY_URL=https://carrot-carrot-api.bunniesfarm.workers.dev VITE_TOSS_AD_GROUP_ID=ait.v2.live.146b65d064c2402e VITE_TOSS_AD_INTERSTITIAL_ID=ait.v2.live.501716299c57434b VITE_TOSS_AD_BANNER_ID=ait.v2.live.4dd2294692cd4ebb VITE_TOSS_FRIEND_REWARD_ID=502773f5-7d18-4abc-a98c-e1d30072cd02 VITE_MOCK_AUTH=false VITE_USE_MOCK_LOGIN=false VITE_TOSS_AUTH_MOCK=false VITE_TOSS_AD_MOCK=false APPS_IN_TOSS_BRAND_ICON_URL=https://static.toss.im/appsintoss/9399/e8354053-e837-4e0e-ad25-8a0834f06620.png PUBLIC_APP_URL=https://apps-in-toss.com/web/carrot-carrot npm run build:ait 2>&1 | tee /tmp/last-ait-build.log && bash scripts/ship-ait-postbuild.sh",
     "package:source": "node scripts/package-source.mjs",
     "icons": "node scripts/export-icons.mjs",
     "assets:optimize": "node scripts/optimize-assets.mjs",
