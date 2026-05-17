@@ -42,115 +42,14 @@ import { safeStorage, safeSessionStorage } from "../../lib/safeStorage";
 const BASE: string =
   (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? "/";
 
-type DropKind =
-  | "gem"
-  | "bolt"
-  | "heart"
-  | "hourglass"
-  | "juice"
-  | "soup"
-  | "cake"
-  | "candy"
-  | "golden"
-  | "hidden_bunny";
-
-interface DropSpec {
-  kind: DropKind;
-  weight: number;
-  emoji: string;
-  /** PNG path under BASE; fallback to emoji if missing. */
-  iconRel?: string;
-  /** Toast text when grant succeeds. */
-  toast: string;
-}
-
-const DROPS: readonly DropSpec[] = [
-  // PR-47 — 일일 cap 30 → 12 감소로 가치 보존. weights 재조정.
-  {
-    kind: "gem",
-    weight: 30,
-    emoji: "💎",
-    iconRel: "assets/farm/icons/icon_gem.png",
-    toast: "💎 보석 +1",
-  },
-  {
-    kind: "bolt",
-    weight: 22,
-    emoji: "⚡",
-    iconRel: "assets/farm/icons/icon_energy.png",
-    toast: "⚡ 번개 +1",
-  },
-  {
-    kind: "heart",
-    weight: 15,
-    emoji: "🩷",
-    iconRel: "assets/farm/icons/icon_heart_hp.png",
-    toast: "🩷 하트 +1",
-  },
-  {
-    kind: "hourglass",
-    weight: 10,
-    emoji: "⏳",
-    iconRel: "assets/farm/icons/icon_timer.png",
-    toast: "⏳ 모래시계 +1",
-  },
-  {
-    kind: "juice",
-    weight: 4,
-    emoji: "🥤",
-    iconRel: "assets/farm/foods/food_carrot_juice.png",
-    toast: "🥤 주스 +1",
-  },
-  {
-    kind: "soup",
-    weight: 4,
-    emoji: "🍲",
-    iconRel: "assets/farm/foods/food_carrot_soup.png",
-    toast: "🍲 수프 +1",
-  },
-  {
-    kind: "cake",
-    weight: 4,
-    emoji: "🍰",
-    iconRel: "assets/farm/foods/food_carrot_cake.png",
-    toast: "🍰 케이크 +1",
-  },
-  // PR-109 — seed drop slot 제거. weight 4 → candy 슬롯 (weight 4)
-  // 추가, candy 보상으로 흡수.
-  {
-    kind: "candy",
-    weight: 4,
-    emoji: "🍬",
-    iconRel: "assets/farm/currency/candy_carrot.png",
-    toast: "🍬 캔디당근 +1 (+5 P)",
-  },
-  {
-    kind: "golden",
-    weight: 2,
-    emoji: "✨",
-    iconRel: "assets/farm/currency/golden_carrot.png",
-    toast: "✨ 황금당근 +1 (+10 P)",
-  },
-  {
-    kind: "hidden_bunny",
-    weight: 1,
-    emoji: "🐰",
-    // PR-35 가 실제 토끼 unlock 경로 wire. 본 PR 은 보석 +5 보너스로 대체.
-    toast: "🐰 히든 토끼! 보석 +5 보너스",
-  },
-];
-
-const TOTAL_WEIGHT = DROPS.reduce((s, d) => s + d.weight, 0);
-
-function pickDrop(rng: () => number): DropSpec {
-  const r = rng() * TOTAL_WEIGHT;
-  let acc = 0;
-  for (const d of DROPS) {
-    acc += d.weight;
-    if (r < acc) return d;
-  }
-  return DROPS[0]!; // unreachable
-}
+// PR-112 — DROPS table 을 lib/farm/farmDropTable.ts 로 추출 (single
+// SoT + 테스트 가능). 본 컴포넌트는 import 만.
+import {
+  FARM_DROPS as DROPS,
+  pickDrop,
+  type DropSpec,
+} from "../../lib/farm/farmDropTable";
+void DROPS;
 
 const MIN_SPAWN_MS = 15_000;
 const MAX_SPAWN_MS = 60_000;
