@@ -545,7 +545,9 @@ function DetailPanel({
             gap: 8,
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>
+          {/* PR-106 — fixed light DetailPanel bg → fixed dark heading.
+              PR-84 와 동일 패턴. */}
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: "#2b2b2b" }}>
             {def.ko}
           </h3>
           <span

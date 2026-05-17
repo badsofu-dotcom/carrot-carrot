@@ -94,6 +94,7 @@ export function BuffInfoPopover({ kind, onClose }: Props) {
               <span aria-hidden style={{ fontSize: 28 }}>
                 {meta.emoji}
               </span>
+              {/* PR-106 — fixed light bg → fixed dark heading. */}
               <h3
                 style={{
                   margin: 0,
@@ -101,6 +102,7 @@ export function BuffInfoPopover({ kind, onClose }: Props) {
                   fontWeight: 800,
                   flex: 1,
                   minWidth: 0,
+                  color: "#2b2b2b",
                 }}
               >
                 {meta.displayName}

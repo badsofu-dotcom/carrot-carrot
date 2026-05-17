@@ -186,12 +186,14 @@ export function AdSuggestionModal() {
               boxSizing: "border-box",
             }}
           >
+            {/* PR-106 — fixed light bg → fixed dark heading. */}
             <h3
               style={{
                 margin: 0,
                 marginBottom: 8,
                 fontSize: 16,
                 fontWeight: 800,
+                color: "#2b2b2b",
               }}
             >
               {detail.title}

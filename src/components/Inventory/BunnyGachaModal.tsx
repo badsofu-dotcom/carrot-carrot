@@ -109,11 +109,13 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
             >
               새로운 토끼 — {RARITY_LABEL[bunny.rarity]}
             </p>
+            {/* PR-106 — fixed light bg (#FFF8EE) → fixed dark heading. */}
             <h2
               style={{
                 margin: "6px 0 12px",
                 fontSize: 22,
                 fontWeight: 800,
+                color: "#2b2b2b",
               }}
             >
               {bunny.name}
