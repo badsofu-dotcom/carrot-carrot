@@ -36,10 +36,14 @@ import {
   useOwnedByRarity,
   useOwnedSet,
 } from "../features/collection/collectionStore";
-// PR-132 (Round 18) — daily/weekly mission cards moved off the home
-// screen onto the farm view so the timer page can stay timer-focused.
-import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
-import { WeeklyMissionsCard } from "../features/missions/WeeklyMissionsCard";
+// PR-132 (Round 18) — daily/weekly mission cards moved off HomePage.
+// PR-136 (Round 19) — and then moved again from inline farm cards
+// into a 🎯 BottomSheet so the 9-plot field gets its space back.
+// useTimerStore-based forceCollapsed is no longer needed (the sheet
+// itself is the user intent; cards stay expanded inside).
+import { MissionsSheet } from "../features/missions/MissionsSheet";
+import { useMissionsStore } from "../features/missions/missionsStore";
+import { useWeeklyMissionsStore } from "../features/missions/weeklyMissionsStore";
 import { useTimerStore } from "../store/timerStore";
 
 const ALL_FILTERS: ("all" | Rarity)[] = [
@@ -824,11 +828,21 @@ function FarmView({
   const readyCount = stages.filter((s) => s === 4).length;
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
+  // PR-136 — missions sheet (replaces inline cards).
+  const [missionsOpen, setMissionsOpen] = useState(false);
   const unlockMedal = useRewardsStore((s) => s.unlockMedal);
-  // PR-132 — mission cards force-collapse while a focus session runs
-  // (mirrors HomePage's previous behavior).
+  // BGM context needs to know if a focus session is running.
   const timerStatus = useTimerStore((s) => s.status);
   const isFocusing = timerStatus === "FOCUSING";
+  // 🎯 header badge — show red dot when any daily OR weekly mission
+  // is still unclaimed. Daily resets at KST midnight; weekly at Mon 04:00.
+  const dailyMissions = useMissionsStore((s) => s.missions);
+  const dailyClaimed = useMissionsStore((s) => s.claimed);
+  const weeklyMissions = useWeeklyMissionsStore((s) => s.missions);
+  const weeklyClaimed = useWeeklyMissionsStore((s) => s.claimed);
+  const missionsIncomplete =
+    dailyMissions.filter((m) => !dailyClaimed.has(m.type)).length +
+    weeklyMissions.filter((m) => !weeklyClaimed.has(m.type)).length;
 
   // The bag button now lives in ToolDock (PR-6 moved it off the header).
   // Listen for its cc:bag:open dispatch so we can open the modal.
@@ -1015,6 +1029,52 @@ function FarmView({
           >
             📖 도감 {obtainedCount}/{DOGAM_TOTAL}
           </button>
+          {/* PR-136 — 🎯 missions trigger. Sibling of 🎁 보상함.
+              Red dot badge when ≥ 1 daily/weekly mission is unclaimed. */}
+          <button
+            type="button"
+            data-testid="farm-header-missions"
+            aria-label={
+              missionsIncomplete > 0
+                ? `오늘 / 이번 주 목표 — ${missionsIncomplete}개 남음`
+                : "오늘 / 이번 주 목표 — 모두 완료"
+            }
+            onClick={() => {
+              haptic("light");
+              setMissionsOpen(true);
+            }}
+            style={{
+              position: "relative",
+              width: 32,
+              height: 32,
+              padding: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.04)",
+              border: "none",
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            🎯
+            {missionsIncomplete > 0 && (
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  right: 2,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#ff4d4f",
+                  boxShadow: "0 0 0 2px var(--bg-elevated, #fff)",
+                }}
+              />
+            )}
+          </button>
           <button
             type="button"
             data-testid="farm-header-rewards"
@@ -1047,13 +1107,9 @@ function FarmView({
         </div>
       </header>
 
-      {/* PR-132 — daily/weekly mission cards (moved from HomePage).
-          Collapsed by default + force-collapsed during focus session.
-          Stacked between the farm header and the 9-plot field. */}
-      <div style={{ marginBottom: 8 }}>
-        <DailyMissionsCard forceCollapsed={isFocusing} />
-        <WeeklyMissionsCard forceCollapsed={isFocusing} />
-      </div>
+      {/* PR-136 (Round 19) — mission cards moved into <MissionsSheet>
+          triggered by the 🎯 button in the farm header. The 9-plot
+          field reclaims the vertical space the inline cards used. */}
 
       <div
         style={{
@@ -1074,6 +1130,10 @@ function FarmView({
       <FarmOnboarding />
       <RewardsPanel open={rewardsOpen} onClose={() => setRewardsOpen(false)} />
       <InventoryModal open={bagOpen} onClose={() => setBagOpen(false)} />
+      <MissionsSheet
+        open={missionsOpen}
+        onClose={() => setMissionsOpen(false)}
+      />
     </main>
   );
 }
