@@ -187,13 +187,11 @@ export function SkyView({ open, slot, onClose }: Props) {
     touchStartY.current = null;
     if (start == null) return;
     const end = e.changedTouches[0]?.clientY ?? start;
-    // PR-16 — dismiss only on a DOWN swipe (start → end going down,
-    // i.e. end - start positive). Previously closed on either direction
-    // which was inconsistent with the new farm-side swipe-up-to-open
-    // gesture (an up swipe inside SkyView would re-trigger the farm
-    // gesture model). Down only keeps the mental model: up = open sky,
-    // down = back to farm.
-    if (end - start >= SWIPE_DISMISS_PX) {
+    // PR-130 (Round 17): natural-panning model — finger pushes UP on
+    // the sky → camera pans DOWN → farm rises back into view. Inverted
+    // from PR-16 to match the farm-side swipe-down-to-open change
+    // (consistent: drag content with finger).
+    if (start - end >= SWIPE_DISMISS_PX) {
       onClose();
       return;
     }
@@ -209,7 +207,8 @@ export function SkyView({ open, slot, onClose }: Props) {
     setMessageIdx((n) => n + 1);
   };
 
-  // PR-16 — desktop mouse wheel: cumulative downward scroll closes.
+  // PR-130 — desktop mouse wheel: cumulative UP scroll closes (matches
+  // touch swipe-up-to-close after the Round 17 direction reversal).
   const wheelAcc = useRef(0);
   const wheelResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const SKY_WHEEL_THRESHOLD = 60;
@@ -219,7 +218,7 @@ export function SkyView({ open, slot, onClose }: Props) {
     wheelResetTimer.current = setTimeout(() => {
       wheelAcc.current = 0;
     }, 250);
-    if (wheelAcc.current >= SKY_WHEEL_THRESHOLD) {
+    if (wheelAcc.current <= -SKY_WHEEL_THRESHOLD) {
       wheelAcc.current = 0;
       onClose();
     }

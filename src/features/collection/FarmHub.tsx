@@ -367,9 +367,13 @@ export function FarmHub({
   // --- Sky-view -------------------------------------------------------
   const [skyOpen, setSkyOpen] = useState(false);
 
-  // PR-16: swipe-up / wheel-up on the farm card opens SkyView. The
-  // existing chip ("☁ 하늘 보기") still works; this is an additional
-  // affordance. Threshold values match SkyView's SWIPE_DISMISS_PX.
+  // PR-130 (Round 17 beta2 feedback): natural-panning model — finger
+  // moves DOWN on the farm → camera pans UP → sky comes into view.
+  // Previously was swipe-up-opens; user's mental model is map-style
+  // (drag content with finger). SkyView's close gesture is inverted to
+  // match (swipe up to "push" the farm back up).
+  //
+  // Threshold values still match across farm/sky for hand-feel consistency.
   const swipeStartY = useRef<number | null>(null);
   const swipeMoved = useRef(false);
   const wheelAcc = useRef(0);
@@ -391,8 +395,9 @@ export function FarmHub({
     swipeStartY.current = null;
     if (start == null) return;
     const end = e.changedTouches[0]?.clientY ?? start;
-    // Up swipe: start > end. Threshold matches SkyView's dismiss value.
-    if (start - end >= FARM_SWIPE_THRESHOLD_PX && !skyOpen) {
+    // Down swipe: end > start (finger moved down, clientY increased).
+    // Natural panning — drag content down → sky above comes into view.
+    if (end - start >= FARM_SWIPE_THRESHOLD_PX && !skyOpen) {
       haptic("light");
       setSkyOpen(true);
     }
@@ -406,7 +411,9 @@ export function FarmHub({
     wheelResetTimer.current = setTimeout(() => {
       wheelAcc.current = 0;
     }, 250);
-    if (wheelAcc.current <= -FARM_WHEEL_THRESHOLD && !skyOpen) {
+    // Positive deltaY = scroll down — consistent with the touch
+    // natural-pan direction (drag down → sky shows).
+    if (wheelAcc.current >= FARM_WHEEL_THRESHOLD && !skyOpen) {
       wheelAcc.current = 0;
       setSkyOpen(true);
     }
