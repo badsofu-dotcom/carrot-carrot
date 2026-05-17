@@ -19,7 +19,7 @@ import { InventoryModal } from "../components/Inventory/InventoryModal";
 import { useRewardsStore } from "../features/collection/rewardsStore";
 import { AchievementsCard } from "../features/collection/AchievementsCard";
 import { useSoundStore } from "../store/soundStore";
-import { bgmEngine } from "../lib/bgmEngine";
+import { bgmEngine, consumeFirstVisit } from "../lib/bgmEngine";
 import { playSfx } from "../lib/soundFx";
 import {
   RARITY_COLOR,
@@ -36,6 +36,11 @@ import {
   useOwnedByRarity,
   useOwnedSet,
 } from "../features/collection/collectionStore";
+// PR-132 (Round 18) — daily/weekly mission cards moved off the home
+// screen onto the farm view so the timer page can stay timer-focused.
+import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
+import { WeeklyMissionsCard } from "../features/missions/WeeklyMissionsCard";
+import { useTimerStore } from "../store/timerStore";
 
 const ALL_FILTERS: ("all" | Rarity)[] = [
   "all",
@@ -820,6 +825,10 @@ function FarmView({
   const [rewardsOpen, setRewardsOpen] = useState(false);
   const [bagOpen, setBagOpen] = useState(false);
   const unlockMedal = useRewardsStore((s) => s.unlockMedal);
+  // PR-132 — mission cards force-collapse while a focus session runs
+  // (mirrors HomePage's previous behavior).
+  const timerStatus = useTimerStore((s) => s.status);
+  const isFocusing = timerStatus === "FOCUSING";
 
   // The bag button now lives in ToolDock (PR-6 moved it off the header).
   // Listen for its cc:bag:open dispatch so we can open the modal.
@@ -844,25 +853,61 @@ function FarmView({
     return () => window.removeEventListener("cc:medal:unlocked", onUnlock);
   }, []);
 
-  // PR-13 — Farm BGM bootstrap. The browser blocks `audio.play()` until
-  // a user gesture, so we hook a one-shot pointerdown listener that
-  // calls bgmEngine.start with the current settings. bgmEngine.start is
-  // idempotent — extra calls past the first are cheap.
+  // PR-133 — Farm BGM bootstrap with 6-track context routing. The
+  // browser blocks `audio.play()` until a user gesture, so we hook a
+  // one-shot pointerdown listener. bgmEngine.start is idempotent.
   const farmBgmEnabled = useSoundStore((s) => s.farmBgmEnabled);
   const farmBgmVolume = useSoundStore((s) => s.farmBgmVolume);
+  // Sky open state mirrored from FarmHub via window event so we can
+  // include it in the BGM context without lifting FarmHub state.
+  const [skyOpenForBgm, setSkyOpenForBgm] = useState(false);
+  useEffect(() => {
+    const onSky = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ open?: boolean }>).detail;
+      setSkyOpenForBgm(Boolean(detail?.open));
+    };
+    window.addEventListener("cc:sky:state", onSky);
+    return () => window.removeEventListener("cc:sky:state", onSky);
+  }, []);
+  // First-visit detection — consumed exactly once per device.
+  const [firstVisit] = useState(() => consumeFirstVisit());
+  const ctx = useMemo(
+    () => ({
+      firstVisit,
+      skyOpen: skyOpenForBgm,
+      focusActive: isFocusing,
+      readyCrops: readyCount,
+      growingCrops: plantedCount,
+    }),
+    [firstVisit, skyOpenForBgm, isFocusing, readyCount, plantedCount],
+  );
   useEffect(() => {
     const kick = () => {
-      bgmEngine.start({ enabled: farmBgmEnabled, volume: farmBgmVolume });
+      bgmEngine.start(
+        { enabled: farmBgmEnabled, volume: farmBgmVolume },
+        ctx,
+      );
     };
     document.addEventListener("pointerdown", kick, { passive: true });
     return () => document.removeEventListener("pointerdown", kick);
-  }, [farmBgmEnabled, farmBgmVolume]);
+  }, [farmBgmEnabled, farmBgmVolume, ctx]);
   useEffect(() => {
     bgmEngine.setEnabled(farmBgmEnabled);
   }, [farmBgmEnabled]);
   useEffect(() => {
     bgmEngine.setVolume(farmBgmVolume);
   }, [farmBgmVolume]);
+  // Push every context change.
+  useEffect(() => {
+    bgmEngine.setContext(ctx);
+  }, [ctx]);
+  // Unmount: pause BGM when leaving the farm tab (HomePage START also
+  // pauses; this catches navigation to Settings/Reports/etc.).
+  useEffect(() => {
+    return () => {
+      bgmEngine.pause();
+    };
+  }, []);
 
   // PR-71 — Dogam threshold medals 비율 기반 (DOGAM_TOTAL = CHARACTERS.length).
   // 12-char universe 기준 임계 3 / 6 / 9 / 12. 캐릭터 추가 시 자동 재계산.
@@ -1001,6 +1046,14 @@ function FarmView({
               자체는 그대로 유지. */}
         </div>
       </header>
+
+      {/* PR-132 — daily/weekly mission cards (moved from HomePage).
+          Collapsed by default + force-collapsed during focus session.
+          Stacked between the farm header and the 9-plot field. */}
+      <div style={{ marginBottom: 8 }}>
+        <DailyMissionsCard forceCollapsed={isFocusing} />
+        <WeeklyMissionsCard forceCollapsed={isFocusing} />
+      </div>
 
       <div
         style={{

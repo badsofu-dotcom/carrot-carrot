@@ -40,9 +40,10 @@ import { useFarmStore } from "../features/collection/farmStore";
 import { useBuffsStore } from "../features/collection/buffsStore";
 import { useRewardsStore } from "../features/collection/rewardsStore";
 import { useMissionsStore } from "../features/missions/missionsStore";
-import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
-import { WeeklyMissionsCard } from "../features/missions/WeeklyMissionsCard";
+// PR-132 — Daily/Weekly cards moved to farm view. Store still used here
+// for focus-session recording on completion.
 import { useWeeklyMissionsStore } from "../features/missions/weeklyMissionsStore";
+import { bgmEngine } from "../lib/bgmEngine";
 import { useNotificationsStore } from "../features/notifications/notificationsStore";
 import { notify } from "../lib/webNotify";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
@@ -335,8 +336,18 @@ export function HomePage() {
   }, [authMode, setAuth]);
 
   const handlePlayPause = () => {
-    if (isIdle) startTimer();
-    else if (isFocusing) pauseTimer();
+    if (isIdle) {
+      // PR-133 — silence the farm BGM at session start so the focus
+      // ring + (optional) focus-track-on-farm pattern doesn't double up.
+      // When user navigates back to the farm tab the engine resumes
+      // with the focus track (focusActive=true).
+      try {
+        bgmEngine.pause();
+      } catch {
+        /* engine not bootstrapped yet — first visit on home; no-op */
+      }
+      startTimer();
+    } else if (isFocusing) pauseTimer();
     else if (isPaused) resumeTimer();
   };
 
@@ -502,12 +513,8 @@ export function HomePage() {
         onClose={() => setSoundSheetOpen(false)}
       />
 
-      {/* PR-52 / PR-100 / PR-104 — 미션 카드 기본 접힘 + FOCUSING 만
-          강제 접힘. PR-100 의 PAUSED 포함 정책은 회귀 — 사용자가 의도적
-          으로 일시정지 후 미션 interaction 시도 시 토글 막힘. PAUSED 는
-          학습 흐름이 잠시 멈춘 상태 → toggle 허용. */}
-      <DailyMissionsCard forceCollapsed={isFocusing} />
-      <WeeklyMissionsCard forceCollapsed={isFocusing} />
+      {/* PR-132 (Round 18) — Daily/Weekly mission cards moved to the farm
+          view (CollectionPage). Home now stays timer-focused. */}
 
       {/* Modals + overlays */}
       <AbandonModal
