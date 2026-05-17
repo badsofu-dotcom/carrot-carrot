@@ -125,11 +125,12 @@ export function ToolDock() {
   // disable 시 plant 자체가 중단). 추후 seed consumption wire 시 0 →
   // disable + 토스트 패턴으로 전환.
   const seeds = useFarmStore((s) => s.seeds);
-  // PR-28 — heart 토큰은 광고 시청 가능 잔여 횟수. PR-24 에서 KST
-  // 자정 리필 + ad-channel claim consume 가 wire 됨. 본 PR 은 슬롯
-  // UI + 표시만.
+  // PR-28 — heart 토큰은 광고 시청 가능 잔여 횟수.
+  // PR-98 — heart maxStack=5 인데 badge "N/3" 는 친구 wave bonus 후
+  // overflow ("4/3", "5/3") 표시 버그. 분모 제거 — wateringCan 의 PR-88
+  // 패턴 일관 적용. HEART_DAILY_MAX 상수는 의미 있는 분모 사용 케이스
+  // 위해 보존하지 않고 inline 제거.
   const heartCount = itemCounts.heart ?? 0;
-  const HEART_DAILY_MAX = 3;
 
   // Kick the rollover check on mount so the day key is fresh.
   rollover();
@@ -403,7 +404,7 @@ export function ToolDock() {
         data-testid="tool-ad"
         aria-label={
           heartCount > 0
-            ? `광고 보고 보상 받기 (${heartCount}/${HEART_DAILY_MAX})`
+            ? `광고 보고 보상 받기 (하트 ${heartCount}개)`
             : "광고 보상 — 하트 부족"
         }
         style={{
@@ -448,7 +449,7 @@ export function ToolDock() {
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
         >
-          {heartCount}/{HEART_DAILY_MAX}
+          {heartCount}
         </span>
       </button>
     </div>
