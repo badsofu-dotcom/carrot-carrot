@@ -14,6 +14,11 @@ import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 import { WEEKLY_ALL_COMPLETE_BONUS_P } from "./weeklyMissions";
 import { safeSessionStorage } from "../../lib/safeStorage";
+import {
+  canToggle,
+  computeExpanded,
+  nextUserExpanded,
+} from "./missionToggle";
 
 const SESSION_KEY = "cc.weeklyMissions.expanded.v1";
 
@@ -28,14 +33,14 @@ export function WeeklyMissionsCard({
   const claimAllBonus = useWeeklyMissionsStore((s) => s.claimAllBonus);
   const incCarrots = useFarmStore((s) => s.incCarrots);
   const addTreasureProgress = useRewardsStore((s) => s.addTreasureProgress);
-  // PR-100 — sessionStorage 영속.
+  // PR-100 → PR-104 — toggle 로직을 missionToggle.ts pure helper 로 추출.
   const [userExpanded, setUserExpanded] = useState<boolean>(
     () => safeSessionStorage.get(SESSION_KEY) === "1",
   );
-  const expanded = !forceCollapsed && userExpanded;
+  const expanded = computeExpanded(forceCollapsed, userExpanded);
   const toggle = () => {
-    if (forceCollapsed) return;
-    const next = !userExpanded;
+    if (!canToggle(forceCollapsed)) return;
+    const next = nextUserExpanded(forceCollapsed, userExpanded);
     setUserExpanded(next);
     try {
       safeSessionStorage.set(SESSION_KEY, next ? "1" : "0");

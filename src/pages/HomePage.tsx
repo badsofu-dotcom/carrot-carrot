@@ -481,11 +481,12 @@ export function HomePage() {
         onClose={() => setSoundSheetOpen(false)}
       />
 
-      {/* PR-52 / PR-100 — 오늘의 목표 카드. 기본 접힘 + RUNNING 강제 접힘. */}
-      <DailyMissionsCard forceCollapsed={isFocusing || isPaused} />
-
-      {/* PR-76 / PR-100 — 이번 주 목표 카드. 同 정책. */}
-      <WeeklyMissionsCard forceCollapsed={isFocusing || isPaused} />
+      {/* PR-52 / PR-100 / PR-104 — 미션 카드 기본 접힘 + FOCUSING 만
+          강제 접힘. PR-100 의 PAUSED 포함 정책은 회귀 — 사용자가 의도적
+          으로 일시정지 후 미션 interaction 시도 시 토글 막힘. PAUSED 는
+          학습 흐름이 잠시 멈춘 상태 → toggle 허용. */}
+      <DailyMissionsCard forceCollapsed={isFocusing} />
+      <WeeklyMissionsCard forceCollapsed={isFocusing} />
 
       {/* Modals + overlays */}
       <AbandonModal
