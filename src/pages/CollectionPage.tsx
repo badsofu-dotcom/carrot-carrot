@@ -958,11 +958,14 @@ function FarmView({
         padding: "8px 12px 0",
         display: "flex",
         flexDirection: "column",
-        // Take the full viewport minus the safe-area top and the
+        // Take the full viewport minus the safe-area top + bottom and the
         // tab bar reservation, so the farm card has a known cap to size
         // against. dvh handles iOS dynamic toolbar.
+        // R28 PHASE 1 — safe-area-inset-bottom 도 빼서 farm card bottom 이
+        // TabBar top 과 정확히 일치하게 함 (이전: safe-bottom 만큼 farm
+        // card 가 TabBar zone 안으로 침범했음 → ToolDock 겹침).
         height:
-          "calc(100dvh - env(safe-area-inset-top) - var(--tabbar-reserved, 84px))",
+          "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--tabbar-reserved, 84px))",
         maxWidth: 480,
         margin: "0 auto",
       }}

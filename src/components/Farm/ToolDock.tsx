@@ -183,11 +183,12 @@ export function ToolDock() {
       style={{
         position: "absolute",
         left: "50%",
-        // R26.5 — `vh - tabbar-reserved` (CollectionPage main height) does
-        // not account for safe-area-inset-bottom, so on iOS Apps-in-Toss
-        // the farm card bottom sits `safe-bottom` px below the TabBar top.
-        // Add safe-bottom to ToolDock offset so it always clears the TabBar.
-        bottom: "calc(12px + env(safe-area-inset-bottom))",
+        // R28 PHASE 1 — R26.5 의 safe-area 보정 (calc(12px + env(
+        // safe-area-inset-bottom))) 롤백. CollectionPage farm 탭의 main
+        // height 계산이 safe-bottom 까지 빼도록 같이 수정되어 farm card
+        // bottom 이 곧 TabBar top 이 됨. 따라서 toolbox bottom 12 면 자연
+        // 스럽게 TabBar 위 12px 여백.
+        bottom: 12,
         transform: "translateX(-50%)",
         display: "flex",
         // PR-131 — 슬롯 사이 gap 6 → 8, padding 축소.
