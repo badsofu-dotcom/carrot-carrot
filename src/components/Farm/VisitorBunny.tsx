@@ -163,14 +163,24 @@ export function VisitorBunny({ visible }: Props) {
           </motion.div>
           <div
             style={{
-              borderRadius: 18,
+              // Round 17.5 — transparent cutouts render with their own
+              // alpha. Drop the rounded-rect chip background; keep glow
+              // as a soft halo behind the silhouette.
+              borderRadius: "50%",
               boxShadow: glow,
               animation: isHighTier
                 ? "visitor-pulse 2.4s ease-in-out infinite"
                 : undefined,
             }}
           >
-            <Bunny variant={safeBunnyKey} size={64} frame="rounded" breathe alt="" />
+            <Bunny
+              variant={safeBunnyKey}
+              size={80}
+              frame="none"
+              breathe
+              transparent
+              alt=""
+            />
           </div>
           {/* Heart pop fx */}
           <AnimatePresence>

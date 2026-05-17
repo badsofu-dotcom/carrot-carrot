@@ -1,6 +1,13 @@
 // 토끼 캐릭터 이미지 매핑 — Phase 2: WebP 1x/2x 자산.
 // 원본 JPG (1080×1080, ~380KB each) 를 1x(640px ~25KB) + 2x(1080px ~70KB) WebP 로 변환.
 // Vite 의 ?url 임포트로 빌드 해시가 붙은 정적 URL 을 안전하게 받는다.
+//
+// Round 17.5 — 누끼 (transparent) 변형 추가. ./transparent/ 디렉토리에
+// 35종 RGBA webp (256/512). 도감의 12 캐릭터는 BUNNY_TRANSPARENT 로
+// 매핑돼 VisitorBunny 가 농장 카드 위에 단색 배경 없이 떠 있게 한다.
+// 도감/온보딩 등 다른 화면은 기존 단색-bg bunnyImages 그대로 사용.
+
+import { transparentBunnyImages } from "./transparent";
 
 import bunny_cry_1x from "./bunny_cry.webp?url";
 import bunny_cry_2x from "./bunny_cry@2x.webp?url";
@@ -96,3 +103,34 @@ export const bunnyCollection = [
 
 export type BunnyCollectionItem = (typeof bunnyCollection)[number];
 export type Rarity = "common" | "rare" | "sr" | "ssr" | "legendary";
+
+/**
+ * Round 17.5 — dogam character → transparent (cutout) bunny mapping.
+ *
+ * Keyed by BunnyKey (underscore form) so it lines up with `bunnyImages`
+ * and the existing `<Bunny variant>` API. The 12 mapped keys cover the
+ * full dogam roster from collectionData CHARACTERS:
+ *
+ *   idle/focus/eat25/eat50/eat75/cry/sleep/success (common+rare)
+ *   rare_ninja / rare_king                          (rare)
+ *   rare_wizard                                     (SR tier in dogam — id "sr-wizard")
+ *   legendary_demon                                 (legendary)
+ *
+ * The remaining 23 transparent variants in ./transparent/ stay unmapped
+ * for now (Round 18+ dogam expansion candidates: santa, samurai, angel,
+ * astronaut, detective, etc.).
+ */
+export const BUNNY_TRANSPARENT: Partial<Record<BunnyKey, BunnyAsset>> = {
+  idle: transparentBunnyImages.waving,
+  focus: transparentBunnyImages.thinking,
+  eat25: transparentBunnyImages.carrying,
+  eat50: transparentBunnyImages.harvesting,
+  eat75: transparentBunnyImages.chef,
+  cry: transparentBunnyImages.sulk,
+  sleep: transparentBunnyImages.sleeping_in_field,
+  success: transparentBunnyImages.proud,
+  rare_ninja: transparentBunnyImages.ninja,
+  rare_king: transparentBunnyImages.pirate,
+  rare_wizard: transparentBunnyImages.scientist,
+  legendary_demon: transparentBunnyImages.vampire,
+};

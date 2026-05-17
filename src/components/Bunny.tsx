@@ -1,6 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { bunnyImages, type BunnyKey } from "../assets/characters";
+import {
+  bunnyImages,
+  BUNNY_TRANSPARENT,
+  type BunnyKey,
+} from "../assets/characters";
 import { SpeechBubble } from "../design-system/ui";
 import { haptic } from "../design-system/haptic";
 
@@ -31,6 +35,17 @@ interface BunnyProps {
   /** 말풍선 항상 노출용 (interactive 와 별개) */
   speech?: string | null;
   onTap?: () => void;
+  /**
+   * Round 17.5 — render the transparent (RGBA) variant from
+   * BUNNY_TRANSPARENT instead of the cream-bg dogam asset. When true,
+   * the soft-edge radial mask is also skipped (the alpha channel already
+   * cuts the silhouette), so the bunny sits cleanly on any background.
+   *
+   * Currently used only by VisitorBunny on the farm card. If the dogam
+   * id is missing from BUNNY_TRANSPARENT, the component falls back to
+   * the cream-bg asset so nothing breaks.
+   */
+  transparent?: boolean;
 }
 
 export function Bunny({
@@ -45,8 +60,14 @@ export function Bunny({
   frame = "rounded",
   speech: externalSpeech,
   onTap,
+  transparent = false,
 }: BunnyProps) {
-  const asset = bunnyImages[variant];
+  // Round 17.5 — when transparent=true and a cutout exists for this
+  // variant, use it. Otherwise fall back to the standard cream-bg asset
+  // so consumers never crash on an unmapped variant.
+  const asset =
+    (transparent ? BUNNY_TRANSPARENT[variant] : undefined) ??
+    bunnyImages[variant];
   const [tapping, setTapping] = useState(false);
   const [bubble, setBubble] = useState<string | null>(null);
   const tapTimeout = useRef<number | null>(null);
@@ -155,6 +176,10 @@ export function Bunny({
   // 로 읽힌다. 가장자리를 부드럽게 fade-out 시키는 radial mask 를 깔아 bunny
   // 캐릭터 부분만 surface 위에 떠 있는 느낌을 만든다. cream surface 위에서는
   // mask 가 cream-on-cream 으로 보이지 않으므로 home/timer 등에는 영향 없음.
+  //
+  // Round 17.5 — transparent 모드는 알파 채널이 이미 외곽을 잘라낸 상태이므로
+  // mask 를 적용하면 캐릭터 가장자리(귀/꼬리)가 추가로 페이드되어 부자연스럽다.
+  // → transparent=true 면 mask + cover crop 끄고 contain 으로 fit.
   const softEdgeMask =
     "radial-gradient(circle at 50% 52%, #000 55%, rgba(0,0,0,0.85) 70%, rgba(0,0,0,0) 96%)";
 
@@ -176,15 +201,15 @@ export function Bunny({
       style={{
         width: size,
         height: size,
-        objectFit: "cover",
-        borderRadius: radius,
+        objectFit: transparent ? "contain" : "cover",
+        borderRadius: transparent ? 0 : radius,
         display: "block",
         // 로드 전: 완전 투명 → 사각 placeholder/box flash 차단.
         // 로드 후: 짧은 페이드인 (160ms) 으로 자연스럽게 등장.
         opacity: loaded ? 1 : 0,
         transition: "opacity 0.16s ease-out",
-        WebkitMaskImage: softEdgeMask,
-        maskImage: softEdgeMask,
+        WebkitMaskImage: transparent ? undefined : softEdgeMask,
+        maskImage: transparent ? undefined : softEdgeMask,
       }}
     />
   );
