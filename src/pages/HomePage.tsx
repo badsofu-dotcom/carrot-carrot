@@ -44,6 +44,10 @@ import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
 import { useNotificationsStore } from "../features/notifications/notificationsStore";
 import { notify } from "../lib/webNotify";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
+import {
+  consumeSuppressedDrops,
+  formatSuppressedMessage,
+} from "../lib/notify/focusGate";
 
 const LOGIN_PROMPT_KEY = "cc.hasSeenLoginPrompt";
 const LOGIN_PROMPT_DELAY = 500;
@@ -84,6 +88,18 @@ export function HomePage() {
   const isIdle = status === "IDLE";
   const isFocusing = status === "FOCUSING";
   const isPaused = status === "PAUSED";
+
+  // PR-74 — 집중 종료 직후 (FOCUSING → 다른 상태) 농장에서 누적된
+  // 드랍 알림을 한 번에 batch 표시. 학습 중 분주한 알림 → 종료 후 모임.
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    if (prevStatusRef.current === "FOCUSING" && status !== "FOCUSING") {
+      const counts = consumeSuppressedDrops();
+      const msg = formatSuppressedMessage(counts);
+      if (msg) toast(msg, { duration: 4000 });
+    }
+    prevStatusRef.current = status;
+  }, [status]);
 
   // 페이지 떠나기 경고
   useEffect(() => {

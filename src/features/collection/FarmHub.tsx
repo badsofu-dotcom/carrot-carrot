@@ -29,6 +29,10 @@ import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
 import { useMissionsStore } from "../missions/missionsStore";
+import {
+  consumeSuppressedDrops,
+  formatSuppressedMessage,
+} from "../../lib/notify/focusGate";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
@@ -209,6 +213,14 @@ export function FarmHub({
   // PR-13 — SFX now has its own volume slider, decoupled from the
   // white-noise BGM volume that drives the focus-mode player.
   const masterVolume = useSoundStore((s) => s.sfxVolume);
+
+  // PR-74 — 농장 진입 시 누적된 suppressed drop 메시지 flush. 사용자
+  // 가 집중 중 홈에서 그냥 농장으로 넘어와도 한 번에 확인 가능.
+  useEffect(() => {
+    const counts = consumeSuppressedDrops();
+    const msg = formatSuppressedMessage(counts);
+    if (msg) toast(msg, { duration: 4000 });
+  }, []);
 
   // Pull canonical farm + inventory + bunny ownership + today's visitor
   // from the server on mount. No-op for guest/mock — every adapter

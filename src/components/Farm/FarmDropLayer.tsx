@@ -27,6 +27,11 @@ import { useItemsStore, SEED_ICON_REL } from "../../features/collection/itemsSto
 import { useMissionsStore } from "../../features/missions/missionsStore";
 import { useNotificationsStore } from "../../features/notifications/notificationsStore";
 import { notify } from "../../lib/webNotify";
+import {
+  isFocusBlackout,
+  pushSuppressedDrop,
+  type SuppressibleKind,
+} from "../../lib/notify/focusGate";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useSoundStore } from "../../store/soundStore";
 import { playSfx } from "../../lib/soundFx";
@@ -321,12 +326,13 @@ export function FarmDropLayer() {
       };
       const next = [...cur, newDrop];
       persist(next);
-      // PR-53 — drop spawn 시 알림 (사용자 가 다른 탭/앱 보고 있을 때
-      // 자기 농장에 뭔가 떨어졌다는 신호). visibility hidden 한정으로
-      // 좁히면 더 자연스러우나 본 PR 은 minimal — store 가 토글 false
-      // 면 no-op.
+      // PR-53 — drop spawn 시 알림.
+      // PR-74 — 홈(/) 에서 집중 중일 때는 suppress + 큐에 누적. 타이머
+      // DONE 또는 농장 진입 시 batch 메시지로 한 번에 표시.
       const notifStore = useNotificationsStore.getState();
-      if (notifStore.shouldNotify("drop")) {
+      if (isFocusBlackout()) {
+        pushSuppressedDrop(spec.kind as SuppressibleKind);
+      } else if (notifStore.shouldNotify("drop")) {
         notify({
           kind: "drop",
           title: "🌟 농장에 뭔가 떨어졌어요",
