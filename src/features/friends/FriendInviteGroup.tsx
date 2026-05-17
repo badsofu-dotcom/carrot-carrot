@@ -74,7 +74,7 @@ export function FriendInviteGroup() {
     switch (result) {
       case "ok":
         haptic("success");
-        toast("🎉 친구 초대 적용 — 씨앗 +10, 보석 +5");
+        toast("🎉 친구 초대 적용 — 캔디당근 +2, 보석 +5");
         setInput("");
         break;
       case "self":

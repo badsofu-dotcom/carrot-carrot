@@ -254,20 +254,18 @@ export function HomePage() {
         }
 
         // Reward 4: 농장 — duration-tier 적용.
-        // PR-92 — cake 재설계: 씨앗 +1 → 모든 농장 보상 × 1.5.
-        // Math.ceil 로 floor 가 아닌 보수적 올림 (사용자 유리).
-        // growSteps 도 1.5× 적용되지만 stages 자체가 0..4 cap.
+        // PR-92 — cake 재설계: 모든 농장 보상 × 1.5.
+        // PR-109 — 씨앗 자원 폐기 → growSteps 만 1.5× 적용.
         const cakeActive = useBuffsStore.getState().consume("cake");
         const mul = cakeActive ? 1.5 : 1;
         const effectiveSteps = Math.ceil(reward.growSteps * mul);
-        const effectiveSeed = Math.ceil(reward.seedDelta * mul);
         const grown = useFarmStore
           .getState()
-          .growAllPlanted(effectiveSteps, lastSnapshot.at, effectiveSeed);
-        if (grown > 0 || effectiveSeed > 0) {
+          .growAllPlanted(effectiveSteps, lastSnapshot.at);
+        if (grown > 0) {
           toast(
             cakeActive
-              ? `${reward.message} · 🍰 케이크 효과 모든 보상 1.5배`
+              ? `${reward.message} · 🍰 케이크 효과 1.5배 성장`
               : reward.message,
           );
         }

@@ -47,12 +47,11 @@ export function RewardsPanel({ open, onClose }: Props) {
   const carrots = useFarmStore((s) => s.carrots);
   const candy = useFarmStore((s) => s.candyCarrots);
   const golden = useFarmStore((s) => s.goldenCarrots);
-  const seeds = useFarmStore((s) => s.seeds);
+  // PR-109 — seeds 자원 폐기. 헤더 chip 표시 3개로 축소.
 
   const incCandy = useFarmStore((s) => s.incCandyCarrots);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
   const incCarrots = useFarmStore((s) => s.incCarrots);
-  const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
 
   const claimedDay = useRewardsStore((s) => s.giftClaimedDay);
   const claimDailyGift = useRewardsStore((s) => s.claimDailyGift);
@@ -110,14 +109,12 @@ export function RewardsPanel({ open, onClose }: Props) {
     const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
     const giftBoost = passivesFromOwned(dogamOwned).giftBoostX;
     const amt = Math.max(1, Math.round(reward.amount * giftBoost));
+    // PR-109 — seed kind 제거 (giftRoll 도 더 이상 seed 반환 안 함).
     if (reward.kind === "candy") incCandy(amt);
     else if (reward.kind === "golden") incGolden(amt);
     else if (reward.kind === "gem") {
       useItemsStore.getState().add("gem", amt);
     }
-    // "seed" rewards land via the same store path on the next focus
-    // session tier — surfacing in inventory not yet wired for
-    // direct-grant; documented as a known limitation.
   };
 
   // PR-17b — open the weekly treasure chest. The roll lives in
@@ -143,11 +140,8 @@ export function RewardsPanel({ open, onClose }: Props) {
       case "carrot":
         incCarrots(reward.amount);
         break;
-      case "seed":
-        // growAllPlanted's seed-delta side-door is the only existing
-        // direct-grant path (same as PR-7 gem→seed swap).
-        growAllPlanted(0, null, reward.amount);
-        break;
+      // PR-109 — seed kind 제거. WEEKLY_TREASURE_TABLE 도 더 이상 seed
+      // entry 없음.
       case "star":
         useItemsStore.getState().add("star", reward.amount);
         break;
@@ -348,7 +342,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                     {points.toLocaleString()} P
                   </div>
                   <div style={{ fontSize: 11, color: "#6a6055" }}>
-                    🥕 {carrots} · 🍬 {candy} · ✨ {golden} · 🌱 {seeds}
+                    🥕 {carrots} · 🍬 {candy} · ✨ {golden}
                   </div>
                 </div>
                 <button
@@ -585,10 +579,10 @@ export function RewardsPanel({ open, onClose }: Props) {
 
 // PR-26 — medalAsset 이 AchievementsCard 로 이동.
 
+// PR-109 — seed kind 제거. giftToText/treasureToText 둘 다 seed case
+// 제거.
 function giftToText(g: GiftReward): string {
   switch (g.kind) {
-    case "seed":
-      return `🌱 씨앗 +${g.amount}`;
     case "candy":
       return `🍬 캔디 당근 +${g.amount} (+${g.amount * 5} P)`;
     case "golden":
@@ -606,8 +600,6 @@ function treasureToText(t: { kind: string; amount: number; points: number }): st
       return `✨ 황금 당근 +${t.amount} (+${t.points} P)`;
     case "carrot":
       return `🥕 당근 +${t.amount} (+${t.points} P)`;
-    case "seed":
-      return `🌱 씨앗 +${t.amount}`;
     case "star":
       return `⭐ 별 +${t.amount}`;
     default:

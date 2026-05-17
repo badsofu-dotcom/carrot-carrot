@@ -8,7 +8,7 @@
  *   - 4 legacy actions from the previous inline DevActionsGroup
  *     (test success / legendary preview / dogam fill / WIPE)
  *   - 14 PR-19 cheats:
- *       모든 자원 +999 / 당근 +100 / 캔디 +10 / 황금 +10 / 씨앗 +50 /
+ *       모든 자원 +999 / 당근 +100 / 캔디 +10 / 황금 +10 /
  *       별·보석 +20 / 도구 아이템 충전 / BGM·SFX 토글 /
  *       광고 보상 즉시 트리거 / 보물 진행 +7 / 버프 일괄 활성 /
  *       메달 전부 unlock / 오늘의 선물 리셋 / 시간대 강제 사이클
@@ -84,7 +84,6 @@ export function DevActionsGroup() {
   const incCarrots = useFarmStore((s) => s.incCarrots);
   const incCandy = useFarmStore((s) => s.incCandyCarrots);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
-  const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
   const addItem = useItemsStore((s) => s.add);
   const activateBuff = useBuffsStore((s) => s.activate);
   const unlockMedal = useRewardsStore((s) => s.unlockMedal);
@@ -147,7 +146,7 @@ export function DevActionsGroup() {
     incCarrots(999);
     incCandy(999);
     incGolden(999);
-    growAllPlanted(0, null, 999); // seeds via side-door
+    // PR-109 — seeds 자원 폐기.
     // Bag items — every defined code. carrot/candy/golden are mirrored
     // (their canonical SoT is farmStore, not itemsStore) so we skip
     // those three to avoid double-counting in the bag grid.
@@ -183,11 +182,7 @@ export function DevActionsGroup() {
     incGolden(10);
     toast("황금 +10");
   };
-  const handleSeed50 = () => {
-    haptic("light");
-    growAllPlanted(0, null, 50);
-    toast("씨앗 +50");
-  };
+  // PR-109 — handleSeed50 제거 (씨앗 자원 폐기).
   const handleStarGem20 = () => {
     haptic("light");
     addItem("star", 20);
@@ -275,11 +270,11 @@ export function DevActionsGroup() {
         />
         <DevRow label="레전더리 미리보기" sub="해제 오버레이 프리뷰" onClick={handlePreviewLegendary} />
         <DevRow label="도감 전부 채우기" sub="12종 캐릭터 unlock" onClick={handleSeedAll} />
-        <DevRow label="모든 자원 +999" sub="당근/캔디/황금/씨앗/별/보석" onClick={handleAllResources999} />
+        <DevRow label="모든 자원 +999" sub="당근/캔디/황금/별/보석" onClick={handleAllResources999} />
         <DevRow label="당근 +100" onClick={handleCarrot100} />
         <DevRow label="캔디 +10" onClick={handleCandy10} />
         <DevRow label="황금 +10" onClick={handleGolden10} />
-        <DevRow label="씨앗 +50" onClick={handleSeed50} />
+        {/* PR-109 — 씨앗 row 제거 */}
         <DevRow label="별·보석 +20" onClick={handleStarGem20} />
         <DevRow label="도구 아이템 충전" sub="hourglass/bolt/juice/soup/cake 각 +9, 물뿌리개 max" onClick={handleRefillTools} />
         <DevRow label="BGM·SFX 일괄 토글" sub={`현재 BGM ${farmBgmEnabled ? "ON" : "OFF"} · SFX ${sfxMuted ? "OFF" : "ON"}`} onClick={handleToggleAudio} />

@@ -594,7 +594,7 @@ export function FarmHub({
       if (spendWatering()) {
         // Use growAllPlanted's per-snapshot dedupe by passing a unique
         // id — Date.now() guarantees this watering tap is counted.
-        growAllPlanted(1, Date.now(), 0);
+        growAllPlanted(1, Date.now());
         haptic("light");
         playSfx("water", { muted: sfxMuted, masterVolume });
         pushFx("water_splash", bounds);

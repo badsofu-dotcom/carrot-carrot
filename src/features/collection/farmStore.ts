@@ -8,13 +8,16 @@
  *     local state with the canonical server snapshot. Otherwise we stay
  *     session-only and the user sees no error.
  *   - Hydration: `hydrate()` is called by FarmHub on mount; it fetches the
- *     latest server state and seeds the store. Safe to call repeatedly.
+ *     latest server state and applies it locally. Safe to call repeatedly.
  *
  * Growth model:
- *   - Tap empty plot → seed (stage 1). Manual taps never advance further.
+ *   - Tap empty plot → plant (stage 1). 무한 — 씨앗 자원 가드 없음 (PR-109).
  *   - Tap stage 1–3 → gentle reminder toast; stage stays.
  *   - Tap stage 4 (ripe) → harvest, plot back to 0, carrot count +1.
  *   - Focus session complete → every planted plot grows +1 (capped at 4).
+ *
+ * PR-109 — 씨앗 자원 폐기. seeds 필드 + seedDelta param 모두 제거.
+ * 미배포 컨텍스트 → 마이그레이션 / 환산 없이 깔끔 제거.
  *
  * Debug mode (?debug=1) allows manual stage cycling for testing/screenshots.
  */
@@ -34,23 +37,7 @@ export type CropStage = 0 | 1 | 2 | 3 | 4;
 interface FarmState {
   stages: CropStage[]; // length 9
   carrots: number;
-  /**
-   * Bonus seeds inventory awarded by focus-tier rules (see
-   * `src/lib/farmRules.ts`). Client-side only today — the worker
-   * schema does not store seeds yet, so this resets on a fresh
-   * device. Re-hydrates only locally.
-   */
-  seeds: number;
-  /**
-   * Candy carrots (4–12% of harvests per seasonalBunny.ts). Local-only
-   * for now — pending the economy worker's persistence layer. UI
-   * surfaces this in the header chip and the gacha helper increments
-   * via `incCandyCarrots()`.
-   */
   candyCarrots: number;
-  /**
-   * Golden carrots (1% of harvests). Local-only, same caveat.
-   */
   goldenCarrots: number;
   /** Last growth-snapshot id we applied. Internal dedup belt+braces. */
   lastGrowthSnapshotId: number | null;
@@ -70,16 +57,10 @@ interface FarmState {
    * `snapshotId` is the unique focus-complete snapshot id (e.g. lastSnapshot.at).
    * Pass it to guarantee idempotency: a repeated call with the same id is a
    * no-op even if the HomePage effect runs twice.
-   *
-   * `seedDelta` (optional) is the bonus-seed count returned by
-   * `getFocusFarmReward()`. Applied to local `seeds` inventory only;
-   * the worker doesn't know about seeds yet (no D1 migration in this
-   * PR). Defaults to 0.
    */
   growAllPlanted: (
     steps?: number,
     snapshotId?: number | null,
-    seedDelta?: number,
   ) => number;
   reset: () => void;
   /**
@@ -94,24 +75,12 @@ const empty = (): CropStage[] => Array(9).fill(0) as CropStage[];
 function applyRemote(set: (p: Partial<FarmState>) => void, r: FarmSyncResult) {
   if (!r.ok || r.mode !== "remote") return;
   const next = stagesFromRemote(r.state) as CropStage[];
-  // Server is the SoT for cross-session inventory. `seeds` is optional
-  // because pre-0004 workers don't return it; default to whatever the
-  // local store currently has so we don't zero a locally-incremented
-  // value on partial responses.
-  const patch: Partial<FarmState> = {
-    stages: next,
-    carrots: r.state.carrots,
-  };
-  if (typeof r.state.seeds === "number") {
-    patch.seeds = r.state.seeds;
-  }
-  set(patch);
+  set({ stages: next, carrots: r.state.carrots });
 }
 
 export const useFarmStore = create<FarmState>((set, get) => ({
   stages: empty(),
   carrots: 0,
-  seeds: 0,
   candyCarrots: 0,
   goldenCarrots: 0,
   lastGrowthSnapshotId: null,
@@ -148,25 +117,21 @@ export const useFarmStore = create<FarmState>((set, get) => ({
 
   incCandyCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
-    // PR-90 — earned 카운터 추적 (소프트 캡 — resource 는 항상 grant).
-    // candy = 5 P × n.
     void addPoints("candy", Math.floor(n) * 5);
     set({ candyCarrots: get().candyCarrots + Math.floor(n) });
   },
   incGoldenCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
-    // PR-90 — golden = 10 P × n.
     void addPoints("golden", Math.floor(n) * 10);
     set({ goldenCarrots: get().goldenCarrots + Math.floor(n) });
   },
   incCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
-    // PR-90 — carrot = 1 P × n.
     void addPoints("carrot", Math.floor(n));
     set({ carrots: get().carrots + Math.floor(n) });
   },
 
-  growAllPlanted: (steps = 1, snapshotId = null, seedDelta = 0) => {
+  growAllPlanted: (steps = 1, snapshotId = null) => {
     const s = get();
     if (snapshotId !== null && s.lastGrowthSnapshotId === snapshotId) {
       return 0;
@@ -179,20 +144,12 @@ export const useFarmStore = create<FarmState>((set, get) => ({
         grown++;
       }
     }
-    const nextSeeds = Math.max(0, s.seeds + (seedDelta > 0 ? seedDelta : 0));
     if (grown > 0) {
-      set({
-        stages: next,
-        lastGrowthSnapshotId: snapshotId,
-        seeds: nextSeeds,
-      });
-      void growOnServer(steps, snapshotId, seedDelta).then((r) =>
-        applyRemote(set, r),
-      );
+      set({ stages: next, lastGrowthSnapshotId: snapshotId });
+      // PR-109 — seedDelta 제거. growOnServer 의 3번째 param 도 0.
+      void growOnServer(steps, snapshotId, 0).then((r) => applyRemote(set, r));
     } else if (snapshotId !== null) {
-      set({ lastGrowthSnapshotId: snapshotId, seeds: nextSeeds });
-    } else if (seedDelta > 0) {
-      set({ seeds: nextSeeds });
+      set({ lastGrowthSnapshotId: snapshotId });
     }
     return grown;
   },
@@ -201,7 +158,6 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     set({
       stages: empty(),
       carrots: 0,
-      seeds: 0,
       candyCarrots: 0,
       goldenCarrots: 0,
       lastGrowthSnapshotId: null,

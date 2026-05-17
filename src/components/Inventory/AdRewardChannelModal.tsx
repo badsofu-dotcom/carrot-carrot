@@ -140,16 +140,13 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       case "treasure": {
         // PR-48 — 보물 진행 +1 + 랜덤 보상 풀 1개.
         useRewardsStore.getState().addTreasureProgress(1);
+        // PR-109 — 씨앗 자원 폐기. seed +3 slot → 캔디당근 +1 흡수 (가치
+        // 0P → 5P 격상). 합산 candy 확률 0.10 + 0.15 = 0.25.
         const rewards = [
           { p: 0.35, label: "⭐ 별 +1", apply: () => addItem("star", 1) },
           { p: 0.25, label: "💎 보석 +1", apply: () => addItem("gem", 1) },
           {
-            p: 0.15,
-            label: "🌱 씨앗 +3",
-            apply: () => useFarmStore.getState().growAllPlanted(0, null, 3),
-          },
-          {
-            p: 0.1,
+            p: 0.25,
             label: "🍬 캔디당근 +1 (+5 P)",
             apply: () => useFarmStore.getState().incCandyCarrots(1),
           },
@@ -299,7 +296,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               <ChannelRow
                 icon={`${BASE}assets/farm/rewards/treasure_chest.png`}
                 label="보물 진행 +1 (랜덤 보상)"
-                hint="별/보석/씨앗/캔디/번개/황금 중 1종"
+                hint="별/보석/캔디/번개/황금 중 1종"
                 disabled={alreadyClaimed("treasure")}
                 onClick={() => claim("treasure")}
                 testId="ad-channel-treasure"

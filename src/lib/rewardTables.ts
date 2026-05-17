@@ -16,13 +16,13 @@
  *     a uniform RNG; tests inject `() => 0.X` to exercise boundaries.
  */
 
+// PR-109 — seed kind 제거 (씨앗 자원 폐기).
 export type RewardKind =
-  | "seed"      // 0 P, local-only farm seeds
   | "candy"     // 5 P
   | "golden"    // 10 P
   | "carrot"    // 1 P
   | "star"      // 0 P, used to buy legendary bunny
-  | "gem"       // 0 P, future shop currency (PR-7)
+  | "gem"       // 0 P, future shop currency
   | "treasure_progress"; // 0 P, advances treasure chest
 
 export interface TableEntry {
@@ -34,29 +34,27 @@ export interface TableEntry {
 }
 
 /**
- * Daily gift table. EV 2.0 P after PR-17c alignment.
- *
- * Mirrors `src/lib/giftRoll.ts → rollGift` band by band so the
- * doc-table (this) and the runtime roll function agree. The worker
- * `cloudflare/.../routes/boxes.ts → DAILY` is updated in lock-step.
+ * Daily gift table. PR-109 — 씨앗 자원 폐기. seed 엔트리 (0P) → candy
+ * 로 흡수. EV 2.0 P → 4.7 P 상향 (사용자 가치 ↑).
  */
 export const DAILY_GIFT_TABLE: readonly TableEntry[] = [
-  { p: 0.6, kind: "seed", amount: 1, points: 0 },
+  { p: 0.6, kind: "candy", amount: 1, points: 5 },
   { p: 0.24, kind: "candy", amount: 1, points: 5 },
   { p: 0.08, kind: "golden", amount: 1, points: 10 },
-  { p: 0.06, kind: "seed", amount: 3, points: 0 },
+  { p: 0.06, kind: "candy", amount: 2, points: 10 },
   { p: 0.02, kind: "gem", amount: 1, points: 0 },
 ];
 
 /**
  * Weekly treasure table. Higher-value pool — opens after the player
  * accumulates 7 treasure_progress points. Sum 1.0.
+ *
+ * PR-109 — seed 엔트리 (0P) → carrot 5개 로 흡수.
  */
 export const WEEKLY_TREASURE_TABLE: readonly TableEntry[] = [
   { p: 0.25, kind: "candy", amount: 2, points: 10 },
   { p: 0.2, kind: "golden", amount: 1, points: 10 },
-  { p: 0.2, kind: "carrot", amount: 5, points: 5 },
-  { p: 0.15, kind: "seed", amount: 3, points: 0 },
+  { p: 0.35, kind: "carrot", amount: 5, points: 5 },
   { p: 0.15, kind: "star", amount: 3, points: 0 },
   { p: 0.05, kind: "golden", amount: 3, points: 30 },
 ];

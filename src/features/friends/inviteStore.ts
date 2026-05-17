@@ -93,8 +93,8 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     } catch {
       /* ignore */
     }
-    // 가입자 보상 — 씨앗 +10, 보석 +5.
-    useFarmStore.getState().growAllPlanted(0, null, 10);
+    // PR-109 — 씨앗 +10 → 캔디당근 +2 (+10P) 로 대체. 보석 +5 유지.
+    useFarmStore.getState().incCandyCarrots(2);
     useItemsStore.getState().add("gem", 5);
     // 일일 미션 트리거.
     useMissionsStore.getState().incrementProgress("friend_invite", 1);

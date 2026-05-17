@@ -6,7 +6,7 @@
  *   - Bag-button species-count badge in the farm header
  *   - Use-item hooks (hourglass / bolt / juice / soup / cake) — wired
  *     through `useItem(code)` which mirrors any side-effect into the
- *     existing stores (farmStore.seeds, toolStore, etc.).
+ *     existing stores (toolStore, etc.).
  *
  * The Worker route `POST /items/use` is the canonical SoT once 0006
  * lands; until then the local store is what the UI reads.
@@ -28,7 +28,7 @@ import {
  */
 // PR-31 — 자원 분류 재정의.
 //   currency: P 직접 변환 (carrot/candy/golden)
-//   soft_currency: 게임내 재화 (seed/carrot_coin)
+//   soft_currency: 게임내 재화 (carrot_coin) — PR-109 seed 제거
 //   consumable: 도구 아이템 (hourglass/bolt/juice/soup/cake)
 //   token: 특수 토큰 (star/gem/heart)
 // (medal 11종 honor 는 rewardsStore.medals Set — itemsStore 가 아님.
@@ -39,12 +39,12 @@ export type ItemCategory =
   | "consumable"
   | "token";
 
+// PR-109 — seed 자원 제거.
 export type ItemCode =
   // resources (currency + soft_currency)
   | "carrot"
   | "candy"
   | "golden"
-  | "seed"
   | "carrot_coin"
   // tool items (consumable)
   | "hourglass"
@@ -79,7 +79,7 @@ interface ItemDef {
   /**
    * Minimum stack size required to spend one charge of this item. The
    * "사용" button stays hidden until `count >= minToUse`. Default 1.
-   * `gem` uses 5 (5 gems → +1 seed), `carrot_coin` 50 (PR-24 trade).
+   * `gem` uses 5 (5 gems → +3 candy), `carrot_coin` 50 (PR-24 trade).
    */
   minToUse?: number;
   /**
@@ -90,15 +90,7 @@ interface ItemDef {
   maxStack?: number;
 }
 
-/**
- * PR-70 — 씨앗 아이콘 자산 경로 single source of truth.
- *
- * `tool_fertilizer.png` 은 비료봉투 비주얼 PNG 지만 사용자 UI 는
- * 모두 "씨앗" / 🌱 으로 표시. itemsStore / FarmDropLayer /
- * CollectionPage 의 CurrencyChip 세 site 가 동일 자산을 사용해야
- * 시각 정합 — 그래서 이 상수에서 export.
- */
-export const SEED_ICON_REL = "assets/farm/items/tool_fertilizer.png";
+// PR-109 — SEED_ICON_REL 제거 (씨앗 자원 폐기).
 
 export const ITEMS: readonly ItemDef[] = [
   // ── resources (currency + soft_currency) ────────────────────────
@@ -132,23 +124,7 @@ export const ITEMS: readonly ItemDef[] = [
     usable: false,
     acquisition: "수확 보너스",
   },
-  {
-    code: "seed",
-    ko: "씨앗",
-    tab: "resources",
-    category: "soft_currency",
-    // PR-58 → PR-67 → PR-70 — 자산은 비료봉투 PNG (seed-pack 봉투 비주얼)
-    // 이지만 사용자 노출 label / emoji 는 일관되게 "씨앗" / 🌱. UI 가
-    // 다른 곳 (FarmDropLayer / CollectionPage CurrencyChip) 도 동일
-    // 자산 사용해야 시각적 정합. 그래서 SEED_ICON_REL 상수로 export.
-    iconRel: SEED_ICON_REL,
-    // PR-31 — soft currency. 현재 소비 없음 (씨뿌리기는 무료).
-    // PR-32 calibration 에서 씨뿌리기 -1 seed 룰 추가 검토.
-    // PR-77 — acquisition 도 Korean 원본 (이전엔 영어 token / 한국어 render).
-    effect: "농장 씨뿌리기 자원 (현재 무료, 향후 소비 예정)",
-    usable: false,
-    acquisition: "일일 선물 / 집중 보상 / 케이크 사용 / 주간 보물상자 / 보석 5개 → 씨앗 9개 교환",
-  },
+  // PR-109 — seed item 제거 (씨앗 자원 폐기).
   {
     code: "carrot_coin",
     ko: "당근 코인",
@@ -231,9 +207,9 @@ export const ITEMS: readonly ItemDef[] = [
     tab: "tokens",
     category: "token",
     iconRel: "assets/farm/icons/icon_gem.png",
-    // PR-33 — 가성비 재조정. 보석 사용 모달이 5 옵션 (씨앗/성장/세션/
+    // PR-33 → PR-109 — 가성비 재조정. 보석 사용 모달 5 옵션 (캔디/성장/세션/
     // 황금/레전더리) 제공. 본 PR 은 분류만 변경; 옵션 wiring 은 PR-33.
-    effect: "5개 사용 시 씨앗 9개 (또는 다른 옵션 — 사용 시 모달에서 선택)",
+    effect: "5개 사용 시 캔디당근 3개 (또는 다른 옵션 — 사용 시 모달에서 선택)",
     usable: true,
     acquisition: "오늘의 선물상자 (2%) / 농장 드랍 (드물게)",
     minToUse: 5,

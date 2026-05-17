@@ -30,8 +30,7 @@ export interface RemotePlot {
 export interface RemoteFarmState {
   plots: RemotePlot[];
   carrots: number;
-  /** Bonus seeds (focus-tier rewards). Optional for back-compat with pre-0004 workers. */
-  seeds?: number;
+  // PR-109 — seeds 필드 제거 (씨앗 자원 폐기).
 }
 
 export type FarmSyncOk =
@@ -109,24 +108,23 @@ export async function harvestOnServer(
  * the store dedupes by snapshot before calling. `steps` is the tier
  * count returned by `getFocusFarmReward()` (1..3); the worker clamps
  * to [1,3] regardless.
+ *
+ * PR-109 — seedDelta 파라미터 + body 필드 제거 (씨앗 자원 폐기).
+ * worker schema 도 0004 마이그레이션 전이라 변경 영향 없음.
  */
 export async function growOnServer(
   steps: number,
   _growthSnapshotId: number | null,
-  seedDelta: number = 0,
+  _seedDelta: number = 0,
 ): Promise<FarmSyncResult> {
   if (!canCallServer()) return NOOP_OK;
   const safeSteps =
     Number.isFinite(steps) && steps >= 1 && steps <= 3
       ? Math.floor(steps)
       : 1;
-  const safeSeed =
-    Number.isFinite(seedDelta) && seedDelta >= 0 && seedDelta <= 3
-      ? Math.floor(seedDelta)
-      : 0;
   const r = await apiCall<RemoteFarmState>("/farm/grow", {
     method: "POST",
-    body: { steps: safeSteps, seedDelta: safeSeed },
+    body: { steps: safeSteps },
   });
   if (!r.ok) {
     return { ok: false, code: r.error.code, message: r.error.message };

@@ -13,7 +13,8 @@ test("toLabel: 알려진 토큰 매핑", () => {
   assert.equal(toLabel("focus-tier"), "집중 보상 (25/50분)");
   assert.equal(toLabel("weekly-treasure"), "주간 보물상자");
   assert.equal(toLabel("cake"), "케이크 사용");
-  assert.equal(toLabel("gem 5→9"), "보석 5개 → 씨앗 9개 교환");
+  // PR-109 — gem 5→9 (씨앗) → gem 5→3 (캔디당근).
+  assert.equal(toLabel("gem 5→3"), "보석 5개 → 캔디당근 3개 교환");
 });
 
 test("toLabel: 모르는 토큰은 그대로 통과 (한국어 fallback)", () => {
@@ -22,12 +23,12 @@ test("toLabel: 모르는 토큰은 그대로 통과 (한국어 fallback)", () =>
   assert.equal(toLabel("자정 리필 + 이웃 토끼 wave"), "자정 리필 + 이웃 토끼 wave");
 });
 
-test("translateAcquisition: seed item 의 영어 토큰 모두 한국어로", () => {
-  const input = "daily-gift / focus-tier / cake / weekly-treasure / gem 5→9";
+test("translateAcquisition: gem 교환 토큰 변환 (PR-109)", () => {
+  const input = "daily-gift / focus-tier / cake / weekly-treasure / gem 5→3";
   const out = translateAcquisition(input);
   assert.equal(
     out,
-    "일일 선물 / 집중 보상 (25/50분) / 케이크 사용 / 주간 보물상자 / 보석 5개 → 씨앗 9개 교환",
+    "일일 선물 / 집중 보상 (25/50분) / 케이크 사용 / 주간 보물상자 / 보석 5개 → 캔디당근 3개 교환",
   );
 });
 

@@ -23,7 +23,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useItemsStore, SEED_ICON_REL } from "../../features/collection/itemsStore";
+import { useItemsStore } from "../../features/collection/itemsStore";
 import { useMissionsStore } from "../../features/missions/missionsStore";
 import { useNotificationsStore } from "../../features/notifications/notificationsStore";
 import { notify } from "../../lib/webNotify";
@@ -51,7 +51,7 @@ type DropKind =
   | "juice"
   | "soup"
   | "cake"
-  | "seed"
+  | "candy"
   | "golden"
   | "hidden_bunny";
 
@@ -116,13 +116,14 @@ const DROPS: readonly DropSpec[] = [
     iconRel: "assets/farm/foods/food_carrot_cake.png",
     toast: "🍰 케이크 +1",
   },
+  // PR-109 — seed drop slot 제거. weight 4 → candy 슬롯 (weight 4)
+  // 추가, candy 보상으로 흡수.
   {
-    kind: "seed",
+    kind: "candy",
     weight: 4,
-    emoji: "🌱",
-    // PR-70 — itemsStore SEED_ICON_REL 와 동일 자산 사용 (single SoT).
-    iconRel: SEED_ICON_REL,
-    toast: "🌱 씨앗 +1",
+    emoji: "🍬",
+    iconRel: "assets/farm/currency/candy_carrot.png",
+    toast: "🍬 캔디당근 +1 (+5 P)",
   },
   {
     kind: "golden",
@@ -269,7 +270,6 @@ export function FarmDropLayer() {
   const spawnTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const addItem = useItemsStore((s) => s.add);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
-  const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
 
   const playDropSfx = () => {
     const s = useSoundStore.getState();
@@ -360,8 +360,9 @@ export function FarmDropLayer() {
       case "cake":
         addItem(k, 1);
         break;
-      case "seed":
-        growAllPlanted(0, null, 1);
+      case "candy":
+        // PR-109 — seed slot → candy 흡수. candy = 5 P 직접 grant.
+        useFarmStore.getState().incCandyCarrots(1);
         break;
       case "golden":
         incGolden(1);

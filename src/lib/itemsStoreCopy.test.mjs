@@ -48,8 +48,8 @@ test("ITEMS: effect 에 영어 식별자 잔여 없음", () => {
   }
 });
 
-test("ITEMS: 모든 13개 item 정의됨", () => {
-  assert.equal(ITEMS.length, 13);
+test("ITEMS: 12개 item 정의됨 (PR-109 seed 제거)", () => {
+  assert.equal(ITEMS.length, 12);
 });
 
 test("ITEMS: ko 라벨 한글 (영어 단독 없음)", () => {

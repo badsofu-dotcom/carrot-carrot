@@ -50,9 +50,9 @@ export const BUFF_META: Record<BuffKind, BuffMeta> = {
   },
   cake: {
     displayName: "케이크 버프",
-    // PR-92 — 재설계: 씨앗 +1 → 모든 보상 1.5배. 학습 후 큰 보상으로
+    // PR-92 → PR-109 — 재설계: 작물 성장 1.5배. 학습 후 큰 보상으로
     // 동기 부여 강화. 5분 미만은 효과 소비 안 함 (기존 동일).
-    description: "다음 포커스 완료 시 모든 농장 보상 1.5배 (5분 미만 제외)",
+    description: "다음 포커스 완료 시 작물 성장 1.5배 (5분 미만 제외)",
     trigger: "다음 유효 집중 완료 시 자동 발동",
     emoji: "🍰",
     color: "#FF99CC",

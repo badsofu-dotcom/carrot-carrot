@@ -13,7 +13,6 @@ import {
 import { haptic } from "../design-system/haptic";
 import { FarmHub } from "../features/collection/FarmHub";
 import { useFarmStore } from "../features/collection/farmStore";
-import { SEED_ICON_REL } from "../features/collection/itemsStore";
 import { FarmOnboarding } from "../features/collection/FarmOnboarding";
 import { RewardsPanel } from "../components/Farm/RewardsPanel";
 import { InventoryModal } from "../components/Inventory/InventoryModal";
@@ -793,7 +792,7 @@ function FarmView({
   const carrots = useFarmStore((s) => s.carrots);
   const candyCarrots = useFarmStore((s) => s.candyCarrots);
   const goldenCarrots = useFarmStore((s) => s.goldenCarrots);
-  const seeds = useFarmStore((s) => s.seeds);
+  // PR-109 — seeds 자원 폐기.
   const plantedCount = stages.filter((s) => s >= 1 && s <= 3).length;
   const readyCount = stages.filter((s) => s === 4).length;
   const [rewardsOpen, setRewardsOpen] = useState(false);
@@ -899,7 +898,7 @@ function FarmView({
       >
         <div
           data-testid="farm-inventory"
-          aria-label={`당근 ${carrots}개, 캔디당근 ${candyCarrots}개, 황금당근 ${goldenCarrots}개, 씨앗 ${seeds}개. (정보: 새싹 ${plantedCount}개, 익은 밭 ${readyCount}개)`}
+          aria-label={`당근 ${carrots}개, 캔디당근 ${candyCarrots}개, 황금당근 ${goldenCarrots}개. (정보: 새싹 ${plantedCount}개, 익은 밭 ${readyCount}개)`}
           style={{ display: "flex", alignItems: "center", gap: 10 }}
         >
           <CurrencyChip
@@ -925,22 +924,7 @@ function FarmView({
             testId="chip-golden"
             muted
           />
-          {/* PR-20 — seed chip. seeds 자원은 현재 daily-gift / focus-tier
-              seedDelta / cake buff / weekly treasure / gem-trade 다섯
-              경로로 grant 됨. 소비 sink 는 아직 없음 — 향후 add 시 그
-              대로 사용. 시각 발견성 위해 헤더에 노출 (이전엔 사용자가
-              잔여량 확인 불가). 자산이 없으면 emoji fallback. */}
-          <CurrencyChip
-            // PR-70 — itemsStore SEED_ICON_REL single SoT 사용. 3 site
-            // (인벤토리 / 헤더 / 드랍) 모두 동일 자산. label/emoji 는
-            // 일관되게 "씨앗" / 🌱.
-            icon={`${import.meta.env.BASE_URL}${SEED_ICON_REL}`}
-            emoji="🌱"
-            label="씨앗"
-            count={seeds}
-            testId="chip-seed"
-            muted
-          />
+          {/* PR-109 — seed chip 제거 (씨앗 자원 폐기). 헤더 = 당근/캔디/황금 3 chip. */}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <button

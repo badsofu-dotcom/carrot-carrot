@@ -25,7 +25,6 @@
  */
 import { useToolStore, type ToolId } from "../../features/collection/toolStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
-import { useFarmStore } from "../../features/collection/farmStore";
 import { haptic } from "../../design-system/haptic";
 
 const BASE = import.meta.env.BASE_URL;
@@ -118,13 +117,7 @@ export function ToolDock() {
   const itemCounts = useItemsStore((s) => s.counts);
   let speciesOwned = 0;
   for (const v of Object.values(itemCounts)) if (v > 0) speciesOwned++;
-  // PR-87 — 모종삽 칩 badge 에 씨앗 수량 표시 (informational).
-  // 현재 farmStore.plant 는 씨앗 소비 안 함 (자유 plant) — itemMeta.ts
-  // seed.effect 의 "향후 소비 예정" 상태 그대로. 사용자 시각 단서로
-  // 보유 씨앗을 노출하되, 0 이라도 disable 안 함 (plant 가 free 라
-  // disable 시 plant 자체가 중단). 추후 seed consumption wire 시 0 →
-  // disable + 토스트 패턴으로 전환.
-  const seeds = useFarmStore((s) => s.seeds);
+  // PR-109 — 씨앗 자원 폐기. 모종삽 = 무한 도구. 씨앗 badge 제거.
   // PR-28 — heart 토큰은 광고 시청 가능 잔여 횟수.
   // PR-98 — heart maxStack=5 인데 badge "N/3" 는 친구 wave bonus 후
   // overflow ("4/3", "5/3") 표시 버그. 분모 제거 — wateringCan 의 PR-88
@@ -211,8 +204,7 @@ export function ToolDock() {
           if (wateringLeft === 0) badge = "끝";
           else badge = String(wateringLeft);
         }
-        // PR-87 — 모종삽 = 씨앗 심기 도구 → 보유 씨앗 informational 표시.
-        if (t.id === "shovel") badge = `🌱 ${seeds}`;
+        // PR-109 — shovel seed badge 제거 (씨앗 자원 폐기). 모종삽 = 무한.
         const wateringDisabled = t.id === "watering_can" && wateringLeft <= 0;
         const wateringWarning =
           t.id === "watering_can" && wateringLeft > 0 && wateringLeft <= 5;
@@ -225,15 +217,13 @@ export function ToolDock() {
             // PR-87 — shovel/watering_can 은 informational badge 가 있어서
             // aria-label 에도 수치 명시 (screenreader 가독성).
             aria-label={
-              t.id === "shovel"
-                ? `모종삽 — 씨앗 ${seeds}개 보유`
-                : t.id === "watering_can"
-                  ? wateringLeft === 0
-                    ? "물뿌리개 — 오늘 사용 한도 도달"
-                    : wateringLeft <= 5
-                      ? `물뿌리개 — ${wateringLeft}회 남음 (오늘 마지막)`
-                      : `물뿌리개 — ${wateringLeft}회 남음`
-                  : t.label
+              t.id === "watering_can"
+                ? wateringLeft === 0
+                  ? "물뿌리개 — 오늘 사용 한도 도달"
+                  : wateringLeft <= 5
+                    ? `물뿌리개 — ${wateringLeft}회 남음 (오늘 마지막)`
+                    : `물뿌리개 — ${wateringLeft}회 남음`
+                : t.label
             }
             aria-pressed={isActive}
             style={{

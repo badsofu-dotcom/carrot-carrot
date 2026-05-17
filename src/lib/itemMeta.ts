@@ -39,11 +39,7 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
       "10 토스포인트로 환산되는 희귀 당근. 수확 시 낮은 확률로 등장.",
     emoji: "✨",
   },
-  seed: {
-    longDescription:
-      "농장 씨뿌리기 자원. 일일 선물 / 포커스 보상 / 케이크 / 주간 보물 / 보석 교환으로 적립.",
-    emoji: "🌱",
-  },
+  // PR-109 — seed entry 제거 (씨앗 자원 폐기).
   carrot_coin: {
     longDescription:
       "광고 보상으로 받는 토큰. 50개 사용 → 캔디 당근 1개. 향후 토끼 만나기 비용 예정.",
@@ -73,7 +69,7 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
   cake: {
     // PR-92 — 재설계: 다음 포커스 완료 시 모든 농장 보상 1.5배.
     longDescription:
-      "다음 포커스 완료 시 모든 농장 보상 1.5배 (씨앗 / 작물 성장). 5분 미만 세션은 효과 소비 안 함.",
+      "다음 포커스 완료 시 작물 성장 1.5배. 5분 미만 세션은 효과 소비 안 함.",
     emoji: "🍰",
   },
   star: {
@@ -83,7 +79,7 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
   },
   gem: {
     longDescription:
-      "오늘의 선물상자 2 % 드랍. 5개로 즉시 효과 (씨앗 / 작물 성장 / 세션 완료 등) 구매.",
+      "오늘의 선물상자 2 % 드랍. 5개로 즉시 효과 (캔디당근 / 작물 성장 / 세션 완료 등) 구매.",
     emoji: "💎",
   },
   heart: {

@@ -16,8 +16,8 @@
  *       bolt      → toolStore.refillFromAd (+3 wateringCan, +1 if soup)
  *       juice     → buffsStore.activate("juice")  next-harvest candy +5%p
  *       soup      → buffsStore.activate("soup")   next-refill +1 charge
- *       cake      → buffsStore.activate("cake")   next-focus seed +1
- *       gem       → consume 5 → growAllPlanted seed +1
+ *       cake      → buffsStore.activate("cake")   next-focus all rewards 1.5×
+ *       gem       → consume 5 → GemTradeModal (5 options)
  *   - Worker route `/items/use` mirrors the count decrement (or skips
  *     when guest/preview). The buff flags themselves are client-only.
  */
@@ -61,21 +61,15 @@ export function InventoryModal({ open, onClose }: Props) {
   const carrots = useFarmStore((s) => s.carrots);
   const candy = useFarmStore((s) => s.candyCarrots);
   const golden = useFarmStore((s) => s.goldenCarrots);
-  const seeds = useFarmStore((s) => s.seeds);
   const growAllPlanted = useFarmStore((s) => s.growAllPlanted);
   const refillFromAd = useToolStore((s) => s.refillFromAd);
 
-  // Resource counts come from useFarmStore for the four farm
-  // currencies (carrot/candy/golden/seed) and from itemsStore for
-  // everything else. The bag is just the read-out surface; the
-  // canonical source stays in farmStore so harvest / focus / tier
-  // rewards keep working unchanged. PR-31 added seed mirror.
+  // PR-109 — seed currency 폐기. carrot/candy/golden 3 currency 만 farmStore.
   const liveResourceCount = (code: ItemCode): number => {
     switch (code) {
       case "carrot": return carrots;
       case "candy": return candy;
       case "golden": return golden;
-      case "seed": return seeds;
       case "carrot_coin": return counts.carrot_coin;
       default: return counts[code] ?? 0;
     }
@@ -118,7 +112,7 @@ export function InventoryModal({ open, onClose }: Props) {
       const stages = useFarmStore.getState().stages;
       const reason = hourglassBlockReason(stages);
       if (reason === "empty") {
-        toast("심은 작물이 없어요. 씨앗을 심고 다시 시도해주세요");
+        toast("심은 작물이 없어요. 빈 밭을 탭해 작물을 심고 다시 시도해주세요");
         return;
       }
       if (reason === "all-ripe" || reason === "all-grown-mixed") {
@@ -136,7 +130,7 @@ export function InventoryModal({ open, onClose }: Props) {
     useMissionsStore.getState().incrementProgress("tool_use", 1);
     switch (code) {
       case "hourglass":
-        growAllPlanted(1, Date.now(), 0);
+        growAllPlanted(1, Date.now());
         toast("⏳ 작물이 한 단계 자랐어요");
         break;
       case "bolt": {
@@ -160,7 +154,7 @@ export function InventoryModal({ open, onClose }: Props) {
         break;
       case "cake":
         useBuffsStore.getState().activate("cake");
-        toast("🍰 다음 포커스 완료 시 씨앗 +1");
+        toast("🍰 다음 포커스 완료 시 작물 성장 1.5배");
         break;
       // gem 케이스는 위 가드에서 GemTradeModal 로 분기 — 도달 안 함.
       case "carrot_coin":
@@ -462,7 +456,7 @@ export function InventoryModal({ open, onClose }: Props) {
                 {tab === "resources" && (
                   <>
                     {" · "}
-                    🥕 {carrots} · 🍬 {candy} · ✨ {golden} · 🌱 {seeds}
+                    🥕 {carrots} · 🍬 {candy} · ✨ {golden}
                   </>
                 )}
                 {tab === "tools" && (

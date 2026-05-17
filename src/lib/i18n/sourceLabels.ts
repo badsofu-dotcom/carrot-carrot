@@ -32,7 +32,8 @@ export const KOREAN_TOKEN_LABELS: Readonly<Record<string, string>> = {
   bolt: "번개 사용",
 
   // 자원 교환 표현
-  "gem 5→9": "보석 5개 → 씨앗 9개 교환",
+  // PR-109 — gem 5→9 (씨앗) → gem 5→3 (캔디당근).
+  "gem 5→3": "보석 5개 → 캔디당근 3개 교환",
   "gem-trade": "보석 사용 (교환 모달)",
 
   // 친구
@@ -43,8 +44,8 @@ export const KOREAN_TOKEN_LABELS: Readonly<Record<string, string>> = {
 /**
  * acquisition 문자열을 token 분할 → 매핑 → 재조합.
  *
- * 입력 예: "daily-gift / focus-tier / cake / weekly-treasure / gem 5→9"
- * 출력 예: "일일 선물 / 집중 보상 (25/50분) / 케이크 사용 / 주간 보물상자 / 보석 5개 → 씨앗 9개 교환"
+ * 입력 예: "daily-gift / focus-tier / cake / weekly-treasure / gem 5→3"
+ * 출력 예: "일일 선물 / 집중 보상 (25/50분) / 케이크 사용 / 주간 보물상자 / 보석 5개 → 캔디당근 3개 교환"
  *
  * 이미 한국어로 작성된 부분 ("수확", "농장 드랍" 등 직접 한국어 텍스트)
  * 은 그대로 통과. 따라서 모든 acquisition 에 안전하게 적용 가능.
