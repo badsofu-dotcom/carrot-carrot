@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import type { Env } from "../types.js";
 import { bearerToken, verifyAppJwt } from "../lib/jwt.js";
+// PR-117 — addSeeds 제거 (씨앗 자원 폐기).
 import {
-  addSeeds,
   getFarmState,
   growAllPlots,
   harvestPlot,
@@ -36,7 +36,7 @@ app.get("/state", async (c) => {
   const sub = await requireUser(c);
   if (typeof sub !== "string") return sub;
   const state = await getFarmState(c.env.DB, sub);
-  return c.json({ ok: true, plots: state.plots, carrots: state.carrots, seeds: state.seeds });
+  return c.json({ ok: true, plots: state.plots, carrots: state.carrots });
 });
 
 app.post("/plant", async (c) => {
@@ -63,20 +63,17 @@ app.post("/plant", async (c) => {
     );
   }
   const state = await getFarmState(c.env.DB, sub);
-  return c.json({ ok: true, plots: state.plots, carrots: state.carrots, seeds: state.seeds });
+  return c.json({ ok: true, plots: state.plots, carrots: state.carrots });
 });
 
 app.post("/grow", async (c) => {
   const sub = await requireUser(c);
   if (typeof sub !== "string") return sub;
-  // Body: { steps?: 1|2|3, seedDelta?: 0|1|2|3 }. Both default to safe
-  // values so older clients keep working. Tier rules live in the client
-  // (src/lib/farmRules.ts); the worker just respects the numbers it
-  // gets and clamps them. seeds persistence requires migration 0004 —
-  // `addSeeds` silently no-ops if the column is missing.
-  let body: { steps?: unknown; seedDelta?: unknown } = {};
+  // PR-117 — seedDelta param 제거 (씨앗 자원 폐기, 클라 PR-109). Body
+  // 의 seedDelta 가 와도 무시 (구 클라 호환).
+  let body: { steps?: unknown } = {};
   try {
-    body = (await c.req.json()) as { steps?: unknown; seedDelta?: unknown };
+    body = (await c.req.json()) as { steps?: unknown };
   } catch {
     /* empty body is fine */
   }
@@ -85,23 +82,14 @@ app.post("/grow", async (c) => {
     Number.isFinite(rawSteps) && rawSteps >= 1 && rawSteps <= 3
       ? Math.floor(rawSteps)
       : 1;
-  const rawSeed = Number(body.seedDelta);
-  const seedDelta =
-    Number.isFinite(rawSeed) && rawSeed >= 0 && rawSeed <= 3
-      ? Math.floor(rawSeed)
-      : 0;
   for (let i = 0; i < steps; i++) {
     await growAllPlots(c.env.DB, sub);
-  }
-  if (seedDelta > 0) {
-    await addSeeds(c.env.DB, sub, seedDelta);
   }
   const state = await getFarmState(c.env.DB, sub);
   return c.json({
     ok: true,
     plots: state.plots,
     carrots: state.carrots,
-    seeds: state.seeds,
   });
 });
 
@@ -129,7 +117,7 @@ app.post("/harvest", async (c) => {
     );
   }
   const state = await getFarmState(c.env.DB, sub);
-  return c.json({ ok: true, plots: state.plots, carrots: state.carrots, seeds: state.seeds });
+  return c.json({ ok: true, plots: state.plots, carrots: state.carrots });
 });
 
 export default app;

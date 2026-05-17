@@ -132,10 +132,10 @@ export interface FarmPlotRow {
 export interface FarmState {
   plots: FarmPlotRow[];
   carrots: number;
-  /** Bonus seeds (focus-tier rewards). 0 when migration 0004 not applied. */
-  seeds: number;
 }
 
+// PR-117 — 씨앗 자원 폐기 (client PR-109 후속). seeds 필드 + addSeeds
+// helper 제거. migration 0008 이 farm_inventory.seeds 컬럼 drop.
 export async function getFarmState(
   db: D1Database,
   userKey: string,
@@ -148,69 +148,15 @@ export async function getFarmState(
       )
       .bind(userKey)
       .all<FarmPlotRow>(),
-    // `seeds` lives in 0004_farm_seed_rewards. COALESCE guards against
-    // an older schema where the column doesn't exist yet — the SELECT
-    // is wrapped in a try/catch via a fallback query below.
-    selectInventoryWithSeeds(db, userKey),
+    db
+      .prepare(`SELECT carrots FROM farm_inventory WHERE user_key = ?`)
+      .bind(userKey)
+      .first<{ carrots: number }>(),
   ]);
   return {
     plots: plotsRes.results ?? [],
     carrots: invRes?.carrots ?? 0,
-    seeds: invRes?.seeds ?? 0,
   };
-}
-
-async function selectInventoryWithSeeds(
-  db: D1Database,
-  userKey: string,
-): Promise<{ carrots: number; seeds: number } | null> {
-  try {
-    const r = await db
-      .prepare(
-        `SELECT carrots, COALESCE(seeds, 0) AS seeds
-         FROM farm_inventory WHERE user_key = ?`,
-      )
-      .bind(userKey)
-      .first<{ carrots: number; seeds: number }>();
-    return r ?? null;
-  } catch {
-    // Migration 0004 not applied — fall back to carrots-only.
-    const r = await db
-      .prepare(`SELECT carrots FROM farm_inventory WHERE user_key = ?`)
-      .bind(userKey)
-      .first<{ carrots: number }>();
-    return r ? { carrots: r.carrots, seeds: 0 } : null;
-  }
-}
-
-/**
- * Add `delta` seeds to the user's inventory. Idempotent at the SQL
- * level (caller must dedupe by snapshot id if needed). Safe when
- * migration 0004 is missing — falls back to a no-op so older
- * deployments don't 500.
- */
-export async function addSeeds(
-  db: D1Database,
-  userKey: string,
-  delta: number,
-): Promise<number> {
-  if (!Number.isFinite(delta) || delta <= 0) return 0;
-  const clamped = Math.min(Math.floor(delta), 9);
-  try {
-    await db
-      .prepare(
-        `INSERT INTO farm_inventory (user_key, carrots, seeds, updated_at)
-         VALUES (?, 0, ?, unixepoch())
-         ON CONFLICT(user_key) DO UPDATE SET
-           seeds = COALESCE(farm_inventory.seeds, 0) + ?,
-           updated_at = unixepoch()`,
-      )
-      .bind(userKey, clamped, clamped)
-      .run();
-    return clamped;
-  } catch {
-    return 0;
-  }
 }
 
 export async function plantPlot(
