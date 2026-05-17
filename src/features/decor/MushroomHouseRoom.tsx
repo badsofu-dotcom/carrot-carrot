@@ -27,6 +27,7 @@ import {
 import { getFurniturePrice } from "./farmhubFurniturePrices";
 import { BuyFurnitureModal } from "./BuyFurnitureModal";
 import { haptic } from "../../design-system/haptic";
+import { toast } from "../../design-system/ui";
 
 export const MUSHROOM_HOUSE_OPEN_EVENT = "cc:mushroom-house:open";
 
@@ -330,8 +331,15 @@ export function MushroomHouseRoom() {
                     handlePlaceTap(f.id);
                     return;
                   }
+                  // R28 PHASE 4 — 배치 완료 슬롯도 탭 가능. "이미 배치"
+                  // toast + light haptic. 실수 방지 + 명확성. 회수 기능
+                  // (R29+) 까지는 무동작 안내.
+                  if (isPlaced) {
+                    haptic("light");
+                    toast(`${f.name} — 이미 배치된 가구예요`);
+                    return;
+                  }
                   // R27 PHASE 2.D — 자물쇠 슬롯 탭 시 구매 모달 open.
-                  // 이미 배치된 슬롯은 no-op.
                   if (isLocked) {
                     haptic("light");
                     setBuyTargetStep(f.step);
@@ -345,31 +353,36 @@ export function MushroomHouseRoom() {
                     data-testid={`mushroom-house-item-${f.id}`}
                     aria-label={
                       isPlaced
-                        ? `${f.name} 배치 완료`
+                        ? `${f.name} 배치 완료 — 탭하면 안내`
                         : isActive
                           ? `${f.name} 보관함 — 탭하면 배치`
                           : `${f.name} 잠금 — ${price ?? "-"} 당근으로 구매`
                     }
                     onClick={handleSlotTap}
-                    disabled={isPlaced}
                     style={{
                       flexShrink: 0,
                       width: 64,
                       height: 64,
                       padding: 4,
                       borderRadius: 14,
-                      border: isActive
-                        ? "2px solid #FF7B61"
-                        : "1px solid rgba(255,255,255,0.4)",
-                      background: isActive
-                        ? "rgba(255,255,255,0.95)"
-                        : "rgba(255,255,255,0.55)",
-                      cursor: isPlaced ? "default" : "pointer",
+                      // R28 PHASE 4 — placed 슬롯이 "투명" 이 아니라 활성
+                      // 강조 (초록 테두리 + 옅은 tint + ✓ 배지) 로 표시.
+                      border: isPlaced
+                        ? "2px solid #10B981"
+                        : isActive
+                          ? "2px solid #FF7B61"
+                          : "1px solid rgba(255,255,255,0.4)",
+                      background: isPlaced
+                        ? "rgba(16, 185, 129, 0.12)"
+                        : isActive
+                          ? "rgba(255,255,255,0.95)"
+                          : "rgba(255,255,255,0.55)",
+                      cursor: "pointer",
                       position: "relative",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      opacity: isPlaced ? 0.4 : isLocked ? 0.55 : 1,
+                      opacity: isLocked ? 0.55 : 1,
                       filter: isLocked ? "grayscale(0.7)" : undefined,
                       backdropFilter: "blur(6px)",
                       WebkitBackdropFilter: "blur(6px)",
@@ -426,6 +439,32 @@ export function MushroomHouseRoom() {
                           </span>
                         )}
                       </>
+                    )}
+                    {/* R28 PHASE 4 — 배치 완료 ✓ 배지. 초록 원 + 흰 ✓. */}
+                    {isPlaced && (
+                      <span
+                        aria-hidden
+                        data-testid={`mushroom-house-placed-${f.id}`}
+                        style={{
+                          position: "absolute",
+                          top: 2,
+                          right: 2,
+                          width: 18,
+                          height: 18,
+                          borderRadius: 999,
+                          background: "#10B981",
+                          color: "#fff",
+                          fontSize: 11,
+                          fontWeight: 900,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+                          lineHeight: 1,
+                        }}
+                      >
+                        ✓
+                      </span>
                     )}
                   </button>
                 );
