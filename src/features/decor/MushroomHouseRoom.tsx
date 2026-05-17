@@ -24,6 +24,8 @@ import {
   FARMHUB_BY_ID,
   FARMHUB_FINAL_STEP,
 } from "./farmhubCatalog";
+import { getFurniturePrice } from "./farmhubFurniturePrices";
+import { BuyFurnitureModal } from "./BuyFurnitureModal";
 import { haptic } from "../../design-system/haptic";
 
 export const MUSHROOM_HOUSE_OPEN_EVENT = "cc:mushroom-house:open";
@@ -70,6 +72,9 @@ export function MushroomHouseRoom() {
 
   // 1회용 축하 말풍선 (배치 직후 ~2s)
   const [confirmText, setConfirmText] = useState<string | null>(null);
+
+  // R27 PHASE 2.D — 자물쇠 슬롯 탭 시 BuyFurnitureModal target step.
+  const [buyTargetStep, setBuyTargetStep] = useState<number | null>(null);
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -319,6 +324,19 @@ export function MushroomHouseRoom() {
                 const isPlaced = step >= f.step;
                 const isActive = pending === f.id;
                 const isLocked = !isPlaced && !isActive;
+                const price = getFurniturePrice(f.step);
+                const handleSlotTap = () => {
+                  if (isActive) {
+                    handlePlaceTap(f.id);
+                    return;
+                  }
+                  // R27 PHASE 2.D — 자물쇠 슬롯 탭 시 구매 모달 open.
+                  // 이미 배치된 슬롯은 no-op.
+                  if (isLocked) {
+                    haptic("light");
+                    setBuyTargetStep(f.step);
+                  }
+                };
                 return (
                   <button
                     key={f.id}
@@ -330,10 +348,10 @@ export function MushroomHouseRoom() {
                         ? `${f.name} 배치 완료`
                         : isActive
                           ? `${f.name} 보관함 — 탭하면 배치`
-                          : `${f.name} 잠금 — step ${f.step}`
+                          : `${f.name} 잠금 — ${price ?? "-"} 당근으로 구매`
                     }
-                    onClick={() => isActive && handlePlaceTap(f.id)}
-                    disabled={!isActive}
+                    onClick={handleSlotTap}
+                    disabled={isPlaced}
                     style={{
                       flexShrink: 0,
                       width: 64,
@@ -346,13 +364,13 @@ export function MushroomHouseRoom() {
                       background: isActive
                         ? "rgba(255,255,255,0.95)"
                         : "rgba(255,255,255,0.55)",
-                      cursor: isActive ? "pointer" : "default",
+                      cursor: isPlaced ? "default" : "pointer",
                       position: "relative",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      opacity: isPlaced ? 0.4 : isLocked ? 0.5 : 1,
-                      filter: isLocked ? "grayscale(1)" : undefined,
+                      opacity: isPlaced ? 0.4 : isLocked ? 0.55 : 1,
+                      filter: isLocked ? "grayscale(0.7)" : undefined,
                       backdropFilter: "blur(6px)",
                       WebkitBackdropFilter: "blur(6px)",
                       animation: isActive
@@ -372,22 +390,55 @@ export function MushroomHouseRoom() {
                       }}
                     />
                     {isLocked && (
-                      <span
-                        aria-hidden
-                        style={{
-                          position: "absolute",
-                          top: 2,
-                          right: 4,
-                          fontSize: 12,
-                        }}
-                      >
-                        🔒
-                      </span>
+                      <>
+                        <span
+                          aria-hidden
+                          style={{
+                            position: "absolute",
+                            top: 2,
+                            right: 4,
+                            fontSize: 12,
+                          }}
+                        >
+                          🔒
+                        </span>
+                        {price !== null && (
+                          <span
+                            aria-hidden
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              right: 0,
+                              bottom: 2,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              color: "#2b1810",
+                              background: "rgba(255,255,255,0.85)",
+                              borderRadius: 6,
+                              padding: "1px 2px",
+                              marginLeft: 4,
+                              marginRight: 4,
+                              textAlign: "center",
+                              lineHeight: 1.1,
+                            }}
+                          >
+                            🥕 {price}
+                          </span>
+                        )}
+                      </>
                     )}
                   </button>
                 );
               })}
             </div>
+
+            {/* R27 PHASE 2.C — 가구 구매 모달. MushroomHouseRoom 내부
+                absolute overlay (z 7/8). Portal X — TabBar 안 가리는
+                상위 fullscreen 컨테이너 안에서만 보임. */}
+            <BuyFurnitureModal
+              targetStep={buyTargetStep}
+              onClose={() => setBuyTargetStep(null)}
+            />
           </div>
         </motion.div>
       )}

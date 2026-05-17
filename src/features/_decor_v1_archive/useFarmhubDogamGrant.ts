@@ -1,5 +1,13 @@
 /**
- * useFarmhubDogamGrant (Round 26, PR-155) — 도감 owned 변화 감지 →
+ * useFarmhubDogamGrant — ARCHIVED in R27 PHASE 2.E.
+ *
+ * R26 PHASE 2 의 도감 자동 지급 흐름. R27 에서 도감은 "구매 자격"
+ * 으로만 사용하고 실제 지급은 BuyFurnitureModal 의 당근 결제를 거치게
+ * 변경. App.tsx 에서 더 이상 호출되지 않음. 향후 재사용 안 하면 삭제.
+ *
+ * (이하 원본 주석)
+ *
+ * 도감 owned 변화 감지 →
  * 버섯집 다음 가구 자동 grantNext().
  *
  * 마운트 위치: App level (CollectionPage 또는 main.tsx). React tree 의
@@ -20,7 +28,7 @@
 
 import { useEffect, useRef } from "react";
 import { useCollectionStore } from "../collection/collectionStore";
-import { useFarmhubStore } from "./farmhubStore";
+import { useFarmhubStore } from "../decor/farmhubStore";
 import { getNextGrantStep } from "./farmhubGrantTriggers";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";

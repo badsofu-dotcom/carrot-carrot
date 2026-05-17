@@ -18,7 +18,7 @@
  *
  * 본 파일은 pure helper 만. hook 은 useFarmhubDogamGrant.ts.
  */
-import { FARMHUB_FINAL_STEP } from "./farmhubCatalog";
+import { FARMHUB_FINAL_STEP } from "../decor/farmhubCatalog";
 
 /**
  * 도감 N 마리 + 현재 step + pending 보유 여부 → 다음 step 자격.

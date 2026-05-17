@@ -13,8 +13,11 @@ import { test } from "node:test";
 import { strict as assert } from "node:assert";
 import { loadTs } from "./_test-helpers.mjs";
 
+// R27 PHASE 2.E — auto-grant flow archived. Helper kept in
+// _decor_v1_archive/ for historical reference; this test continues to
+// pin the legacy invariants so future re-introduction isn't silent.
 const mod = await loadTs(
-  "../features/decor/farmhubGrantTriggers.ts",
+  "../features/_decor_v1_archive/farmhubGrantTriggers.ts",
   import.meta.url,
 );
 const { getNextGrantStep } = mod;
