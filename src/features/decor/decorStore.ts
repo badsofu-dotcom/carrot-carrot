@@ -84,6 +84,9 @@ interface DecorState {
   /** Lifetime carrots spent on furniture (stats). */
   carrotsSpent: number;
   buy: (id: string) => BuyResult;
+  /** Grant a furniture without charging carrots (rewards). Returns
+   *  false if id unknown or already owned. R24 PR-150. */
+  grantReward: (id: string) => boolean;
   /** Place an owned piece. Removes any prior placement of the same id. */
   place: (
     id: string,
@@ -108,6 +111,11 @@ export const useDecorStore = create<DecorState>((set, get) => {
     buy: (id) => {
       const def = FURNITURE_BY_ID[id];
       if (!def) return { ok: false, reason: "unknown" };
+      // R24 PR-150 — unlockCondition 가 있는 entry 는 일반 구매 차단.
+      // grantReward() 만 owned 에 추가 가능.
+      if (def.unlockCondition) {
+        return { ok: false, reason: "unknown" };
+      }
       const cur = get();
       if (cur.owned.has(id)) {
         // Already owned — buy is a no-op (cosmetic — 1 of each for beta).
@@ -137,6 +145,26 @@ export const useDecorStore = create<DecorState>((set, get) => {
         carrotsSpent: carrotsSpentNext,
       });
       return { ok: true, remainingCarrots: farm.carrots - def.price };
+    },
+
+    /**
+     * R24 PR-150 — 무료 보상 지급 (도감 100%, fragment 교환 등 외부 트리거).
+     * 당근 차감 없음, 이미 보유 시 false 반환 (중복 방지).
+     */
+    grantReward: (id) => {
+      const def = FURNITURE_BY_ID[id];
+      if (!def) return false;
+      const cur = get();
+      if (cur.owned.has(id)) return false;
+      const ownedNext = new Set(cur.owned);
+      ownedNext.add(id);
+      set({ owned: ownedNext });
+      savePersist({
+        owned: ownedNext,
+        placements: cur.placements,
+        carrotsSpent: cur.carrotsSpent,
+      });
+      return true;
     },
 
     place: (id, room, x, y, rotation = 0) => {

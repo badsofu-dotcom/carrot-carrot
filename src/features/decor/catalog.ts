@@ -28,6 +28,7 @@ function f(
   emojiSprite: string,
   w = 1,
   h = 1,
+  unlockCondition?: import("./types").UnlockCondition,
 ): Furniture {
   return {
     id,
@@ -37,6 +38,7 @@ function f(
     rarity,
     sprite: { kind: "emoji", value: emojiSprite },
     size: { w, h },
+    ...(unlockCondition ? { unlockCondition } : {}),
   };
 }
 
@@ -68,6 +70,20 @@ export const FURNITURE_CATALOG: ReadonlyArray<Furniture> = [
   f("autumn_leaves", "단풍 잎 더미", "seasonal", 100, "rare", "🍁", 2, 1),
   f("pumpkin", "호박", "seasonal", 80, "rare", "🎃", 1, 1),
   f("cherry_blossom", "벚꽃", "seasonal", 150, "rare", "🌸", 2, 2),
+
+  // ── 한정 (unlockCondition) ──────────────────────────────────
+  // R24 PR-150 — 도감 12/12 완성 시 자동 지급. price 는 표시용 (구매 X).
+  f(
+    "golden_carrot_statue",
+    "황금 당근 동상",
+    "outdoor",
+    9999,
+    "epic",
+    "🥕",
+    2,
+    2,
+    "dogam_100",
+  ),
 ];
 
 export const FURNITURE_BY_ID: Readonly<Record<string, Furniture>> = Object.freeze(

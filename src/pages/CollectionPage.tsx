@@ -45,6 +45,8 @@ import { MissionsSheet } from "../features/missions/MissionsSheet";
 import { useMissionsStore } from "../features/missions/missionsStore";
 import { useWeeklyMissionsStore } from "../features/missions/weeklyMissionsStore";
 import { useTimerStore } from "../store/timerStore";
+// PR-150 (Round 24 PHASE 3.A) — 도감 100% 시 가구 보상 자동 지급.
+import { useDogamRewardGrant } from "../features/decor/useDogamRewardGrant";
 
 const ALL_FILTERS: ("all" | Rarity)[] = [
   "all",
@@ -831,6 +833,9 @@ function FarmView({
   // PR-136 — missions sheet (replaces inline cards).
   const [missionsOpen, setMissionsOpen] = useState(false);
   const unlockMedal = useRewardsStore((s) => s.unlockMedal);
+  // PR-150 — 도감 100% 자동 보상 (한정 가구 1개). hook 안에서 owned
+  // count subscribe + grant + flag 영속.
+  useDogamRewardGrant();
   // BGM context needs to know if a focus session is running.
   const timerStatus = useTimerStore((s) => s.status);
   const isFocusing = timerStatus === "FOCUSING";

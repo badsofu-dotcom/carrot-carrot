@@ -20,8 +20,12 @@ import { BottomSheet, toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 import { useFarmStore } from "../collection/farmStore";
 import { useDecorStore } from "./decorStore";
-import { FURNITURE_CATALOG } from "./catalog";
+import { FURNITURE_CATALOG, FURNITURE_BY_ID } from "./catalog";
 import { SpriteView } from "./SpriteView";
+import {
+  useFragmentStore,
+  FRAGMENTS_PER_FURNITURE,
+} from "./fragmentStore";
 import type { Furniture, FurnitureCategory } from "./types";
 
 export const FURNITURE_SHOP_OPEN_EVENT = "cc:furniture-shop:open";
@@ -47,6 +51,27 @@ export function FurnitureShopModal({
   const carrots = useFarmStore((s) => s.carrots);
   const owned = useDecorStore((s) => s.owned);
   const buy = useDecorStore((s) => s.buy);
+  // R24 PR-151 — 가구 조각.
+  const fragmentCount = useFragmentStore((s) => s.count);
+  const exchange = useFragmentStore((s) => s.exchange);
+  const canExchange = fragmentCount >= FRAGMENTS_PER_FURNITURE;
+
+  const handleExchange = () => {
+    haptic("medium");
+    const r = exchange();
+    if (r.ok && r.furnitureId) {
+      const f = FURNITURE_BY_ID[r.furnitureId];
+      toast(
+        `🎉 ${f?.name ?? "랜덤 가구"} 획득! (조각 ${r.remaining}/${FRAGMENTS_PER_FURNITURE} 남음)`,
+      );
+    } else if (r.reason === "insufficient") {
+      toast(`🧩 조각이 부족해요 (${r.remaining}/${FRAGMENTS_PER_FURNITURE})`);
+    } else if (r.reason === "all_owned") {
+      toast("🎉 일반 가구 모두 보유 — 교환할 게 없어요!");
+    } else {
+      toast("문제가 발생했어요. 다시 시도해주세요.");
+    }
+  };
 
   useEffect(() => {
     const onOpen = (ev: Event) => {
@@ -98,7 +123,7 @@ export function FurnitureShopModal({
   return (
     <BottomSheet open={open} onClose={() => setOpen(false)} title="🛋️ 가구 상점">
       <div data-testid="furniture-shop">
-        {/* 헤더: 보유 당근 + 카테고리 탭 */}
+        {/* 헤더: 보유 당근 + 조각 교환 (R24 PR-151) */}
         <div
           style={{
             display: "flex",
@@ -106,11 +131,37 @@ export function FurnitureShopModal({
             justifyContent: "space-between",
             marginBottom: 12,
             padding: "0 4px",
+            gap: 8,
           }}
         >
           <span style={{ fontSize: 14, fontWeight: 700, color: "#2b2b2b" }}>
             🥕 {carrots} 당근
           </span>
+          <button
+            type="button"
+            data-testid="furniture-fragment-exchange"
+            onClick={handleExchange}
+            disabled={!canExchange}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 999,
+              border: "1px solid rgba(255,123,97,0.4)",
+              background: canExchange ? "#FF7B61" : "rgba(0,0,0,0.04)",
+              color: canExchange ? "#fff" : "#888",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: canExchange ? "pointer" : "not-allowed",
+              whiteSpace: "nowrap",
+            }}
+            aria-label={
+              canExchange
+                ? "가구 조각 5개를 랜덤 가구로 교환"
+                : `가구 조각 ${fragmentCount}/${FRAGMENTS_PER_FURNITURE} — 부족`
+            }
+          >
+            🧩 {fragmentCount}/{FRAGMENTS_PER_FURNITURE}
+            {canExchange ? " 교환" : ""}
+          </button>
         </div>
         <div
           role="tablist"
@@ -170,50 +221,96 @@ export function FurnitureShopModal({
           >
             {items.map((it) => {
               const isOwned = owned.has(it.id);
-              const insufficient = !isOwned && carrots < it.price;
+              const isLocked = !!it.unlockCondition;
+              const insufficient = !isOwned && !isLocked && carrots < it.price;
+              // R24 PR-150 — unlockCondition 가구는 일반 구매 불가.
+              // owned 가 false 면 잠금 표시, true 면 "보상으로 받음".
+              const lockedLabel = isLocked
+                ? isOwned
+                  ? "보상으로 받음 ✓"
+                  : it.unlockCondition === "dogam_100"
+                    ? "도감 12/12 달성 시 해금"
+                    : "조각 5개 교환으로 획득"
+                : null;
               return (
                 <button
                   key={it.id}
                   type="button"
                   data-testid={`furniture-card-${it.id}`}
-                  onClick={() => !isOwned && handleBuy(it)}
-                  disabled={isOwned}
+                  onClick={() => !isOwned && !isLocked && handleBuy(it)}
+                  disabled={isOwned || (isLocked && !isOwned)}
                   style={{
                     padding: 10,
-                    background: isOwned ? "rgba(0,0,0,0.04)" : "#fff",
+                    background:
+                      isLocked && !isOwned
+                        ? "rgba(0,0,0,0.08)"
+                        : isOwned
+                          ? "rgba(0,0,0,0.04)"
+                          : "#fff",
                     border: `1px solid ${
-                      isOwned
-                        ? "var(--border-subtle, rgba(0,0,0,0.08))"
-                        : insufficient
-                          ? "rgba(255,123,97,0.25)"
-                          : "rgba(255,123,97,0.5)"
+                      isLocked && !isOwned
+                        ? "rgba(0,0,0,0.12)"
+                        : isOwned
+                          ? "var(--border-subtle, rgba(0,0,0,0.08))"
+                          : insufficient
+                            ? "rgba(255,123,97,0.25)"
+                            : "rgba(255,123,97,0.5)"
                     }`,
                     borderRadius: 14,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     gap: 4,
-                    cursor: isOwned ? "default" : "pointer",
-                    opacity: isOwned ? 0.6 : insufficient ? 0.75 : 1,
+                    cursor: isOwned || (isLocked && !isOwned) ? "default" : "pointer",
+                    opacity:
+                      isLocked && !isOwned
+                        ? 0.5
+                        : isOwned
+                          ? 0.6
+                          : insufficient
+                            ? 0.75
+                            : 1,
                     minHeight: 100,
+                    position: "relative",
                   }}
                 >
                   <SpriteView sprite={it.sprite} size={36} alt="" />
+                  {isLocked && !isOwned && (
+                    <span
+                      aria-hidden
+                      style={{
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        fontSize: 14,
+                      }}
+                    >
+                      🔒
+                    </span>
+                  )}
                   <span style={{ fontSize: 12, fontWeight: 700, color: "#2b2b2b" }}>
                     {it.name}
                   </span>
                   <span
                     style={{
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: 700,
                       color: isOwned
                         ? "#6a6055"
-                        : insufficient
+                        : isLocked
                           ? "#888"
-                          : "#FF7B61",
+                          : insufficient
+                            ? "#888"
+                            : "#FF7B61",
+                      textAlign: "center",
+                      lineHeight: 1.2,
                     }}
                   >
-                    {isOwned ? "보유 중" : `🥕 ${it.price}`}
+                    {isLocked
+                      ? lockedLabel
+                      : isOwned
+                        ? "보유 중"
+                        : `🥕 ${it.price}`}
                   </span>
                 </button>
               );
