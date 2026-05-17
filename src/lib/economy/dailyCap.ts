@@ -28,8 +28,12 @@ import { passivesFromOwned } from "../dogamPassives";
 import { kstDayKey } from "../kst";
 
 const STORAGE_KEY = "cc.economy.dailyP.v1";
+// PR-113 — first cap-reach toast 1회 dispatch 영속 flag (per KST day).
+const CAP_TOASTED_KEY = "cc.economy.capToasted.v1";
 
 export const BASE_DAILY_CAP = 100;
+/** Event name dispatched once per KST day when earned first crosses cap. */
+export const CAP_REACHED_EVENT = "cc:cap:reached";
 
 interface DailyState {
   day: string;
@@ -98,6 +102,12 @@ export function addPoints(source: string, amount: number): number {
   let state = load();
   if (state.day !== today) {
     state = { day: today, earned: 0 };
+    // PR-113 — 새 KST 일자 → cap toast flag 리셋.
+    try {
+      safeStorage.remove(CAP_TOASTED_KEY);
+    } catch {
+      /* ignore */
+    }
   }
   const cap = currentDailyCap();
   if (state.earned >= cap) {
@@ -107,6 +117,25 @@ export function addPoints(source: string, amount: number): number {
   const grant = Math.min(Math.floor(amount), cap - state.earned);
   const next = { day: state.day, earned: state.earned + grant };
   save(next);
+  // PR-113 — cap cross 시 1회 event dispatch (per KST day).
+  if (next.earned >= cap) {
+    const flagKey = `${CAP_TOASTED_KEY}.${today}`;
+    const alreadyToasted = safeStorage.get(flagKey) === "1";
+    if (!alreadyToasted) {
+      try {
+        safeStorage.set(flagKey, "1");
+      } catch {
+        /* ignore */
+      }
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent(CAP_REACHED_EVENT));
+        }
+      } catch {
+        /* SSR */
+      }
+    }
+  }
   return grant;
 }
 

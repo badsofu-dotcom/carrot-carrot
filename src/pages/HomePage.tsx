@@ -50,6 +50,7 @@ import {
   consumeSuppressedDrops,
   formatSuppressedMessage,
 } from "../lib/notify/focusGate";
+import { CAP_REACHED_EVENT } from "../lib/economy/dailyCap";
 
 const LOGIN_PROMPT_KEY = "cc.hasSeenLoginPrompt";
 const LOGIN_PROMPT_DELAY = 500;
@@ -102,6 +103,17 @@ export function HomePage() {
     }
     prevStatusRef.current = status;
   }, [status]);
+
+  // PR-113 — 일일 P 캡 도달 1회 toast. cap cross 시 dailyCap 이 dispatch.
+  useEffect(() => {
+    const onCapReached = () => {
+      toast("🌙 오늘 100 P 다 모았어요. 자정에 다시 시작!", {
+        duration: 4000,
+      });
+    };
+    window.addEventListener(CAP_REACHED_EVENT, onCapReached);
+    return () => window.removeEventListener(CAP_REACHED_EVENT, onCapReached);
+  }, []);
 
   // 페이지 떠나기 경고
   useEffect(() => {
