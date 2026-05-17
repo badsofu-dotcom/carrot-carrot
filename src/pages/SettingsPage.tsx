@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useLocation } from "wouter";
 import { Bunny } from "../components/Bunny";
 import { BottomSheet, Card, Switch, toast, Button } from "../design-system/ui";
 import { useTheme, type ThemeMode } from "../design-system/ThemeProvider";
@@ -71,6 +72,8 @@ export function SettingsPage() {
   const tier = deriveProfileTier(ownedCount);
   const [resetSheetOpen, setResetSheetOpen] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
+  // PR-121 — 법적 문서 라우트 이동 (wouter useHashLocation).
+  const [, navigate] = useLocation();
 
   const handleConnectToss = async () => {
     if (authBusy) return;
@@ -305,7 +308,27 @@ export function SettingsPage() {
           {/* 정보 */}
           <Row label="버전" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>{APP_VERSION}</span>} />
           <Row label="이미지 크레딧" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>illustrated by carrot team</span>} />
-          <Row label="개발자" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>주식회사 버니즈농장</span>} last />
+          <Row label="개발자" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>주식회사 버니즈농장</span>} />
+          {/* PR-121 — 법적 문서 라우트. wouter useLocation navigate. */}
+          <Row
+            label="개인정보 처리방침"
+            right={<Chevron />}
+            onClick={() => navigate("/privacy")}
+            testId="row-privacy"
+          />
+          <Row
+            label="이용약관"
+            right={<Chevron />}
+            onClick={() => navigate("/terms")}
+            testId="row-terms"
+          />
+          <Row
+            label="보상 정책 공시"
+            right={<Chevron />}
+            onClick={() => navigate("/rewards")}
+            last
+            testId="row-rewards"
+          />
         </AdvancedDisclosure>
       </SettingsGroup>
 

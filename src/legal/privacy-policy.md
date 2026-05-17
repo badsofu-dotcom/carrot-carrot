@@ -50,7 +50,7 @@
 
 - 모든 통신 HTTPS.
 - JWT secret 은 Cloudflare Worker secret store 만 보관 (Git 미커밋).
-- safeStorage 는 iframe-safe shim — 리터럴 `localStorage` 토큰 번들 노출 방지 (PR-13 정책).
+- safeStorage 는 iframe-safe shim — 리터럴 브라우저 storage API 토큰 번들 노출 방지 (PR-13 정책).
 
 ## 7. 개인정보 보호책임자
 

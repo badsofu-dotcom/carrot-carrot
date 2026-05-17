@@ -53,6 +53,16 @@ const MyInfoPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import("./pages/NotFoundPage").then((m) => ({ default: m.NotFoundPage })),
 );
+// PR-121 — 법적 문서 라우트.
+const PrivacyPage = lazy(() =>
+  import("./pages/LegalPage").then((m) => ({ default: m.PrivacyPage })),
+);
+const TermsPage = lazy(() =>
+  import("./pages/LegalPage").then((m) => ({ default: m.TermsPage })),
+);
+const RewardsLegalPage = lazy(() =>
+  import("./pages/LegalPage").then((m) => ({ default: m.RewardsPage })),
+);
 
 function ScreenFallback() {
   return (
@@ -107,6 +117,10 @@ function AnimatedRoutes() {
             {/* 8.0-a — Settings 가 "내 정보" 로 통합. /settings 도 호환 유지. */}
             <Route path="/me" component={MyInfoPage} />
             <Route path="/settings" component={MyInfoPage} />
+            {/* PR-121 — 법적 문서. /privacy, /terms, /rewards. */}
+            <Route path="/privacy" component={PrivacyPage} />
+            <Route path="/terms" component={TermsPage} />
+            <Route path="/rewards" component={RewardsLegalPage} />
             <Route component={NotFoundPage} />
           </Switch>
         </Suspense>
