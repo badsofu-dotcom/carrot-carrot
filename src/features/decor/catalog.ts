@@ -14,17 +14,30 @@
 
 import type { Furniture, FurnitureCategory, FurnitureRarity } from "./types";
 
+/**
+ * Round 23 (PR-147) — sprite 는 항상 Sprite union 으로 저장. emoji 만 있을
+ * 때는 helper `f()` 가 `{kind: "emoji", value}` 로 wrap. R24+ 에서 자산
+ * 도착 시 entry 별로 `{kind: "image", src: "/assets/decor/..."}` 로 전환.
+ */
 function f(
   id: string,
   name: string,
   category: FurnitureCategory,
   price: number,
   rarity: FurnitureRarity,
-  sprite: string,
+  emojiSprite: string,
   w = 1,
   h = 1,
 ): Furniture {
-  return { id, name, category, price, rarity, sprite, size: { w, h } };
+  return {
+    id,
+    name,
+    category,
+    price,
+    rarity,
+    sprite: { kind: "emoji", value: emojiSprite },
+    size: { w, h },
+  };
 }
 
 export const FURNITURE_CATALOG: ReadonlyArray<Furniture> = [

@@ -21,6 +21,7 @@ import { haptic } from "../../design-system/haptic";
 import { useFarmStore } from "../collection/farmStore";
 import { useDecorStore } from "./decorStore";
 import { FURNITURE_CATALOG } from "./catalog";
+import { SpriteView } from "./SpriteView";
 import type { Furniture, FurnitureCategory } from "./types";
 
 export const FURNITURE_SHOP_OPEN_EVENT = "cc:furniture-shop:open";
@@ -197,12 +198,7 @@ export function FurnitureShopModal({
                     minHeight: 100,
                   }}
                 >
-                  <span
-                    aria-hidden
-                    style={{ fontSize: 32, lineHeight: 1 }}
-                  >
-                    {it.sprite}
-                  </span>
+                  <SpriteView sprite={it.sprite} size={36} alt="" />
                   <span style={{ fontSize: 12, fontWeight: 700, color: "#2b2b2b" }}>
                     {it.name}
                   </span>

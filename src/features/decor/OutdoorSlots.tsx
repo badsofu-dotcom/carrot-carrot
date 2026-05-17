@@ -21,6 +21,7 @@ import { FURNITURE_BY_ID } from "./catalog";
 import {
   FURNITURE_SHOP_OPEN_EVENT,
 } from "./FurnitureShopModal";
+import { SpriteView } from "./SpriteView";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 
@@ -131,7 +132,7 @@ export function OutdoorSlots() {
               boxShadow: f ? "0 2px 6px rgba(0,0,0,0.18)" : "none",
             }}
           >
-            {f ? <span aria-hidden>{f.sprite}</span> : "＋"}
+            {f ? <SpriteView sprite={f.sprite} size={32} alt="" /> : "＋"}
           </button>
         );
       })}

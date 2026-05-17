@@ -65,12 +65,25 @@ test("catalog: size.w/h 양수 정수", () => {
   }
 });
 
-test("catalog: sprite 1 char emoji (placeholder, R23+ 교체 예정)", () => {
+test("catalog: sprite Sprite union (emoji 베타, image R24+)", () => {
   for (const f of FURNITURE_CATALOG) {
     assert.ok(
-      typeof f.sprite === "string" && f.sprite.length > 0,
-      `no sprite: ${f.id}`,
+      f.sprite && typeof f.sprite === "object",
+      `bad sprite shape: ${f.id}`,
     );
+    if (f.sprite.kind === "emoji") {
+      assert.ok(
+        typeof f.sprite.value === "string" && f.sprite.value.length > 0,
+        `empty emoji: ${f.id}`,
+      );
+    } else if (f.sprite.kind === "image") {
+      assert.ok(
+        typeof f.sprite.src === "string" && f.sprite.src.startsWith("/"),
+        `bad image src: ${f.id}`,
+      );
+    } else {
+      assert.fail(`unknown sprite kind: ${f.id} ${JSON.stringify(f.sprite)}`);
+    }
   }
 });
 

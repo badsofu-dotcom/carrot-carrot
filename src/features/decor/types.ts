@@ -7,6 +7,15 @@ export type FurnitureRarity = "common" | "rare" | "epic";
 export type Room = "mushroom_house" | "farm_outdoor";
 export type Rotation = 0 | 90 | 180 | 270;
 
+/**
+ * Sprite source — beta uses emoji placeholders; R24+ assets will be
+ * PNG paths under `public/assets/decor/furniture/`. Renderer (FurnitureShopModal
+ * / OutdoorSlots) discriminates on `kind`.
+ */
+export type Sprite =
+  | { kind: "emoji"; value: string }
+  | { kind: "image"; src: string };
+
 export interface Furniture {
   id: string;
   name: string;
@@ -14,8 +23,7 @@ export interface Furniture {
   /** Cost in 당근 (carrot). Direct debit from farmStore.carrots. */
   price: number;
   rarity: FurnitureRarity;
-  /** Emoji placeholder for beta. Replace with image asset in Round 23+. */
-  sprite: string;
+  sprite: Sprite;
   /** Grid footprint. PHASE 4 (outdoor) uses 4 fixed slots — size is
    *  metadata only; PHASE 5 (indoor) uses size for grid collision. */
   size: { w: number; h: number };
