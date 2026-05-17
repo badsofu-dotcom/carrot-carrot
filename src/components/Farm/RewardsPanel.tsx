@@ -45,7 +45,6 @@ interface Props {
 }
 
 export function RewardsPanel({ open, onClose }: Props) {
-  const carrots = useFarmStore((s) => s.carrots);
   // PR-145 (Round 22) — candy / golden subscription 제거 (토스포인트
   // 카드 헤더 표시 없어짐). gift / treasure 보상 grant 시 incCandy /
   // incGolden 은 여전히 사용.
@@ -280,53 +279,11 @@ export function RewardsPanel({ open, onClose }: Props) {
             >
               <style>{`[data-testid="rewards-scroll"]::-webkit-scrollbar{display:none;}`}</style>
 
-            {/* PR-152 (Round 25) — 데코 v2: 가구 상점 카드 → 버섯집
-                들어가기 카드. 9-step 프리렌더 인테리어 + 토끼 온보딩
-                (MushroomHouseRoom). 카드 탭 시 cc:mushroom-house:open
-                dispatch — MushroomHouseRoom 이 listen. */}
-            <Section title="🍄 버섯집">
-              <button
-                type="button"
-                data-testid="rewards-open-mushroom-house"
-                onClick={() => {
-                  haptic("light");
-                  onClose();
-                  try {
-                    window.dispatchEvent(
-                      new CustomEvent("cc:mushroom-house:open"),
-                    );
-                  } catch {
-                    /* SSR */
-                  }
-                }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: "#fff",
-                  borderRadius: 16,
-                  padding: 14,
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%",
-                  textAlign: "left",
-                }}
-              >
-                <span aria-hidden style={{ fontSize: 28, flexShrink: 0 }}>🍄</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: "#2b2b2b" }}>
-                    버섯집 들어가기
-                  </div>
-                  <div style={{ fontSize: 11, color: "#6a6055", marginTop: 2 }}>
-                    🥕 {carrots} 보유 · 9-step 인테리어 가구를 모으세요
-                  </div>
-                </div>
-                <span aria-hidden style={{ color: "#FF7B61", fontWeight: 800, fontSize: 18 }}>›</span>
-              </button>
-              {/* PR-90 — 일일 cap 진행도. 가구 통화로 재정의됐어도 의미
-                  있는 보호 (일일 100 당근 cap). 라벨은 DailyCapProgress
-                  내부에서 R22 갱신. */}
+            {/* R27.1 — 버섯집 진입 카드 제거. 농장 라벨 "🍄 집 들어가기"
+                (MushroomHouseEntryLabel) 로 이미 진입 가능 → 중복 UI.
+                DailyCapProgress 는 일일 cap 표시 (가구 통화로 재정의된
+                후에도 의미 있음) 라 별도 section 으로 유지. */}
+            <Section title="🥕 오늘 진행">
               <DailyCapProgress />
             </Section>
 
