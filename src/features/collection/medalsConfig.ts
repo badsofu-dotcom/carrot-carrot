@@ -88,20 +88,20 @@ export const MEDALS: readonly MedalDef[] = [
   {
     id: "dogam_25",
     displayName: "호기심쟁이",
-    description: "토끼 25마리를 만났어요",
+    description: "도감 1/4 (25%) 를 채웠어요",
     iconRel: "assets/farm/rewards/ribbon-curious.png",
     tier: "silver",
     category: "dogam",
-    unlockHint: "도감 25마리 unlock",
+    unlockHint: "도감 25% 진행",
   },
   {
     id: "dogam_50",
     displayName: "친구들의 친구",
-    description: "토끼 50마리와 친해졌어요",
+    description: "도감 절반 (50%) 을 채웠어요",
     iconRel: "assets/farm/rewards/ribbon-friend-of-friends.png",
     tier: "silver",
     category: "dogam",
-    unlockHint: "도감 50마리 unlock",
+    unlockHint: "도감 50% 진행",
   },
   {
     id: "quiet_sky",
@@ -126,11 +126,11 @@ export const MEDALS: readonly MedalDef[] = [
   {
     id: "dogam_75",
     displayName: "마을 영웅",
-    description: "토끼 75마리와 친해진 진짜 영웅",
+    description: "도감 3/4 (75%) 를 채운 진짜 영웅",
     iconRel: "assets/farm/rewards/trophy-village-hero.png",
     tier: "gold",
     category: "dogam",
-    unlockHint: "도감 75마리 unlock",
+    unlockHint: "도감 75% 진행",
   },
   {
     id: "dogam_100",
@@ -139,7 +139,7 @@ export const MEDALS: readonly MedalDef[] = [
     iconRel: "assets/farm/rewards/trophy-legend.png",
     tier: "gold",
     category: "dogam",
-    unlockHint: "도감 100마리 모두 unlock",
+    unlockHint: "도감 100% 완성",
   },
 ];
 

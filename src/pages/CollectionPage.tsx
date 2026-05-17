@@ -27,6 +27,7 @@ import {
   RARITY_LABEL,
   SLOTS,
   TOTAL_SLOTS,
+  DOGAM_TOTAL,
   type CharacterDef,
   type Rarity,
   type SlotDef,
@@ -842,13 +843,18 @@ function FarmView({
     bgmEngine.setVolume(farmBgmVolume);
   }, [farmBgmVolume]);
 
-  // Dogam threshold medals (25/50/75/100). Re-evaluated whenever the
-  // unlock count crosses a boundary. unlockMedal() is idempotent.
+  // PR-71 — Dogam threshold medals 비율 기반 (DOGAM_TOTAL = CHARACTERS.length).
+  // 12-char universe 기준 임계 3 / 6 / 9 / 12. 캐릭터 추가 시 자동 재계산.
+  // unlockMedal() is idempotent — 경계 cross 시 한 번만.
   useEffect(() => {
-    if (obtainedCount >= 25) unlockMedal("dogam_25");
-    if (obtainedCount >= 50) unlockMedal("dogam_50");
-    if (obtainedCount >= 75) unlockMedal("dogam_75");
-    if (obtainedCount >= 100) unlockMedal("dogam_100");
+    const t25 = Math.ceil(DOGAM_TOTAL * 0.25);
+    const t50 = Math.ceil(DOGAM_TOTAL * 0.5);
+    const t75 = Math.ceil(DOGAM_TOTAL * 0.75);
+    const t100 = DOGAM_TOTAL;
+    if (obtainedCount >= t25) unlockMedal("dogam_25");
+    if (obtainedCount >= t50) unlockMedal("dogam_50");
+    if (obtainedCount >= t75) unlockMedal("dogam_75");
+    if (obtainedCount >= t100) unlockMedal("dogam_100");
   }, [obtainedCount, unlockMedal]);
 
   // Lock body overflow only while the farm view is mounted. Other tabs

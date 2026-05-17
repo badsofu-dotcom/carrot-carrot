@@ -228,6 +228,13 @@ export const CHARACTERS: CharacterDef[] = [
   },
 ];
 
+/**
+ * PR-71 — 실제 unlock 가능한 캐릭터 총수. dogam medal 임계
+ * (dogam_25 / dogam_50 / dogam_75 / dogam_100) 와 passive 임계
+ * (dogamPassives.ts) 모두 이 값에 비례. 캐릭터 추가 시 자동 반영.
+ */
+export const DOGAM_TOTAL = CHARACTERS.length;
+
 /* ----------------------- 100-slot map ----------------------- */
 
 export const TOTAL_SLOTS = 100;
