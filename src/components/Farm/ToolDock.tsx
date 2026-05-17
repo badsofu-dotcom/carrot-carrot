@@ -25,6 +25,7 @@
  */
 import { useToolStore, type ToolId } from "../../features/collection/toolStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
+import { useFarmStore } from "../../features/collection/farmStore";
 import { haptic } from "../../design-system/haptic";
 
 const BASE = import.meta.env.BASE_URL;
@@ -78,7 +79,8 @@ const SCALE_TIGHT = 0.9;
 const TOOL_DEFS: ToolDef[] = [
   {
     id: "shovel",
-    label: "삽",
+    // PR-87 — "삽" → "모종삽" (사용자 용어와 일치, 씨앗 심기 의미 강화).
+    label: "모종삽",
     src: `${BASE}assets/farm/tools/tool_shovel.png`,
     scale: SCALE_PADDED,
   },
@@ -116,6 +118,13 @@ export function ToolDock() {
   const itemCounts = useItemsStore((s) => s.counts);
   let speciesOwned = 0;
   for (const v of Object.values(itemCounts)) if (v > 0) speciesOwned++;
+  // PR-87 — 모종삽 칩 badge 에 씨앗 수량 표시 (informational).
+  // 현재 farmStore.plant 는 씨앗 소비 안 함 (자유 plant) — itemMeta.ts
+  // seed.effect 의 "향후 소비 예정" 상태 그대로. 사용자 시각 단서로
+  // 보유 씨앗을 노출하되, 0 이라도 disable 안 함 (plant 가 free 라
+  // disable 시 plant 자체가 중단). 추후 seed consumption wire 시 0 →
+  // disable + 토스트 패턴으로 전환.
+  const seeds = useFarmStore((s) => s.seeds);
   // PR-28 — heart 토큰은 광고 시청 가능 잔여 횟수. PR-24 에서 KST
   // 자정 리필 + ad-channel claim consume 가 wire 됨. 본 PR 은 슬롯
   // UI + 표시만.
@@ -185,13 +194,23 @@ export function ToolDock() {
         const isActive = selected === t.id;
         let badge: string | null = null;
         if (t.id === "watering_can") badge = `${wateringLeft}/10`;
+        // PR-87 — 모종삽 = 씨앗 심기 도구 → 보유 씨앗 informational 표시.
+        if (t.id === "shovel") badge = `🌱 ${seeds}`;
         return (
           <button
             key={t.id}
             type="button"
             onClick={() => onSelect(t)}
             data-testid={`tool-${t.id}`}
-            aria-label={t.label}
+            // PR-87 — shovel/watering_can 은 informational badge 가 있어서
+            // aria-label 에도 수치 명시 (screenreader 가독성).
+            aria-label={
+              t.id === "shovel"
+                ? `모종삽 — 씨앗 ${seeds}개 보유`
+                : t.id === "watering_can"
+                  ? `물뿌리개 — 오늘 ${wateringLeft}/10 남음`
+                  : t.label
+            }
             aria-pressed={isActive}
             style={{
               position: "relative",
