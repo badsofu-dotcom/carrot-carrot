@@ -53,8 +53,13 @@ import { VisitorBunny } from "../../components/Farm/VisitorBunny";
 import { BgmQuickToggle } from "../../components/Farm/BgmQuickToggle";
 import { useFriendsStore } from "./friendsStore";
 // PR-145 (Round 22) — 가구/장식 시스템.
+// PR-147 (Round 23) — feature flags 로 자산 도착 전 UI 잠금.
 import { OutdoorSlots } from "../decor/OutdoorSlots";
 import { FurnitureShopModal } from "../decor/FurnitureShopModal";
+import {
+  ENABLE_DECOR_OUTDOOR_SLOTS,
+  ENABLE_DECOR_MUSHROOM_HOUSE,
+} from "../decor/featureFlags";
 
 // PR-137 — shared pill style for the top-center 하늘 보기 + BGM 토글
 // row. Keeping it as a CSSProperties const (not a CSS class) so the
@@ -851,13 +856,13 @@ export function FarmHub({
       <FxLayer events={fxEvents} />
       </div>
 
-      {/* PR-145 (Round 22) — 야외 가구 슬롯 4개. 빈 슬롯 탭 → 가구 상점.
-          채워진 슬롯 탭 → 즉시 제거 (보관함 유지). */}
-      <OutdoorSlots />
+      {/* PR-145 (Round 22) — 야외 가구 슬롯 4개. PR-147 (Round 23) —
+          자산 도착 전 잠금 (점선 박스가 시각적 노이즈). */}
+      {ENABLE_DECOR_OUTDOOR_SLOTS && <OutdoorSlots />}
 
       {/* PR-146 (Round 22 PHASE 5) — 버섯집 placeholder. R23 에서 실내
           그리드 + 인테리어 wire. 지금은 탭 시 안내 토스트만. */}
-      <button
+      {ENABLE_DECOR_MUSHROOM_HOUSE && <button
         type="button"
         data-testid="farm-mushroom-house"
         aria-label="버섯집 — 방 안에 들어가기 (곧 추가)"
@@ -884,7 +889,7 @@ export function FarmHub({
         }}
       >
         🍄
-      </button>
+      </button>}
 
       {/* "하늘 보기" + BGM 빠른 토글 — 농장 카드 상단 중앙에 frosted
           pill 2개. PR-137 (Round 19) — BGM 토글이 Settings 까지 안 가도
