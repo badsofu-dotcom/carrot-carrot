@@ -265,14 +265,18 @@ export function ToolDock() {
         );
       })}
 
-      {/* Bag (inventory) — passive slot. Dispatches cc:bag:open so
-          CollectionPage opens the InventoryModal. Replaces the old farm
-          header bag button (PR-6). */}
+      {/* Bag (inventory) — InventoryModal trigger.
+          PR-86 — 자루 비주얼 PNG 때문에 사용자가 "씨앗 자루" (자원)
+          으로 오해. 실제로는 가방 (인벤토리) 진입점. 라벨/툴팁
+          명확화: aria-label 에 보유 species 수 명시, title 추가.
+          Badge 의미: speciesOwned = 0 보다 큰 ItemCode 종 수 (가방
+          안에 N 종류 들어있다 표시). */}
       <button
         type="button"
         onClick={onOpenBag}
         data-testid="tool-bag"
-        aria-label="가방 열기"
+        aria-label={`내 가방 (${speciesOwned}종 보유)`}
+        title="내 가방"
         style={{
           position: "relative",
           width: SLOT_SIZE,
