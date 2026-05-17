@@ -169,7 +169,8 @@ export function GemTradeModal() {
                 marginBottom: 4,
               }}
             >
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+              {/* PR-84 — modal bg #FFF8EE fixed → fixed dark heading. */}
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#2b2b2b" }}>
                 💎 보석 사용
               </h3>
               <span

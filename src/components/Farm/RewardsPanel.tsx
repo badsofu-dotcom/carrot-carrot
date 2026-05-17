@@ -275,7 +275,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                   marginBottom: 12,
                 }}
               >
-                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>보상함</h2>
+                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "#2b2b2b" }}>보상함</h2>
                 <button
                   type="button"
                   onClick={onClose}
@@ -337,10 +337,13 @@ export function RewardsPanel({ open, onClose }: Props) {
                   style={{ flexShrink: 0, objectFit: "contain" }}
                 />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.1 }}>
+                  {/* PR-84 — card bg #fff (fixed) 위에 inheriting color
+                      쓰면 dark mode 에서 흰 글씨 inheritance 로 invisible.
+                      fixed dark color 강제. */}
+                  <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.1, color: "#2b2b2b" }}>
                     {points.toLocaleString()} P
                   </div>
-                  <div style={{ fontSize: 11, color: "#777" }}>
+                  <div style={{ fontSize: 11, color: "#6a6055" }}>
                     🥕 {carrots} · 🍬 {candy} · ✨ {golden} · 🌱 {seeds}
                   </div>
                 </div>
@@ -416,7 +419,8 @@ export function RewardsPanel({ open, onClose }: Props) {
                   }}
                 />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>
+                  {/* PR-84 — fixed #fff card → fixed dark heading. */}
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#2b2b2b" }}>
                     {todayClaimed ? "오늘은 이미 받았어요" : "오늘의 선물 받기"}
                   </div>
                   <div style={{ fontSize: 11, color: "#6a6055", marginTop: 2 }}>
@@ -485,7 +489,8 @@ export function RewardsPanel({ open, onClose }: Props) {
                   }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>
+                  {/* PR-84 — fixed #fff card → fixed dark heading. */}
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#2b2b2b" }}>
                     {treasureProgress >= WEEKLY_TREASURE_GOAL
                       ? "보물상자 열기 준비됨!"
                       : `진행도 ${treasureProgress}/${WEEKLY_TREASURE_GOAL}`}

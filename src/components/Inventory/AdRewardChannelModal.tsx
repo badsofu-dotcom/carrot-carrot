@@ -273,7 +273,8 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               boxShadow: "0 12px 36px rgba(0,0,0,0.32)",
             }}
           >
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, textAlign: "center" }}>
+            {/* PR-84 — modal bg #FFF8EE fixed → fixed dark heading. */}
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, textAlign: "center", color: "#2b2b2b" }}>
               어떤 보상을 받을까요?
             </h3>
             <p

@@ -253,7 +253,8 @@ export function InventoryModal({ open, onClose }: Props) {
                 marginBottom: 12,
               }}
             >
-              <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>내 가방</h2>
+              {/* PR-84 — modal bg #FFF8EE fixed → fixed dark heading. */}
+              <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, color: "#2b2b2b" }}>내 가방</h2>
               <button
                 type="button"
                 onClick={onClose}
