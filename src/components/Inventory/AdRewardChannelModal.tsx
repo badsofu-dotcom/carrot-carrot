@@ -29,6 +29,10 @@ import { passivesFromOwned } from "../../lib/dogamPassives";
 import { safeStorage } from "../../lib/safeStorage";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
+import {
+  safeAreaBackdropStyle,
+  safeAreaModalStyle,
+} from "../../lib/ui/safeAreaModal";
 
 type Channel = "watering" | "gift" | "treasure";
 
@@ -243,23 +247,10 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
           transition={{ duration: 0.18 }}
           onClick={onClose}
           style={{
-            // PR-42 — 단일 fixed 컨테이너 + flex centering. 이전 코드는
-            // 내부 modal 카드에 `left:50%; top:50%; transform:
-            // translate(-50%,-50%)` 를 직접 걸었는데 framer-motion 의
-            // y/opacity 애니메이션이 같은 transform 속성을 덮어써서
-            // 모바일에서 모달이 우측으로 밀려 잘림.
-            // BunnyGachaModal 패턴 차용: outer fixed inset:0 + display
-            // flex 중앙 정렬 → inner motion 카드는 transform 자유 사용.
-            position: "fixed",
-            inset: 0,
+            // PR-42 — outer fixed inset:0 + flex centering 패턴.
+            // PR-79 — safeAreaBackdropStyle 로 공통화. zIndex 만 override.
+            ...safeAreaBackdropStyle,
             zIndex: 1080,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding:
-              "16px calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left))",
-            boxSizing: "border-box",
           }}
           data-testid="ad-channel-backdrop"
         >
@@ -274,16 +265,12 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
             style={{
-              // No fixed positioning — flex parent centers. width clamps
-              // at min(360, parent inner width) so 한 padding 16 좌우
-              // 빼고도 자연스럽게 viewport 안에 머무름.
-              width: "100%",
-              maxWidth: 360,
+              // PR-79 — safeAreaModalStyle 로 maxHeight + safe-area
+              // bottom + overflow 일관성 보장.
+              ...safeAreaModalStyle({ maxWidth: 360 }),
               background: "#FFF8EE",
               borderRadius: 20,
-              padding: "20px 22px",
               boxShadow: "0 12px 36px rgba(0,0,0,0.32)",
-              boxSizing: "border-box",
             }}
           >
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, textAlign: "center" }}>
