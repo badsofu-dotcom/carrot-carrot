@@ -38,6 +38,7 @@ import {
   type FarmBgSlot,
 } from "../../lib/farmBackground";
 import { UnlockOverlay } from "../collection/UnlockOverlay";
+import { useFarmhubStore } from "../decor/farmhubStore";
 
 const ALL_MEDALS: readonly MedalId[] = [
   "first_harvest",
@@ -284,6 +285,32 @@ export function DevActionsGroup() {
         <DevRow label="메달 전부 unlock" sub={`정의된 ${ALL_MEDALS.length}개`} onClick={handleUnlockAllMedals} />
         <DevRow label="오늘의 선물 다시 받기" sub="giftClaimedDay 리셋" onClick={handleResetDailyGift} />
         <DevRow label="시간대 강제 사이클" sub="auto → day → evening → night → rainy → snowy → auto" onClick={handleForceSlotCycle} />
+        {/* PR-152 (Round 25) — 버섯집 v2 trigger 임시. R26 에서 정식
+            지급 경로 (도감 / 광고 / 미션) 결정 후 제거 예정. */}
+        <DevRow
+          label="🐰 다음 가구 받기"
+          sub="버섯집 v2 — 보관함에 다음 가구 도착"
+          onClick={() => {
+            const r = useFarmhubStore.getState().grantNext();
+            haptic(r.ok ? "success" : "warning");
+            if (r.ok) {
+              toast(`🐰 다음 가구 도착 (${r.furnitureId})`);
+            } else if (r.reason === "all_placed") {
+              toast("✨ 모든 가구 배치 완료");
+            } else if (r.reason === "already_pending") {
+              toast("이미 보관함에 가구가 있어요");
+            }
+          }}
+        />
+        <DevRow
+          label="🐰 버섯집 진행 reset"
+          sub="step 0, pending null, onboarding wipe"
+          onClick={() => {
+            useFarmhubStore.getState().reset();
+            haptic("warning");
+            toast("버섯집 리셋");
+          }}
+        />
         <DevRow
           label="로컬 데이터 초기화"
           sub="도감/누적/연속 전부 지움"

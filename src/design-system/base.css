@@ -563,3 +563,10 @@ button:focus-visible {
   0%, 100% { filter: brightness(1); }
   50% { filter: brightness(1.15); }
 }
+
+/* MushroomHouseRoom — 보관함 strip 의 active 가구 (pending) 강조.
+   border + scale 살짝. Round 25 PR-152. */
+@keyframes mushroom-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,123,97,0.55); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 4px rgba(255,123,97,0.25); }
+}
