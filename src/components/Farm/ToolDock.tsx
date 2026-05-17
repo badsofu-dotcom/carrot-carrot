@@ -165,9 +165,9 @@ export function ToolDock() {
   // (PR-24 에서 AdRewardChannelModal 의 claim 측이 하트를 consume.)
   const onOpenAdChannel = () => {
     if (heartCount <= 0) {
-      // 토스트 — 동적 import 회피 위해 ui import 는 호출 시점에 read.
+      // PR-107 — 하트 토큰 = 광고 시청 자격. 자정 리필 안내 일관.
       void import("../../design-system/ui").then((m) =>
-        m.toast("하트가 부족해요 — 내일 자정에 다시 채워져요"),
+        m.toast("🩷 하트가 없어요. 자정에 다시 채워져요"),
       );
       return;
     }
@@ -404,8 +404,13 @@ export function ToolDock() {
         data-testid="tool-ad"
         aria-label={
           heartCount > 0
-            ? `광고 보고 보상 받기 (하트 ${heartCount}개)`
-            : "광고 보상 — 하트 부족"
+            ? `광고 시청 (하트 ${heartCount}개 보유)`
+            : "광고 시청 — 하트 부족, 자정에 다시 채워져요"
+        }
+        title={
+          heartCount > 0
+            ? `광고 시청 (하트 ${heartCount}개)`
+            : "하트 부족"
         }
         style={{
           position: "relative",
@@ -434,22 +439,26 @@ export function ToolDock() {
             position: "absolute",
             bottom: -3,
             right: -3,
-            minWidth: 22,
+            // PR-107 — 🩷 + 숫자 badge 위해 minWidth 확대 (이전 22 → 32).
+            minWidth: 32,
             height: 16,
             borderRadius: 999,
             background: "#fff",
             color: heartCount > 0 ? "#222" : "#888",
             fontSize: 10,
             fontWeight: 800,
-            padding: "0 4px",
+            padding: "0 5px",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
+            gap: 2,
             border: "1px solid rgba(0,0,0,0.08)",
             boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
           }}
         >
-          {heartCount}
+          {/* PR-107 — 광고 칩 = 하트 토큰 표기 일치. 🩷 + N 으로 토큰
+              카드 (InventoryModal heart) 와 시각 통일. */}
+          🩷 {heartCount}
         </span>
       </button>
     </div>
