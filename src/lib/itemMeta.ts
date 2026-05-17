@@ -27,13 +27,16 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
     emoji: "🥕",
   },
   candy: {
+    // PR-105 — 단순화: 토스포인트 환산 중심. 확률/버프 detail 은 버프 / 도구
+    // / 도감 description 에 위임.
     longDescription:
-      "수확 보너스 7 % 보너스. 토스포인트 5 P 환산. 콤보 / 주스 효과로 확률 ↑.",
+      "5 토스포인트로 환산되는 보너스 당근. 수확 시 일정 확률로 등장.",
     emoji: "🍬",
   },
   golden: {
+    // PR-105 — 동일 패턴.
     longDescription:
-      "수확 보너스 0.6 % 희귀 보너스. 토스포인트 10 P. 케이크 사용 시 확률 강화.",
+      "10 토스포인트로 환산되는 희귀 당근. 수확 시 낮은 확률로 등장.",
     emoji: "✨",
   },
   seed: {
