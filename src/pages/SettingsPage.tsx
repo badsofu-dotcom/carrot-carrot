@@ -291,15 +291,13 @@ export function SettingsPage() {
           <AutoBreakToggleRow />
           {/* 외관 세부 */}
           <FarmBgAutoToggleRow />
-          {/* 데이터 */}
-          <Row
-            label="캐시 비우기"
-            right={<Chevron />}
-            onClick={() => toast("캐시는 다음 단계에서 비울 수 있어")}
-          />
+          {/* 데이터 — Round 21 베타7 피드백: "캐시 비우기" / "데이터
+              초기화" UI 항목 제거. 캐시는 어차피 placeholder toast 였고
+              데이터 초기화는 베타에서 사고 가능성 높음. setResetSheetOpen
+              은 unused 처리. 온보딩 다시 보기는 유용해서 유지. */}
           <Row
             label="온보딩 다시 보기"
-            sub="농장 안내 4단계 다시 보기"
+            sub="농장 안내 다시 보기"
             right={<Chevron />}
             onClick={() => {
               haptic("light");
@@ -308,15 +306,6 @@ export function SettingsPage() {
               toast("온보딩을 다시 시작했어요");
             }}
             testId="row-reset-onboarding"
-          />
-          <Row
-            label="데이터 초기화"
-            right={<span style={{ color: "var(--accent-devil)", fontWeight: 700, fontSize: 13 }}>위험</span>}
-            onClick={() => {
-              haptic("warning");
-              setResetSheetOpen(true);
-            }}
-            testId="row-data-reset"
           />
           {/* 정보 */}
           <Row label="버전" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>{APP_VERSION}</span>} />
