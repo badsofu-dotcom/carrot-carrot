@@ -169,72 +169,27 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      {/* 계정 */}
-      <SettingsGroup title="계정">
-        <Row
-          label="로그인 상태"
-          right={<AuthBadge mode={authMode} />}
-          sub={authHint}
-        />
-        {authMode !== "toss" ? (
-          <Row
-            label={authBusy ? "연결 중..." : "토스로 로그인"}
-            right={
-              <span
-                style={{
-                  color: "var(--accent-carrot)",
-                  fontWeight: 800,
-                  fontSize: 13,
-                }}
-              >
-                연결 →
-              </span>
-            }
-            onClick={handleConnectToss}
-            last
-            testId="row-connect-toss"
-          />
-        ) : (
-          <>
-            <Row
-              label="토스 연결됨 ✓"
-              right={
-                <span
-                  style={{
-                    color: "var(--text-tertiary)",
-                    fontWeight: 600,
-                    fontSize: 12,
-                  }}
-                >
-                  완료
-                </span>
-              }
-              testId="row-toss-connected"
-            />
-            <Row
-              label="토스 연결 끊기"
-              right={<span style={{ color: "var(--accent-devil)", fontWeight: 700, fontSize: 13 }}>로그아웃</span>}
-              onClick={handleLogout}
-              last
-              testId="row-logout"
-            />
-          </>
-        )}
-      </SettingsGroup>
+      {/* PR-101 — IA 재구성. 사용 빈도 기준 reorder + 압축.
+          집중 > 알림 > 소리 > 외관 > 친구초대 > 계정 > 고급. */}
 
-      {/* 집중 */}
-      <SettingsGroup title="집중" emoji="⏱">
+      {/* 1. 집중 (가장 자주) */}
+      <SettingsGroup title="집중" emoji="🎯">
         <TimerPresetRow />
-        <CustomSlotToggleRow />
-        <AutoBreakToggleRow />
       </SettingsGroup>
 
-      {/* PR-69 — 알림 & 소리 통합 (마스터 + 고급 disclosure). */}
-      <SoundNotifyGroup />
+      {/* 2. 알림 (마스터만 — 세부는 고급) */}
+      <SettingsGroup title="알림" emoji="🔔">
+        <NotifyMasterRow />
+      </SettingsGroup>
 
-      {/* 외관 */}
+      {/* 3. 소리 (효과음 + BGM) */}
+      <SettingsGroup title="소리" emoji="🔊">
+        <SfxMutedRow />
+        <FarmBgmToggleRow />
+      </SettingsGroup>
+
+      {/* 4. 외관 (다크 모드만 — FarmBgAuto 는 고급) */}
       <SettingsGroup title="외관" emoji="🎨">
-        <FarmBgAutoToggleRow />
         <Row
           label="다크 모드"
           right={
@@ -272,59 +227,92 @@ export function SettingsPage() {
         />
       </SettingsGroup>
 
-      {/* 데이터 */}
-      <SettingsGroup title="데이터" emoji="💾">
-        <Row
-          label="캐시 비우기"
-          right={<Chevron />}
-          onClick={() => toast("캐시는 다음 단계에서 비울 수 있어")}
-        />
-        <Row
-          label="온보딩 다시 보기"
-          sub="농장 안내 4단계를 지금 다시 보기"
-          right={<Chevron />}
-          onClick={() => {
-            haptic("light");
-            // Clear the persisted seen-flag and immediately re-open the
-            // modal via the event bus. If the user is on a non-farm tab
-            // the modal isn't mounted yet — clearing the flag still does
-            // the right thing on the next farm-tab visit.
-            safeStorage.set(ONBOARDING_KEY, "false");
-            reopenOnboarding();
-            toast("온보딩을 다시 시작했어요");
-          }}
-          testId="row-reset-onboarding"
-        />
-        <Row
-          label="데이터 초기화"
-          right={<span style={{ color: "var(--accent-devil)", fontWeight: 700, fontSize: 13 }}>위험</span>}
-          onClick={() => {
-            haptic("warning");
-            setResetSheetOpen(true);
-          }}
-          last
-          testId="row-data-reset"
-        />
-      </SettingsGroup>
-
-      {/* PR-62 — 친구 초대 (client stub). 백엔드 wire 전까지 가입자
-          grant 만 적용. */}
+      {/* 5. 친구 초대 (발견성 위해 visible) */}
       <FriendInviteGroup />
 
-      {/* 개발자 액션 — `import.meta.env.DEV` 조건부.
-          Vite 가 빌드 시 literal `false` 로 치환 → 다음 라인 전체
-          dead-code-eliminate. DevActionsGroup 모듈도 사용처 없음으로
-          tree-shake 됨. VITE_TIMER_DEBUG=true 면 prod 빌드에도 노출. */}
+      {/* 6. 계정 (가장 아래) */}
+      <SettingsGroup title="계정" emoji="👤">
+        <Row
+          label="로그인 상태"
+          right={<AuthBadge mode={authMode} />}
+          sub={authHint}
+        />
+        {authMode !== "toss" ? (
+          <Row
+            label={authBusy ? "연결 중..." : "토스로 로그인"}
+            right={
+              <span style={{ color: "var(--accent-carrot)", fontWeight: 800, fontSize: 13 }}>
+                연결 →
+              </span>
+            }
+            onClick={handleConnectToss}
+            last
+            testId="row-connect-toss"
+          />
+        ) : (
+          <Row
+            label="토스 연결 끊기"
+            right={<span style={{ color: "var(--accent-devil)", fontWeight: 700, fontSize: 13 }}>로그아웃</span>}
+            onClick={handleLogout}
+            last
+            testId="row-logout"
+          />
+        )}
+      </SettingsGroup>
+
+      {/* 7. 고급 설정 — 모든 rare actions */}
+      <SettingsGroup title="고급 설정" emoji="⚙">
+        <AdvancedDisclosure>
+          {/* 알림 세부 */}
+          <PushReminderRow />
+          <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때" />
+          <NotifyKindRow kind="session" label="집중 완료" sub="25분 / 50분 완료" />
+          <NotifyKindRow kind="mission" label="오늘의 목표" sub="미션 안내" />
+          <NotifyKindRow kind="treasure" label="주간 보물상자" sub="진행 7 충족 시" />
+          <EndAlertRow />
+          {/* 집중 세부 */}
+          <CustomSlotToggleRow />
+          <AutoBreakToggleRow />
+          {/* 외관 세부 */}
+          <FarmBgAutoToggleRow />
+          {/* 데이터 */}
+          <Row
+            label="캐시 비우기"
+            right={<Chevron />}
+            onClick={() => toast("캐시는 다음 단계에서 비울 수 있어")}
+          />
+          <Row
+            label="온보딩 다시 보기"
+            sub="농장 안내 4단계 다시 보기"
+            right={<Chevron />}
+            onClick={() => {
+              haptic("light");
+              safeStorage.set(ONBOARDING_KEY, "false");
+              reopenOnboarding();
+              toast("온보딩을 다시 시작했어요");
+            }}
+            testId="row-reset-onboarding"
+          />
+          <Row
+            label="데이터 초기화"
+            right={<span style={{ color: "var(--accent-devil)", fontWeight: 700, fontSize: 13 }}>위험</span>}
+            onClick={() => {
+              haptic("warning");
+              setResetSheetOpen(true);
+            }}
+            testId="row-data-reset"
+          />
+          {/* 정보 */}
+          <Row label="버전" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>{APP_VERSION}</span>} />
+          <Row label="이미지 크레딧" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>illustrated by carrot team</span>} />
+          <Row label="개발자" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>주식회사 버니즈농장</span>} last />
+        </AdvancedDisclosure>
+      </SettingsGroup>
+
+      {/* DEV 모드 전용 — 고급 밖에 별도 그룹 (env gate). */}
       {(import.meta.env.DEV || import.meta.env.VITE_TIMER_DEBUG === "true") && (
         <DevActionsGroup />
       )}
-
-      {/* 정보 */}
-      <SettingsGroup title="정보">
-        <Row label="버전" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>{APP_VERSION}</span>} />
-        <Row label="이미지 크레딧" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>illustrated by carrot team</span>} />
-        <Row label="개발자" right={<span className="t-caption" style={{ color: "var(--text-tertiary)" }}>주식회사 버니즈농장</span>} last />
-      </SettingsGroup>
 
 
       <BottomSheet
@@ -426,27 +414,8 @@ function saveFlag(key: string, v: boolean) {
  *   - 농장 드랍 / 집중 완료 / 오늘의 목표 / 주간 보물상자 (NotifyKind, master OFF 시 disabled)
  *   - 집중 끝났을 때 깨워줘 (timer end alert)
  */
-function SoundNotifyGroup() {
-  return (
-    <SettingsGroup title="알림 & 소리" emoji="🔔">
-      <NotifyMasterRow />
-      <SfxMutedRow />
-      <FarmBgmToggleRow />
-      {/* PR-78 — SfxVolumeRow / FarmBgmVolumeRow / HapticToggleRow 제거.
-          볼륨은 soundStore default 상수 (PR-69 와 별개) 사용. 진동은
-          haptic() stub no-op 으로 전체 비활성. 미세조절 필요해지면
-          고급 설정 또는 별도 페이지로 이동. */}
-      <AdvancedDisclosure>
-        <PushReminderRow />
-        <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때" />
-        <NotifyKindRow kind="session" label="집중 완료" sub="25분 / 50분 완료" />
-        <NotifyKindRow kind="mission" label="오늘의 목표" sub="미션 안내" />
-        <NotifyKindRow kind="treasure" label="주간 보물상자" sub="진행 7 충족 시" />
-        <EndAlertRow last />
-      </AdvancedDisclosure>
-    </SettingsGroup>
-  );
-}
+// PR-101 — SoundNotifyGroup 제거. 알림/소리 분리 + AdvancedDisclosure
+// 를 top-level 그룹으로 승격.
 
 /**
  * AdvancedDisclosure — 고급 설정 접힘 트리거 + 영속.
