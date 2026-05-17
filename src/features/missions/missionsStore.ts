@@ -57,26 +57,12 @@ interface MissionsState {
   reset: () => void;
 }
 
+// PR-111 — Legacy MissionType 12종 제거. Active pool 만.
 function emptyProgress(): Record<MissionType, number> {
   return {
-    // PR-75 active pool
     min25Sessions2: 0,
     totalFocusMin50: 0,
     perfectCombo1: 0,
-    // PR-52 legacy (inactive — silent no-op when incremented, kept in
-    // union for backward-compat of trigger sites).
-    focus_25: 0,
-    focus_50: 0,
-    focus_night: 0,
-    ad_watch: 0,
-    bunny_new: 0,
-    golden_harvest: 0,
-    candy_harvest: 0,
-    drop_pickup: 0,
-    medal_unlock: 0,
-    perfect_combo: 0,
-    tool_use: 0,
-    friend_invite: 0,
   };
 }
 

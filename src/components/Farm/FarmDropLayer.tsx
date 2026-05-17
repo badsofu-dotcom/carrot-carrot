@@ -24,7 +24,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useItemsStore } from "../../features/collection/itemsStore";
-import { useMissionsStore } from "../../features/missions/missionsStore";
 import { useNotificationsStore } from "../../features/notifications/notificationsStore";
 import { notify } from "../../lib/webNotify";
 import {
@@ -372,8 +371,6 @@ export function FarmDropLayer() {
         break;
     }
     toast(spec.toast);
-    // PR-52 — drop_pickup 미션 트리거.
-    useMissionsStore.getState().incrementProgress("drop_pickup", 1);
     setDrops((cur) => {
       const next = cur.filter((d) => d.id !== active.id);
       persist(next);

@@ -19,7 +19,6 @@ import { create } from "zustand";
 import { safeStorage } from "../../lib/safeStorage";
 import { useItemsStore } from "../collection/itemsStore";
 import { useFarmStore } from "../collection/farmStore";
-import { useMissionsStore } from "../missions/missionsStore";
 
 const STORAGE_KEY_MY_CODE = "cc.friends.myCode.v1";
 const STORAGE_KEY_USED = "cc.friends.usedCode.v1";
@@ -97,7 +96,6 @@ export const useInviteStore = create<InviteState>((set, get) => ({
     useFarmStore.getState().incCandyCarrots(2);
     useItemsStore.getState().add("gem", 5);
     // 일일 미션 트리거.
-    useMissionsStore.getState().incrementProgress("friend_invite", 1);
     set({ usedCode: trimmed });
     return "ok";
   },

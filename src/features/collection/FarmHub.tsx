@@ -419,14 +419,10 @@ export function FarmHub({
     const onShow = (ev: Event) => {
       const detail = (ev as CustomEvent<{ bunnyId?: string }>).detail;
       if (detail?.bunnyId) setGachaBunnyId(detail.bunnyId);
-      // PR-52 — bunny unlock surface = bunny_new mission trigger.
       if (detail?.bunnyId) {
-        useMissionsStore.getState().incrementProgress("bunny_new", 1);
       }
     };
-    // PR-52 — medal_unlock 미션 트리거.
     const onMedal = () => {
-      useMissionsStore.getState().incrementProgress("medal_unlock", 1);
     };
     window.addEventListener("cc:bunny-gacha:show", onShow);
     window.addEventListener("cc:medal:unlocked", onMedal);
@@ -523,15 +519,13 @@ export function FarmHub({
           incCandyCarrots(1);
           pushFx("sparkle", bounds);
           unlockMedal("first_candy");
-          // PR-52 mission trigger
-          useMissionsStore.getState().incrementProgress("candy_harvest", 1);
+
           toast("🍬 캔디 당근! +5 P");
         } else if (outcome.kind === "golden") {
           incGoldenCarrots(1);
           pushFx("sparkle", bounds);
           unlockMedal("first_golden");
-          // PR-52 mission trigger
-          useMissionsStore.getState().incrementProgress("golden_harvest", 1);
+
           toast("✨ 황금 당근! +10 P");
         } else {
           pushFx("harvest_pop", bounds);
@@ -634,8 +628,7 @@ export function FarmHub({
       pushFx("perfect_combo", { cx: 50, cy: 50 });
       toast("🌟 퍼펙트 콤보! 다음 수확이 좋아질거에요");
       unlockMedal("perfect_combo");
-      // PR-52 mission trigger (legacy, inactive in PR-75 pool — no-op).
-      useMissionsStore.getState().incrementProgress("perfect_combo", 1);
+
       // PR-75 — 학습 중심 active 미션 트리거.
       useMissionsStore.getState().incrementProgress("perfectCombo1", 1);
       // PR-76 — 주간 미션. weeklyPerfectCombo5 카운터.

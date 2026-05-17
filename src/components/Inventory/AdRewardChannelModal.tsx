@@ -23,7 +23,6 @@ import { useRewardsStore } from "../../features/collection/rewardsStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
-import { useMissionsStore } from "../../features/missions/missionsStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
 import { safeStorage } from "../../lib/safeStorage";
 import { kstDayKey } from "../../lib/kst";
@@ -176,8 +175,6 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
     items.consume("heart", 1);
     items.add("carrot_coin", 5);
 
-    // PR-52 — ad_watch 미션 트리거.
-    useMissionsStore.getState().incrementProgress("ad_watch", 1);
 
     // PR-32 — N-th daily ad-claim bonus (carrot/token). KST 일자 별
     // 카운터로 5회 까지 P 보장 (1/5/5/10/10/20 carrot), 6~10회 토큰만
