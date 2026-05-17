@@ -29,6 +29,10 @@ import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { playSfx } from "../../lib/soundFx";
 import { useSoundStore } from "../../store/soundStore";
+import {
+  currentDailyCap,
+  todayEarned,
+} from "../../lib/economy/dailyCap";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -390,6 +394,9 @@ export function RewardsPanel({ open, onClose }: Props) {
                   {withdrawStatus}
                 </p>
               )}
+              {/* PR-90 — 일일 P 캡 진행도. earned 가 cap 에 가까울수록
+                  사용자에게 "오늘은 푹 쉬어요" 의 학습 도구 톤 안내. */}
+              <DailyCapProgress />
             </Section>
 
             {/* Daily gift */}
@@ -629,5 +636,75 @@ function Section({
       </h3>
       {children}
     </section>
+  );
+}
+
+/**
+ * DailyCapProgress (PR-90) — 오늘 누적 earned P / cap 진행도 표시.
+ *
+ * Soft cap 정책: 실제 resource grant 는 차단 안 함. 진행도 + 캡 도달
+ * 시 "🌙 오늘은 푹 쉬어요" 안내. KST 자정 자동 reset.
+ */
+function DailyCapProgress() {
+  const cap = currentDailyCap();
+  const earned = todayEarned();
+  const pct = Math.min(100, (earned / cap) * 100);
+  const reached = earned >= cap;
+  return (
+    <div
+      data-testid="daily-cap-progress"
+      style={{
+        marginTop: 12,
+        padding: "8px 10px",
+        background: reached ? "rgba(34,160,107,0.08)" : "rgba(255,123,97,0.06)",
+        border: reached
+          ? "1px solid rgba(34,160,107,0.18)"
+          : "1px solid rgba(255,123,97,0.14)",
+        borderRadius: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#2b2b2b" }}>
+          {reached ? "🌙 오늘은 푹 쉬어요" : "오늘 모은 P"}
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: reached ? "#22a06b" : "#6a6055",
+            fontVariantNumeric: "tabular-nums",
+          }}
+          data-testid="daily-cap-numbers"
+        >
+          {earned} / {cap} P
+        </span>
+      </div>
+      <div
+        style={{
+          marginTop: 6,
+          height: 4,
+          borderRadius: 999,
+          background: "rgba(0,0,0,0.08)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          data-testid="daily-cap-bar"
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            background: reached ? "#22a06b" : "#FF7B61",
+            transition: "width 0.25s ease",
+          }}
+        />
+      </div>
+    </div>
   );
 }

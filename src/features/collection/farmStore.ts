@@ -27,6 +27,7 @@ import {
   stagesFromRemote,
   type FarmSyncResult,
 } from "./farmSync";
+import { addPoints } from "../../lib/economy/dailyCap";
 
 export type CropStage = 0 | 1 | 2 | 3 | 4;
 
@@ -147,14 +148,21 @@ export const useFarmStore = create<FarmState>((set, get) => ({
 
   incCandyCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
+    // PR-90 — earned 카운터 추적 (소프트 캡 — resource 는 항상 grant).
+    // candy = 5 P × n.
+    void addPoints("candy", Math.floor(n) * 5);
     set({ candyCarrots: get().candyCarrots + Math.floor(n) });
   },
   incGoldenCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
+    // PR-90 — golden = 10 P × n.
+    void addPoints("golden", Math.floor(n) * 10);
     set({ goldenCarrots: get().goldenCarrots + Math.floor(n) });
   },
   incCarrots: (n = 1) => {
     if (!Number.isFinite(n) || n <= 0) return;
+    // PR-90 — carrot = 1 P × n.
+    void addPoints("carrot", Math.floor(n));
     set({ carrots: get().carrots + Math.floor(n) });
   },
 

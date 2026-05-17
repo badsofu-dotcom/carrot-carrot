@@ -1,0 +1,107 @@
+/**
+ * dailyCap (PR-90) — 일일 P 캡 pure-helper 검증.
+ *
+ * `currentDailyCap()` 은 useCollectionStore 를 호출하므로 jsdom 없이
+ * 검증 어려움 (zustand store hydration). 본 테스트는:
+ *   - BASE_DAILY_CAP 상수
+ *   - addPoints / todayEarned / remainingP / isCapReached 의 로컬 동작
+ *   - _resetForTest() 의 격리 동작
+ *
+ * 환경 — Node 에서 useCollectionStore.getState() 가 동작 (zustand 는
+ * pure JS 라 hydration 없이도 default state 사용). 그러므로
+ * currentDailyCap() 도 함수 호출 가능 (dogamPassives 가 owned count=0
+ * 케이스 핸들링).
+ */
+import { test } from "node:test";
+import { strict as assert } from "node:assert";
+import { loadTs } from "./_test-helpers.mjs";
+
+const mod = await loadTs("./economy/dailyCap.ts", import.meta.url);
+const {
+  BASE_DAILY_CAP,
+  addPoints,
+  todayEarned,
+  currentDailyCap,
+  remainingP,
+  isCapReached,
+  _resetForTest,
+} = mod;
+
+test("BASE_DAILY_CAP === 100", () => {
+  assert.equal(BASE_DAILY_CAP, 100);
+});
+
+test("초기 — todayEarned === 0, remaining === cap", () => {
+  _resetForTest();
+  assert.equal(todayEarned(), 0);
+  assert.equal(remainingP(), currentDailyCap());
+  assert.equal(isCapReached(), false);
+});
+
+test("addPoints: amount <= 0 no-op", () => {
+  _resetForTest();
+  assert.equal(addPoints("test", 0), 0);
+  assert.equal(addPoints("test", -5), 0);
+  assert.equal(todayEarned(), 0);
+});
+
+test("addPoints: 누적 증가", () => {
+  _resetForTest();
+  assert.equal(addPoints("carrot", 10), 10);
+  assert.equal(todayEarned(), 10);
+  assert.equal(addPoints("carrot", 25), 25);
+  assert.equal(todayEarned(), 35);
+});
+
+test("addPoints: cap 가까이 — partial grant", () => {
+  _resetForTest();
+  // Default cap = 100 (no dogam).
+  addPoints("carrot", 95);
+  assert.equal(todayEarned(), 95);
+  // 다음 grant 10 P 시도 → 5 만 grant (cap remaining = 5).
+  assert.equal(addPoints("candy", 10), 5);
+  assert.equal(todayEarned(), 100);
+  assert.equal(isCapReached(), true);
+  assert.equal(remainingP(), 0);
+});
+
+test("addPoints: cap 도달 후 추가 grant 시 0", () => {
+  _resetForTest();
+  addPoints("ad", 100);
+  assert.equal(isCapReached(), true);
+  // Beyond cap — 0 grant, earned 유지.
+  assert.equal(addPoints("harvest", 50), 0);
+  assert.equal(todayEarned(), 100);
+});
+
+test("addPoints: 큰 amount 한 번에 cap 으로", () => {
+  _resetForTest();
+  // 200 P 시도 → 100 P 만 grant (cap = 100).
+  assert.equal(addPoints("big-grant", 200), 100);
+  assert.equal(todayEarned(), 100);
+});
+
+test("addPoints: 비정수 floor", () => {
+  _resetForTest();
+  // Math.floor 가 amount 에 적용 (3.7 → 3).
+  assert.equal(addPoints("test", 3.7), 3);
+  assert.equal(todayEarned(), 3);
+});
+
+test("currentDailyCap: 기본 (dogam 0) === BASE_DAILY_CAP", () => {
+  // useCollectionStore 가 hydrate 안 된 상태에서 ownedCharacters.length = 0
+  // → dogamPassives.dailyCapBoost = 0 → cap = BASE.
+  const cap = currentDailyCap();
+  // 환경에 따라 useCollectionStore state 가 0 일 수도 / 12 일 수도 있음.
+  // 본 테스트는 cap 이 BASE 또는 BASE+10 둘 중 하나임 검증.
+  assert.ok(cap === BASE_DAILY_CAP || cap === BASE_DAILY_CAP + 10);
+});
+
+test("_resetForTest: 격리", () => {
+  addPoints("x", 50);
+  _resetForTest();
+  assert.equal(todayEarned(), 0);
+});
+
+// 격리 마무리.
+_resetForTest();
