@@ -1,8 +1,9 @@
 /**
- * bgmEngine pure-helper tests — Round 18 (PR-133).
+ * bgmEngine pure-helper tests — Round 21 (PR-143).
  *
- * Verifies the new 6-track context routing. DOM/timer side-effects (the
- * actual <audio> element) are out of scope for node --test.
+ * 베타7 피드백으로 routing 을 단순화: firstVisit / skyOpen / henesys
+ * 3분기만. focus/kerning/ellinia 라우팅 제거 → 농장 세션 = 한 트랙으로
+ * 쭉.
  */
 import { test } from "node:test";
 import { strict as assert } from "node:assert";
@@ -30,70 +31,51 @@ test("pickTrackForContext: firstVisit overrides everything", () => {
   );
 });
 
-test("pickTrackForContext: skyOpen beats focus + crops", () => {
+test("pickTrackForContext: skyOpen → skyview", () => {
+  assert.equal(
+    pickTrackForContext({ ...BASE_CTX, skyOpen: true }),
+    "skyview",
+  );
+  // crops / focus state 가 있어도 sky 가 우선
   assert.equal(
     pickTrackForContext({
       ...BASE_CTX,
       skyOpen: true,
       focusActive: true,
-      readyCrops: 5,
+      readyCrops: 9,
     }),
     "skyview",
   );
 });
 
-test("pickTrackForContext: focusActive beats crop state", () => {
+test("pickTrackForContext: focusActive 무시 → henesys", () => {
+  // R20 까지는 "focus" 였으나 R21 베타7 피드백으로 henesys 통일.
   assert.equal(
-    pickTrackForContext({
-      ...BASE_CTX,
-      focusActive: true,
-      readyCrops: 9,
-      growingCrops: 0,
-    }),
-    "focus",
+    pickTrackForContext({ ...BASE_CTX, focusActive: true }),
+    "henesys",
   );
 });
 
-test("pickTrackForContext: ≥3 ripe → kerning (harvest rush)", () => {
+test("pickTrackForContext: crops 상태 무시 → henesys", () => {
+  // ≥3 ripe (이전 kerning), all growing (이전 ellinia) 모두 henesys.
   assert.equal(
     pickTrackForContext({ ...BASE_CTX, readyCrops: 3 }),
-    "kerning",
+    "henesys",
   );
   assert.equal(
-    pickTrackForContext({ ...BASE_CTX, readyCrops: 9, growingCrops: 0 }),
-    "kerning",
-  );
-});
-
-test("pickTrackForContext: all growing, none ripe → ellinia", () => {
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, growingCrops: 9, readyCrops: 0 }),
-    "ellinia",
+    pickTrackForContext({ ...BASE_CTX, readyCrops: 9 }),
+    "henesys",
   );
   assert.equal(
-    pickTrackForContext({ ...BASE_CTX, growingCrops: 1, readyCrops: 0 }),
-    "ellinia",
+    pickTrackForContext({ ...BASE_CTX, growingCrops: 9 }),
+    "henesys",
   );
-});
-
-test("pickTrackForContext: 2 ripe (under threshold) + growing → ellinia not kerning", () => {
-  // 2 ripe is "almost ready" but not the kerning harvest rush. Since
-  // there's at least one ripe, "all growing, none ripe" fails too, so
-  // we fall back to henesys. Hold on — actually ellinia requires
-  // readyCrops === 0. With readyCrops=2 we go to henesys.
   assert.equal(
-    pickTrackForContext({ ...BASE_CTX, readyCrops: 2, growingCrops: 5 }),
+    pickTrackForContext({ ...BASE_CTX, growingCrops: 3, readyCrops: 1 }),
     "henesys",
   );
 });
 
-test("pickTrackForContext: empty field default → henesys", () => {
+test("pickTrackForContext: 기본 idle → henesys", () => {
   assert.equal(pickTrackForContext(BASE_CTX), "henesys");
-});
-
-test("pickTrackForContext: idle empty + no flags → henesys", () => {
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, readyCrops: 0, growingCrops: 0 }),
-    "henesys",
-  );
 });

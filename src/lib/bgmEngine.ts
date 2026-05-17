@@ -70,16 +70,17 @@ export interface BgmContext {
 }
 
 /**
- * Pure routing — given the context, return the track that should be
- * playing. Order of precedence matters: skyview/focus override the
- * background state because they're explicit player intents.
+ * Pure routing — Round 21 (PR-143) 베타7 피드백으로 단순화. 사용자:
+ * "BGM 자주 바뀜 — 한 트랙으로 쭉" + "시끄러운 트럼펫 (kerning) 제거".
+ *
+ * 농장 세션 = 기본 henesys 1트랙. SkyView 진입과 첫 방문 dawn 만 별도
+ * (둘 다 명시적 컨텍스트 변경). focus / kerning / ellinia 트랙 라우팅
+ * 제거 (mp3 파일은 그대로 두지만 호출 없음 → 정식 출시 시 dead
+ * asset cleanup 후보).
  */
 export function pickTrackForContext(ctx: BgmContext): BgmTrack {
   if (ctx.firstVisit) return "dawn";
   if (ctx.skyOpen) return "skyview";
-  if (ctx.focusActive) return "focus";
-  if (ctx.readyCrops >= 3) return "kerning";
-  if (ctx.growingCrops > 0 && ctx.readyCrops === 0) return "ellinia";
   return "henesys";
 }
 
