@@ -477,12 +477,12 @@ export function DevActionsGroup() {
             {/* R26.2 PR-157 — 라벨 위치 프리셋. 베타에서 두 후보 빠르게
                 토글하며 비교. */}
             <DevRow
-              label="🍄 라벨: 모자 아래 (R26.3)"
-              sub="L15 T40 — 현재 default"
+              label="🍄 라벨: 모자 아래 좌측 (R26.4)"
+              sub="L10 T40 — 현재 default + 하늘 보기 스타일"
               onClick={() => {
-                setLabelPos({ left: 15, top: 40 });
+                setLabelPos({ left: 10, top: 40 });
                 haptic("light");
-                toast("라벨 → 모자 아래 (L15 T40)");
+                toast("라벨 → 모자 아래 좌측 (L10 T40)");
               }}
             />
             <DevRow

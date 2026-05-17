@@ -48,11 +48,12 @@ export interface LabelPos {
  * 버섯집 진입 라벨 ("🍄 집 들어가기") 좌표.
  *   R26.1: { L4, T19 } (모자 위 — 헤더 근접, 단서 약함)
  *   R26.2: { L22, T47 } (문 우측 옆 — "여기 들어가" 메타포)
- *   R26.3: { L15, T40 } (모자 아래 + 문 위 사이 — 사용자 "왼쪽 위로 좀더" 요청)
+ *   R26.3: { L15, T40 } (모자 아래 + 문 위 사이)
+ *   R26.4: { L10, T40 } (좌측 살짝 더 — 사용자 "왼쪽으로 살짝" 요청)
  *   hit-region (L2 T24 W26 H28) 안에 위치 — label z 5 > hit z 4 클릭 우선.
  */
 export const DEFAULT_FARMHUB_LABEL_POS: LabelPos = {
-  left: 15,
+  left: 10,
   top: 40,
 };
 

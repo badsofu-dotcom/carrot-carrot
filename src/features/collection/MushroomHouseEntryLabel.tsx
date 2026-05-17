@@ -74,20 +74,22 @@ export function MushroomHouseEntryLabel() {
         position: "absolute",
         left: `${effective.left}%`,
         top: `${effective.top}%`,
-        // R26.2 — 문 옆 (L22 T47) 으로 이동. 작은 가구 옆에 어울리게
-        // pill 크기도 축소 (fontSize 13→12, padding 6/12→5/10).
-        padding: "5px 10px",
+        // R26.4 — 하늘 보기 pillStyle 과 동일 톤. bg opacity 0.85 → 0.55,
+        // text color → rgba(43,24,16,0.78), textShadow 추가. 같은 frosted
+        // glass 톤으로 시각 일관성.
+        padding: "4px 10px",
         borderRadius: 999,
-        background: "rgba(255,255,255,0.85)",
+        background: "rgba(255,255,255,0.55)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
         border: "1px solid rgba(255,255,255,0.6)",
-        color: "#2b2b2b",
-        fontSize: 12,
+        color: "rgba(43, 24, 16, 0.78)",
+        fontSize: 11,
         fontWeight: 700,
+        letterSpacing: "0.01em",
+        textShadow: "0 1px 1px rgba(255,255,255,0.4)",
         whiteSpace: "nowrap",
         cursor: "pointer",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
         zIndex: 5,
       }}
     >
