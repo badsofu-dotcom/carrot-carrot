@@ -13,6 +13,10 @@ export interface Env {
   TOSS_PROMOTION_API_KEY?: string;
   /** HMAC-SHA256 key used to verify ad-watched signedToken — `wrangler secret put TOSS_AD_VERIFY_KEY`. */
   TOSS_AD_VERIFY_KEY?: string;
+  /** Telegram Bot API token for beta feedback forwarding (PR-134). Optional. */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** Telegram chat id (user or channel) to deliver feedback messages to. */
+  TELEGRAM_CHAT_ID?: string;
 }
 
 export type AppErrorCode =

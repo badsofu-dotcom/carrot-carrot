@@ -28,9 +28,26 @@ interface FeedbackPayload {
   };
 }
 
-const FEEDBACK_WEBHOOK = (import.meta.env.VITE_FEEDBACK_WEBHOOK_URL as
-  | string
-  | undefined) ?? "";
+/**
+ * Webhook resolution order (PR-134):
+ *   1. VITE_FEEDBACK_WEBHOOK_URL — explicit override (legacy)
+ *   2. VITE_APPS_IN_TOSS_PROXY_URL + "/feedback" — worker route
+ *
+ * The worker `/feedback` endpoint forwards to Telegram when TELEGRAM_*
+ * secrets are configured, otherwise it logs to wrangler tail.
+ */
+function resolveWebhook(): string {
+  const explicit = (import.meta.env.VITE_FEEDBACK_WEBHOOK_URL as
+    | string
+    | undefined) ?? "";
+  if (explicit) return explicit;
+  const base = (import.meta.env.VITE_APPS_IN_TOSS_PROXY_URL as
+    | string
+    | undefined) ?? "";
+  if (!base) return "";
+  return base.replace(/\/$/, "") + "/feedback";
+}
+const FEEDBACK_WEBHOOK = resolveWebhook();
 
 /**
  * Send feedback. Returns ok = true on successful POST.
