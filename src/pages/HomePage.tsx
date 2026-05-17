@@ -41,6 +41,8 @@ import { useBuffsStore } from "../features/collection/buffsStore";
 import { useRewardsStore } from "../features/collection/rewardsStore";
 import { useMissionsStore } from "../features/missions/missionsStore";
 import { DailyMissionsCard } from "../features/missions/DailyMissionsCard";
+import { WeeklyMissionsCard } from "../features/missions/WeeklyMissionsCard";
+import { useWeeklyMissionsStore } from "../features/missions/weeklyMissionsStore";
 import { useNotificationsStore } from "../features/notifications/notificationsStore";
 import { notify } from "../lib/webNotify";
 import { getFocusFarmRewardFromMs } from "../lib/farmRules";
@@ -212,6 +214,10 @@ export function HomePage() {
           "totalFocusMin50",
           Math.floor(focusedMin),
         );
+
+        // PR-76 — 주간 미션. attendance dedupe 와 누적 분 둘 다 store
+        // 내부에서 처리.
+        useWeeklyMissionsStore.getState().recordFocusSession(focusedMin);
 
         // PR-61 — 집중 완료 알림. notificationsStore 토글 ON + master ON
         // 일 때만 fire. native 권한 granted 면 system notification, 아니
@@ -472,6 +478,9 @@ export function HomePage() {
 
       {/* PR-52 — 오늘의 목표 카드 (일일 미션). 컨트롤 아래에 위치. */}
       <DailyMissionsCard />
+
+      {/* PR-76 — 이번 주 목표 카드 (주간 미션). 일일 아래. */}
+      <WeeklyMissionsCard />
 
       {/* Modals + overlays */}
       <AbandonModal

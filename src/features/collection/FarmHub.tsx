@@ -29,6 +29,7 @@ import { useRewardsStore } from "./rewardsStore";
 import { useCollectionStore } from "./collectionStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
 import { useMissionsStore } from "../missions/missionsStore";
+import { useWeeklyMissionsStore } from "../missions/weeklyMissionsStore";
 import {
   consumeSuppressedDrops,
   formatSuppressedMessage,
@@ -634,6 +635,8 @@ export function FarmHub({
       useMissionsStore.getState().incrementProgress("perfect_combo", 1);
       // PR-75 — 학습 중심 active 미션 트리거.
       useMissionsStore.getState().incrementProgress("perfectCombo1", 1);
+      // PR-76 — 주간 미션. weeklyPerfectCombo5 카운터.
+      useWeeklyMissionsStore.getState().recordPerfectCombo();
     }
     lastAllRipe.current = allRipe;
   }, [stages, pushFx, unlockMedal]);
