@@ -477,8 +477,17 @@ export function DevActionsGroup() {
             {/* R26.2 PR-157 — 라벨 위치 프리셋. 베타에서 두 후보 빠르게
                 토글하며 비교. */}
             <DevRow
-              label="🍄 라벨: 문 옆 (R26.2)"
-              sub="L22 T47 — 현재 default"
+              label="🍄 라벨: 모자 아래 (R26.3)"
+              sub="L15 T40 — 현재 default"
+              onClick={() => {
+                setLabelPos({ left: 15, top: 40 });
+                haptic("light");
+                toast("라벨 → 모자 아래 (L15 T40)");
+              }}
+            />
+            <DevRow
+              label="🍄 라벨: 문 옆 (R26.2 폐기)"
+              sub="L22 T47 — 비교용"
               onClick={() => {
                 setLabelPos({ left: 22, top: 47 });
                 haptic("light");
@@ -487,7 +496,7 @@ export function DevActionsGroup() {
             />
             <DevRow
               label="🍄 라벨: 모자 위 (R26.1 폐기)"
-              sub="L4 T19 — 비교용, 어색하면 문 옆 복귀"
+              sub="L4 T19 — 비교용"
               onClick={() => {
                 setLabelPos({ left: 4, top: 19 });
                 haptic("light");
