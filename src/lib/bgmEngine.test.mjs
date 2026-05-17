@@ -71,33 +71,25 @@ test("pickTrackForContext: skyOpen → skyview", () => {
   );
 });
 
-test("pickTrackForContext: ≥3 ripe → kerning", () => {
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, readyCrops: 3 }),
-    "kerning",
-  );
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, readyCrops: 9 }),
-    "kerning",
-  );
-});
-
-test("pickTrackForContext: 모두 성장 중 (none ripe) → ellinia", () => {
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, growingCrops: 1 }),
-    "ellinia",
-  );
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, growingCrops: 9 }),
-    "ellinia",
-  );
-});
-
-test("pickTrackForContext: 2 ripe + 성장 중 mix → dawn (default)", () => {
-  assert.equal(
-    pickTrackForContext({ ...BASE_CTX, growingCrops: 5, readyCrops: 2 }),
-    "dawn",
-  );
+test("pickTrackForContext: crop 상태 변화에도 트랙 동일 (R26 회귀 방지)", () => {
+  // R24 에선 readyCrops≥3 → kerning, all growing → ellinia 로 갈렸으나
+  // 베타12 사용자 회귀 ("수확 단계마다 BGM 바뀜") 으로 R21 의 "한 트랙으로
+  // 쭉" 원칙 회복. firstVisit / skyOpen 외에는 crop 상태 무관 dawn.
+  const variants = [
+    { readyCrops: 0, growingCrops: 0 },
+    { readyCrops: 0, growingCrops: 1 },
+    { readyCrops: 0, growingCrops: 9 },
+    { readyCrops: 2, growingCrops: 5 },
+    { readyCrops: 3, growingCrops: 0 },
+    { readyCrops: 9, growingCrops: 0 },
+  ];
+  for (const v of variants) {
+    assert.equal(
+      pickTrackForContext({ ...BASE_CTX, ...v }),
+      "dawn",
+      `crop variant ${JSON.stringify(v)} should map to dawn`,
+    );
+  }
 });
 
 test("pickTrackForContext: 빈 농장 idle → dawn (default)", () => {

@@ -71,23 +71,20 @@ export interface BgmContext {
 }
 
 /**
- * Pure routing — Round 24 (PR-149). 사용자 검수 결과 4트랙으로 축소
- * (focus / henesys 시끄러움 → 영구 제거). default = dawn 으로 이전.
+ * Pure routing — Round 26 (PR-153) 베타12 회귀 fix. R24 에서 4 트랙
+ * routing 다양화 했더니 사용자가 "수확 단계마다 BGM 바뀐다" 회귀 보고.
+ * R21 의 원칙 회복: 농장 세션 = 한 트랙으로 쭉. crop 상태 무시.
  *
- *   firstVisit  → dawn       (첫 방문)
- *   skyOpen     → skyview    (하늘 보기)
- *   readyCrops≥3 → kerning   (수확 풍년)
- *   growingCrops>0 && readyCrops===0 → ellinia (모두 성장 중)
- *   else        → dawn       (기본)
+ *   firstVisit → dawn       (첫 방문, 1회용)
+ *   skyOpen    → skyview    (사용자가 명시적으로 띄운 화면)
+ *   else       → dawn       (기본, 농장 내내 동일)
  *
- * R21 의 "한 트랙으로 쭉" 단순화는 사용자 의도였지만 6→4 로 줄어든
- * 지금은 다양성을 살려도 모두 잔잔 (검수 통과). 4트랙 균형 사용.
+ * ellinia / kerning mp3 는 그대로 두지만 라우팅 호출 없음. R26+ 에서
+ * 사용자가 어떻게 활용할지 (예: 명시적 토글, 계절 이벤트 등) 결정.
  */
 export function pickTrackForContext(ctx: BgmContext): BgmTrack {
   if (ctx.firstVisit) return "dawn";
   if (ctx.skyOpen) return "skyview";
-  if (ctx.readyCrops >= 3) return "kerning";
-  if (ctx.growingCrops > 0 && ctx.readyCrops === 0) return "ellinia";
   return "dawn";
 }
 
