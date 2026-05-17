@@ -78,6 +78,18 @@ export function MushroomHouseRoom() {
       window.removeEventListener(MUSHROOM_HOUSE_OPEN_EVENT, onOpen);
   }, []);
 
+  // R26.1 PHASE 1 — body scroll lock 동안 농장 UI 가 뒤에 스크롤되지
+  // 않도록. cleanup 시 복원.
+  useEffect(() => {
+    if (!open) return;
+    if (typeof document === "undefined") return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   // 다음 step bg preload (step + 1 <= FINAL).
   useEffect(() => {
     if (!open) return;
@@ -141,24 +153,22 @@ export function MushroomHouseRoom() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.22 }}
           style={{
+            // R26.1 PHASE 1 — 풀스크린 즉시. dim scrim / 9:16 카드 제거.
+            // viewport 전체 채움. TabBar(보통 50)/BottomSheet(1000) 위로
+            // z 1100. 외곽이 모두 인테리어 화면이라 background는 cream
+            // (이미지 로드 전 / 가로 letterbox 대비).
             position: "fixed",
             inset: 0,
-            zIndex: 1080,
-            background: "rgba(0,0,0,0.65)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
+            zIndex: 1100,
+            background: "#1a1410",
+            overflow: "hidden",
           }}
         >
           <div
             style={{
-              position: "relative",
-              width: "min(100vw, 480px)",
-              height: "min(100vh, calc(min(100vw, 480px) * 16 / 9))",
-              maxHeight: "100vh",
+              position: "absolute",
+              inset: 0,
               overflow: "hidden",
-              background: "#1a1410",
             }}
           >
             {/* Background — step 별 crossfade */}
@@ -184,7 +194,7 @@ export function MushroomHouseRoom() {
               />
             </AnimatePresence>
 
-            {/* Close button */}
+            {/* Close button — safe-area-inset 적용 (iOS notch / Android nav) */}
             <button
               type="button"
               data-testid="mushroom-house-close"
@@ -192,8 +202,8 @@ export function MushroomHouseRoom() {
               onClick={closeRoom}
               style={{
                 position: "absolute",
-                top: 12,
-                right: 12,
+                top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+                right: "calc(env(safe-area-inset-right, 0px) + 12px)",
                 width: 36,
                 height: 36,
                 padding: 0,
@@ -212,13 +222,13 @@ export function MushroomHouseRoom() {
               ✕
             </button>
 
-            {/* Step indicator (top-left) */}
+            {/* Step indicator (top-left) — safe-area-inset 적용 */}
             <div
               aria-label={`현재 진행 ${step}/${FARMHUB_FINAL_STEP}`}
               style={{
                 position: "absolute",
-                top: 12,
-                left: 12,
+                top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+                left: "calc(env(safe-area-inset-left, 0px) + 12px)",
                 padding: "6px 10px",
                 borderRadius: 999,
                 background: "rgba(255,255,255,0.85)",
@@ -244,9 +254,11 @@ export function MushroomHouseRoom() {
                   transition={{ duration: 0.25 }}
                   style={{
                     position: "absolute",
-                    left: 16,
-                    bottom: 130,
-                    maxWidth: "calc(100% - 32px)",
+                    // R26.1 — safe-area-inset 좌측 + 보관함 위 80px.
+                    left: "calc(env(safe-area-inset-left, 0px) + 16px)",
+                    bottom:
+                      "calc(env(safe-area-inset-bottom, 0px) + 110px)",
+                    maxWidth: "calc(100% - 32px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))",
                     padding: "12px 14px",
                     borderRadius: 16,
                     background: "rgba(255,255,255,0.92)",
@@ -280,9 +292,14 @@ export function MushroomHouseRoom() {
                 bottom: 0,
                 left: 0,
                 right: 0,
-                padding: "10px 12px 14px",
+                // R26.1 — safe-area-inset 좌우 + 하단.
+                paddingLeft:
+                  "calc(env(safe-area-inset-left, 0px) + 12px)",
+                paddingRight:
+                  "calc(env(safe-area-inset-right, 0px) + 12px)",
+                paddingTop: 10,
                 paddingBottom:
-                  "calc(14px + env(safe-area-inset-bottom, 0px))",
+                  "calc(env(safe-area-inset-bottom, 0px) + 14px)",
                 background:
                   "linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0))",
                 display: "flex",
