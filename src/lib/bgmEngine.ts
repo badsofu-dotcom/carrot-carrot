@@ -101,6 +101,21 @@ interface BgmConfig {
 const CROSSFADE_MS = 500;
 const FADE_STEP_MS = 50;
 
+/**
+ * PR-148 (Round 23 베타10 회귀) — 사용자 보고 "트럼펫 신나는 BGM 아직
+ * 나옴". R21 에서 kerning 라우팅 제거했으나 dawn / henesys / skyview
+ * 중 어느 게 트럼펫인지 코드로 식별 불가 (Suno 생성 mp3, ID3 메타 없음).
+ *
+ * 안전 fix: 사용자가 음원 직접 검수할 때까지 BGM 전체 잠금. start() +
+ * crossfadeTo() 가 silent. R24+ 에서 사용자가 잔잔한 트랙만 지정 후
+ * false 로 토글 (또는 검수된 BGM_AUDITED_TRACKS allowlist 활성).
+ *
+ * `farmBgmEnabled` (Settings 토글 + BgmQuickToggle) 는 그대로 동작 —
+ * 사용자 입장에선 토글 보이지만 audio 출력은 없음. R24 unlock 시
+ * 사용자 prefs 그대로 복귀.
+ */
+export const BGM_DISABLED_PENDING_AUDIT = true;
+
 let audio: HTMLAudioElement | null = null;
 let currentTrack: BgmTrack | null = null;
 let started = false;
@@ -188,6 +203,12 @@ function startFade(target: number, durMs: number) {
 }
 
 function crossfadeTo(track: BgmTrack) {
+  if (BGM_DISABLED_PENDING_AUDIT) {
+    console.log(
+      `[bgm/play] disabled — pending audit. would-play: ${track} (${TRACK_URLS[track]})`,
+    );
+    return;
+  }
   const el = ensureAudio();
   if (!el) return;
   if (trackDead.has(track)) return;
@@ -225,6 +246,17 @@ export const bgmEngine = {
   start(initialCfg: BgmConfig, ctx?: BgmContext): void {
     cfg = { ...initialCfg };
     if (ctx) lastContext = { ...ctx };
+    if (BGM_DISABLED_PENDING_AUDIT) {
+      // R23 audit 모드 — start 진입 자체를 silent. console 로 사용자
+      // 디바이스 검수 기록만.
+      if (!started) {
+        console.log(
+          "[bgm/play] disabled — pending audit. start() no-op until BGM_DISABLED_PENDING_AUDIT=false",
+        );
+        started = true;
+      }
+      return;
+    }
     if (started) {
       if (audio && cfg.enabled && audio.paused) {
         try {
