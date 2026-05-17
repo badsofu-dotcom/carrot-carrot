@@ -249,7 +249,10 @@ select {
   mix-blend-mode: screen;
 }
 
-/* Scrim above the floating tab bar — fades content into the bg before it would slide under */
+/* Scrim above the floating tab bar — fades content into the bg before it would slide under.
+   PR-139 (Round 20) — 농장 카드 시각이 깨끗하도록 농장 탭에선 scrim
+   끈다. 다른 페이지 (홈/리포트/내정보) 는 그대로 — 탭바 영역에 일반
+   콘텐츠가 스크롤로 슬라이드인 하므로 fade 필요. */
 .app-shell::after {
   content: "";
   position: fixed;
@@ -265,6 +268,16 @@ select {
   );
   pointer-events: none;
   z-index: 50; /* below tab bar (100), above page content */
+}
+
+body[data-farm-view="1"] .app-shell::after {
+  display: none;
+}
+
+/* PR-139 — 온보딩 중 탭바 자체를 숨김 (overlay z-index 1000 위라
+   z-order 충돌은 없지만 0.55 dim 만으로는 시각적으로 비침). */
+body[data-onboarding-open="1"] nav[aria-label="주요 메뉴"] {
+  display: none !important;
 }
 
 .app-screen {
