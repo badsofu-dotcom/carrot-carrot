@@ -31,10 +31,12 @@ import { haptic } from "../../design-system/haptic";
 
 export const ONBOARDING_KEY = "onboarded:v1";
 
+// PR-139 (Round 20) — 베타6 피드백: 토스포인트 환산 step 은 사용자가
+// 환전 시점에 보면 충분, 온보딩에선 노이즈. 1 step 만 제거 — 도트는
+// STEPS.length 기반이라 자동으로 4→3.
 const STEPS: string[] = [
   "안녕! 나는 콩이 🐰 25분 집중하면 작물이 한 단계씩 자라요",
-  "수확한 당근은 토스포인트로 바꿀 수 있어요 (1당근 = 1P)",
-  "확률에 따라 캔디당근(5P), 황금당근(10P)도 나와요!",
+  "확률에 따라 캔디당근, 황금당근도 나와요!",
   "오른쪽 위 도감에서 토끼·아이템 컬렉션을 모아보세요",
 ];
 
@@ -124,6 +126,22 @@ export function BunnyOnboardingModal({ forceOpen = false, onClose }: Props) {
     window.addEventListener(ONBOARDING_REOPEN_EVENT, onReopen);
     return () => window.removeEventListener(ONBOARDING_REOPEN_EVENT, onReopen);
   }, []);
+
+  // PR-139 (Round 20) — 베타6 피드백: overlay 가 z-index 1000 이라
+  // 위에 그려지지만 0.55 dim 만으로는 탭바가 비쳐 보임. body 에
+  // data-onboarding-open 을 박고 CSS 에서 nav[aria-label="주요 메뉴"]
+  // 를 display:none 처리.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (open) {
+      document.body.setAttribute("data-onboarding-open", "1");
+    } else {
+      document.body.removeAttribute("data-onboarding-open");
+    }
+    return () => {
+      document.body.removeAttribute("data-onboarding-open");
+    };
+  }, [open]);
 
   const finish = () => {
     safeStorage.set(ONBOARDING_KEY, "true");
