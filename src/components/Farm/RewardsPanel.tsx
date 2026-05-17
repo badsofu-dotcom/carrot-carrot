@@ -225,11 +225,18 @@ export function RewardsPanel({ open, onClose }: Props) {
               right: 0,
               marginLeft: "auto",
               marginRight: "auto",
-              bottom: 0,
+              // PR-82 — bottom 을 TabBar 위로 띄움. 이전 bottom:0 +
+              // maxHeight:90vh 는 floating TabBar (height 68 + offset
+              // 16*2 = 100px) 아래로 컨텐츠가 깔려 잘림. PR-68 의
+              // InventoryModal 과 동일 패턴.
+              bottom:
+                "calc(var(--tabbar-reserved, 100px) + env(safe-area-inset-bottom))",
               zIndex: 1051,
               width: "100%",
               maxWidth: "var(--app-max-width, 480px)",
-              maxHeight: "90vh",
+              // PR-82 — maxHeight 도 가용 viewport 기반 동적 계산.
+              maxHeight:
+                "calc(100dvh - var(--tabbar-reserved, 100px) - env(safe-area-inset-bottom) - 12px)",
               display: "flex",
               flexDirection: "column",
               background: "#FFF8EE",
@@ -300,8 +307,10 @@ export function RewardsPanel({ open, onClose }: Props) {
                 minHeight: 0,
                 overflowY: "auto",
                 WebkitOverflowScrolling: "touch",
+                // PR-82 — bottom safe-area 는 이미 outer bottom offset 에
+                // 포함. 내부 padding 은 20px 만 (이전엔 중복 적용).
                 padding:
-                  "0 calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))",
+                  "0 calc(20px + env(safe-area-inset-right)) 20px calc(20px + env(safe-area-inset-left))",
                 scrollbarWidth: "none",
               }}
             >

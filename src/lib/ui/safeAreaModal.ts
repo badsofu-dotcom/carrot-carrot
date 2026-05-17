@@ -63,8 +63,12 @@ export function safeAreaModalStyle(
 }
 
 /**
- * Outer backdrop (overlay) 의 표준 스타일. flex centering + safe-area
- * 가로 패딩 (가로 잘림 방지).
+ * Outer backdrop (overlay) 의 표준 스타일. flex centering + 4 면 모두
+ * safe-area inset + 가운데 child 가 view 잘리지 않도록 padding.
+ *
+ * PR-82: 이전 (PR-79) 은 좌/우 safe-area 만 포함. notch 디바이스 +
+ * floating TabBar 와 함께 사용 시 bottom 영역이 모자랐음. 4 면 모두
+ * safe-area 추가해서 모든 viewport 에서 자식 모달이 visible.
  */
 export const safeAreaBackdropStyle: CSSProperties = {
   position: "fixed",
@@ -74,6 +78,6 @@ export const safeAreaBackdropStyle: CSSProperties = {
   justifyContent: "center",
   background: "rgba(0,0,0,0.5)",
   padding:
-    "16px calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left))",
+    "calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))",
   boxSizing: "border-box",
 };

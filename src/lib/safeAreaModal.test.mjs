@@ -53,9 +53,11 @@ test("safeAreaBackdropStyle: fixed inset:0 + flex centering", () => {
   assert.equal(safeAreaBackdropStyle.justifyContent, "center");
 });
 
-test("safeAreaBackdropStyle: 가로 safe-area padding", () => {
-  assert.match(safeAreaBackdropStyle.padding, /env\(safe-area-inset-left\)/);
+test("safeAreaBackdropStyle: 4면 safe-area padding (PR-82 강화)", () => {
+  assert.match(safeAreaBackdropStyle.padding, /env\(safe-area-inset-top\)/);
   assert.match(safeAreaBackdropStyle.padding, /env\(safe-area-inset-right\)/);
+  assert.match(safeAreaBackdropStyle.padding, /env\(safe-area-inset-bottom\)/);
+  assert.match(safeAreaBackdropStyle.padding, /env\(safe-area-inset-left\)/);
 });
 
 test("safeAreaModalStyle: gutter 32 default — small viewport 여유", () => {
@@ -67,4 +69,24 @@ test("safeAreaModalStyle: gutter 32 default — small viewport 여유", () => {
 test("safeAreaModalStyle: gutter override", () => {
   const s = safeAreaModalStyle({ gutter: 64 });
   assert.match(s.maxHeight, /64px/);
+});
+
+// PR-82 — viewport-specific computation 시뮬레이션. 실 layout 은 jsdom
+// 없이 검증 어려우므로 maxHeight CSS expression 이 viewport 기반 계산
+// 인지만 정적 검증 (회귀 차단).
+
+test("PR-82: safeAreaModalStyle maxHeight 식에 100dvh 포함 (viewport-relative)", () => {
+  const s = safeAreaModalStyle();
+  // 375x667 (iPhone SE) 등 small viewport 도 100dvh 가 그 viewport
+  // 높이로 평가됨. maxHeight 가 fixed px 가 아니라 dvh 인지 검증.
+  assert.match(s.maxHeight, /100dvh/);
+  assert.equal(s.maxHeight.includes("90vh"), false, "고정 90vh 회귀");
+});
+
+test("PR-82: backdrop padding 4면 모두 16+safe-area", () => {
+  // safeAreaBackdropStyle.padding 의 4 값 모두 calc(16px + ...).
+  const padding = safeAreaBackdropStyle.padding;
+  // 4 개의 "calc(16px" 조각 확인.
+  const matches = padding.match(/calc\(16px \+ env/g);
+  assert.equal(matches.length, 4, `padding 4면 모두 calc 아님: ${padding}`);
 });
