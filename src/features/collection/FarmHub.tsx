@@ -52,6 +52,9 @@ import { SkyView } from "../../components/Farm/SkyView";
 import { VisitorBunny } from "../../components/Farm/VisitorBunny";
 import { BgmQuickToggle } from "../../components/Farm/BgmQuickToggle";
 import { useFriendsStore } from "./friendsStore";
+// PR-145 (Round 22) — 가구/장식 시스템.
+import { OutdoorSlots } from "../decor/OutdoorSlots";
+import { FurnitureShopModal } from "../decor/FurnitureShopModal";
 
 // PR-137 — shared pill style for the top-center 하늘 보기 + BGM 토글
 // row. Keeping it as a CSSProperties const (not a CSS class) so the
@@ -848,6 +851,41 @@ export function FarmHub({
       <FxLayer events={fxEvents} />
       </div>
 
+      {/* PR-145 (Round 22) — 야외 가구 슬롯 4개. 빈 슬롯 탭 → 가구 상점.
+          채워진 슬롯 탭 → 즉시 제거 (보관함 유지). */}
+      <OutdoorSlots />
+
+      {/* PR-146 (Round 22 PHASE 5) — 버섯집 placeholder. R23 에서 실내
+          그리드 + 인테리어 wire. 지금은 탭 시 안내 토스트만. */}
+      <button
+        type="button"
+        data-testid="farm-mushroom-house"
+        aria-label="버섯집 — 방 안에 들어가기 (곧 추가)"
+        onClick={() => {
+          haptic("light");
+          toast("🚪 곧 방 안에 들어갈 수 있어요!");
+        }}
+        style={{
+          position: "absolute",
+          top: "14%",
+          left: "4%",
+          transform: "translate(-50%, -50%)",
+          width: "10%",
+          aspectRatio: "1 / 1",
+          minWidth: 36,
+          minHeight: 36,
+          padding: 0,
+          border: "none",
+          background: "transparent",
+          fontSize: 30,
+          cursor: "pointer",
+          zIndex: 3,
+          filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.25))",
+        }}
+      >
+        🍄
+      </button>
+
       {/* "하늘 보기" + BGM 빠른 토글 — 농장 카드 상단 중앙에 frosted
           pill 2개. PR-137 (Round 19) — BGM 토글이 Settings 까지 안 가도
           농장에서 바로 켜고 끌 수 있도록 옆에 추가. 같은 store key
@@ -928,6 +966,9 @@ export function FarmHub({
 
       {/* PR-33 — 보석 사용 5 옵션 모달. cc:gem-trade:open 리스너. */}
       <GemTradeModal />
+
+      {/* PR-145 (Round 22) — 가구 상점. cc:furniture-shop:open 리스너. */}
+      <FurnitureShopModal />
 
       {/* CollectionPage's FarmView owns the compact header (carrot/plot
           inventory + dogam button). The in-card chips were removed to
