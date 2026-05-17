@@ -375,7 +375,7 @@ function ChannelRow({
         <span style={{ display: "block", fontSize: 13, fontWeight: 800 }}>{label}</span>
         <span style={{ display: "block", fontSize: 11, color: "#666" }}>{hint}</span>
       </span>
-      <span style={{ fontSize: 18, color: "#FF7B61" }}>›</span>
+      <span style={{ fontSize: 18, color: "var(--accent-carrot, #FF7B61)" }}>›</span>
     </button>
   );
 }

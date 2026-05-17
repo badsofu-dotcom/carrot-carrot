@@ -420,7 +420,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                         marginTop: 6,
                         fontSize: 12,
                         fontWeight: 700,
-                        color: "#FF7B61",
+                        color: "var(--accent-carrot, #FF7B61)",
                       }}
                     >
                       {giftToText(claimedThisOpen)}
@@ -514,7 +514,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                         marginTop: 6,
                         fontSize: 12,
                         fontWeight: 700,
-                        color: "#FF7B61",
+                        color: "var(--accent-carrot, #FF7B61)",
                       }}
                     >
                       {lastTreasureText}

@@ -235,7 +235,7 @@ export function AdSuggestionModal() {
                   padding: "12px 0",
                   borderRadius: 12,
                   border: "none",
-                  background: "#FF7B61",
+                  background: "var(--accent-carrot, #FF7B61)",
                   color: "#fff",
                   fontWeight: 800,
                   fontSize: 13,

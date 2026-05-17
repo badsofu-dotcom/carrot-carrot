@@ -170,7 +170,7 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
                 height: 44,
                 borderRadius: 12,
                 border: "none",
-                background: "#FF7B61",
+                background: "var(--accent-carrot, #FF7B61)",
                 color: "#fff",
                 fontSize: 14,
                 fontWeight: 800,

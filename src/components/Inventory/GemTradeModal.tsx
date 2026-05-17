@@ -24,6 +24,10 @@ import { useItemsStore } from "../../features/collection/itemsStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
+import {
+  safeAreaBackdropStyle,
+  safeAreaModalStyle,
+} from "../../lib/ui/safeAreaModal";
 
 interface Option {
   id: "seeds9" | "grow" | "session" | "golden" | "legend";
@@ -128,18 +132,7 @@ export function GemTradeModal() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
           onClick={() => setOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 1090,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding:
-              "16px calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left))",
-            boxSizing: "border-box",
-          }}
+          style={{ ...safeAreaBackdropStyle, zIndex: 1090 }}
           data-testid="gem-trade-backdrop"
         >
           <motion.div
@@ -152,16 +145,18 @@ export function GemTradeModal() {
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
+            // PR-81 — safeAreaModalStyle 적용. 5 옵션 + 닫기 버튼이
+            // small viewport (375x667) 에서도 잘림 없이 표시.
             style={{
-              width: "100%",
-              maxWidth: 380,
+              ...safeAreaModalStyle({
+                maxWidth: 380,
+                paddingTop: 18,
+                paddingX: 18,
+                paddingBottom: 14,
+              }),
               background: "#FFF8EE",
               borderRadius: 20,
-              padding: "18px 18px 14px",
               boxShadow: "0 12px 36px rgba(0,0,0,0.32)",
-              boxSizing: "border-box",
-              maxHeight: "85vh",
-              overflowY: "auto",
               scrollbarWidth: "none",
             }}
           >
@@ -181,7 +176,7 @@ export function GemTradeModal() {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "#FF7B61",
+                  color: "var(--accent-carrot, #FF7B61)",
                 }}
               >
                 보유 {gemCount}개
