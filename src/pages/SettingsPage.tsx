@@ -223,17 +223,17 @@ export function SettingsPage() {
       </SettingsGroup>
 
       {/* 집중 */}
-      <SettingsGroup title="집중">
+      <SettingsGroup title="집중" emoji="⏱">
         <TimerPresetRow />
         <CustomSlotToggleRow />
         <AutoBreakToggleRow />
       </SettingsGroup>
 
-      {/* 알림 */}
-      <PushSettingsGroup />
+      {/* PR-69 — 알림 & 소리 통합 (마스터 + 고급 disclosure). */}
+      <SoundNotifyGroup />
 
       {/* 외관 */}
-      <SettingsGroup title="외관">
+      <SettingsGroup title="외관" emoji="🎨">
         <FarmBgAutoToggleRow />
         <Row
           label="다크 모드"
@@ -273,7 +273,7 @@ export function SettingsPage() {
       </SettingsGroup>
 
       {/* 데이터 */}
-      <SettingsGroup title="데이터">
+      <SettingsGroup title="데이터" emoji="💾">
         <Row
           label="캐시 비우기"
           right={<Chevron />}
@@ -397,10 +397,11 @@ export function SettingsPage() {
   );
 }
 
-/* ----------------------- Push settings ----------------------- */
+/* ----------------------- Sound & notify settings ----------------------- */
 
 const END_ALERT_KEY = "cc.push.endAlert.v1";
 const HAPTIC_KEY = "cc.haptic.v1";
+const ADVANCED_OPEN_KEY = "cc.settings.advanced.open.v1";
 
 function loadFlag(key: string, fallback: boolean): boolean {
   const raw = safeStorage.get(key);
@@ -411,100 +412,175 @@ function saveFlag(key: string, v: boolean) {
   try { safeStorage.set(key, v ? "1" : "0"); } catch { /* ignore */ }
 }
 
-function PushSettingsGroup() {
+/**
+ * PR-69 — 알림 & 소리 통합 섹션.
+ *
+ * Master 4종 + 고급 disclosure 6종.
+ * Master:
+ *   - 🔔 알림 받기 (notificationsStore master + active counter)
+ *   - 🔊 효과음 + 볼륨 (같은 카드)
+ *   - 🎵 농장 BGM + 볼륨
+ *   - 📳 진동
+ * 고급 (default collapsed, safeStorage 영속):
+ *   - 매일 22시 리마인더 (Toss push)
+ *   - 농장 드랍 / 집중 완료 / 오늘의 목표 / 주간 보물상자 (NotifyKind, master OFF 시 disabled)
+ *   - 집중 끝났을 때 깨워줘 (timer end alert)
+ */
+function SoundNotifyGroup() {
+  return (
+    <SettingsGroup title="알림 & 소리" emoji="🔔">
+      <NotifyMasterRow />
+      <SfxMutedRow />
+      <SfxVolumeRow />
+      <FarmBgmToggleRow />
+      <FarmBgmVolumeRow />
+      <HapticToggleRow />
+      <AdvancedDisclosure>
+        <PushReminderRow />
+        <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때" />
+        <NotifyKindRow kind="session" label="집중 완료" sub="25분 / 50분 완료" />
+        <NotifyKindRow kind="mission" label="오늘의 목표" sub="미션 안내" />
+        <NotifyKindRow kind="treasure" label="주간 보물상자" sub="진행 7 충족 시" />
+        <EndAlertRow last />
+      </AdvancedDisclosure>
+    </SettingsGroup>
+  );
+}
+
+/**
+ * AdvancedDisclosure — 고급 설정 접힘 트리거 + 영속.
+ * default collapsed, 한 번 펼치면 safeStorage 에 저장 → 다음 방문 유지.
+ */
+function AdvancedDisclosure({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState<boolean>(
+    () => safeStorage.get(ADVANCED_OPEN_KEY) === "1",
+  );
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try {
+      safeStorage.set(ADVANCED_OPEN_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    haptic("light");
+  };
+  return (
+    <>
+      <Row
+        label="고급 설정"
+        sub={open ? "접으려면 다시 탭" : "리마인더 / 알림 종류 등 (6개)"}
+        right={
+          <span
+            data-testid="advanced-toggle-icon"
+            aria-hidden
+            style={{
+              fontSize: 14,
+              color: "var(--text-tertiary)",
+              fontWeight: 800,
+            }}
+          >
+            {open ? "▲" : "▼"}
+          </span>
+        }
+        onClick={toggle}
+        last={!open}
+        testId="row-advanced-toggle"
+      />
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="advanced-body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            style={{ overflow: "hidden" }}
+            data-testid="advanced-body"
+          >
+            {children}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function PushReminderRow() {
   const [snap, setSnap] = useState<PushSnapshot>(() => getPushSnapshot());
   const [busy, setBusy] = useState(false);
-  const [endAlertOn, setEndAlertOn] = useState<boolean>(() =>
-    loadFlag(END_ALERT_KEY, true),
-  );
-  const [hapticOn, setHapticOn] = useState<boolean>(() =>
-    loadFlag(HAPTIC_KEY, true),
-  );
-
-  // 첫 렌더에서 한 번 더 스냅샷 — safeStorage 값이 너무 일찍 읽혔을 때 대비.
   useEffect(() => {
     setSnap(getPushSnapshot());
   }, []);
-
-  const handleReminderToggle = async (next: boolean) => {
+  const onToggle = async (next: boolean) => {
     if (busy) return;
     setBusy(true);
     haptic(next ? "light" : "warning");
     try {
       const result = next ? await enablePush() : await disablePush();
       setSnap(result);
-      if (next && result.status === "ready") toast("알림 준비 완료—밤 22시에 만나");
-      else if (next && result.status === "no_sdk") toast("토스 앱 안에서만 푸시가 동작합니다");
-      else if (next && result.status === "permission_denied") toast("권한이 거부됨—OS 설정에서 허용해 줘");
-      else if (next && result.status === "error") toast("토큰 발급 실패—다음에 다시 시도");
-      else if (!next) toast("리마인더 끔 — 토끼가 조용해질거야");
+      if (next && result.status === "ready") toast("알림 준비 완료 — 밤 22시에 만나");
+      else if (next && result.status === "no_sdk") toast("토스 앱 안에서만 푸시 동작");
+      else if (next && result.status === "permission_denied") toast("권한 거부 — OS 설정에서 허용해 줘");
+      else if (next && result.status === "error") toast("토큰 발급 실패");
+      else if (!next) toast("리마인더 끔");
     } finally {
       setBusy(false);
     }
   };
+  return (
+    <Row
+      label="매일 22시 리마인더"
+      sub={`"${PUSH_REMINDER_TEXT}"`}
+      right={
+        <Switch
+          checked={snap.enabled}
+          onChange={onToggle}
+          label="22시 리마인더"
+          disabled={busy}
+        />
+      }
+      testId="row-push-toggle"
+    />
+  );
+}
 
-  const handleEndAlertToggle = (next: boolean) => {
-    setEndAlertOn(next);
-    saveFlag(END_ALERT_KEY, next);
-    haptic(next ? "light" : "warning");
-    toast(next ? "집중 끝나면 깨워줄게" : "끝 알림 끔 — 조용히 가자");
+function EndAlertRow({ last }: { last?: boolean }) {
+  const [on, setOn] = useState<boolean>(() => loadFlag(END_ALERT_KEY, true));
+  const toggle = (v: boolean) => {
+    setOn(v);
+    saveFlag(END_ALERT_KEY, v);
+    haptic(v ? "light" : "warning");
+    toast(v ? "집중 끝나면 깨워줄게" : "끝 알림 끔");
   };
+  return (
+    <Row
+      label="집중 끝났을 때 깨워줘"
+      sub="타이머 종료 알림 — 토스 안에서만"
+      right={
+        <Switch checked={on} onChange={toggle} label="집중 종료 알림" />
+      }
+      last={last}
+      testId="row-end-alert-toggle"
+    />
+  );
+}
 
-  const handleHapticToggle = (v: boolean) => {
-    setHapticOn(v);
+function HapticToggleRow() {
+  const [on, setOn] = useState<boolean>(() => loadFlag(HAPTIC_KEY, true));
+  const toggle = (v: boolean) => {
+    setOn(v);
     saveFlag(HAPTIC_KEY, v);
     haptic(v ? "light" : "warning");
     toast(v ? "진동 켬" : "진동 끔");
   };
-
   return (
-    <SettingsGroup title="알림">
-      <Row
-        label="매일 22시 리마인더"
-        sub={`“${PUSH_REMINDER_TEXT}” · ${snap.hint}`}
-        right={
-          <Switch
-            checked={snap.enabled}
-            onChange={handleReminderToggle}
-            label="매일 22시 리마인더"
-            disabled={busy}
-          />
-        }
-        testId="row-push-toggle"
-      />
-      <Row
-        label="집중 끝났을 때 깨워줘"
-        sub="타이머 종료 알림 — 토스 안에서만 동작"
-        right={
-          <Switch
-            checked={endAlertOn}
-            onChange={handleEndAlertToggle}
-            label="집중 종료 알림"
-          />
-        }
-        testId="row-end-alert-toggle"
-      />
-      <Row
-        label="당근 잡으면 진동"
-        right={
-          <Switch
-            checked={hapticOn}
-            onChange={handleHapticToggle}
-            label="햅틱 진동"
-          />
-        }
-        testId="row-haptic-toggle"
-      />
-      <SfxMutedRow />
-      <SfxVolumeRow />
-      <FarmBgmToggleRow />
-      <FarmBgmVolumeRow />
-      <NotifyMasterRow />
-      <NotifyKindRow kind="drop" label="농장 드랍" sub="아이템이 떨어졌을 때 알림" />
-      <NotifyKindRow kind="session" label="집중 완료" sub="25분 / 50분 세션 끝났을 때" />
-      <NotifyKindRow kind="mission" label="오늘의 목표" sub="미션 클리어 / 미완료 안내" />
-      <NotifyKindRow kind="treasure" label="주간 보물상자" sub="진행 7 충족 시" last />
-    </SettingsGroup>
+    <Row
+      label="진동"
+      sub="당근 잡을 때 진동"
+      right={<Switch checked={on} onChange={toggle} label="진동" />}
+      testId="row-haptic-toggle"
+    />
   );
 }
 
@@ -513,6 +589,7 @@ function PushSettingsGroup() {
 function NotifyMasterRow() {
   const masterEnabled = useNotificationsStore((s) => s.masterEnabled);
   const setMaster = useNotificationsStore((s) => s.setMaster);
+  const byKind = useNotificationsStore((s) => s.byKind);
   const [permission, setPermission] = useState(
     () => notificationPermission(),
   );
@@ -522,19 +599,22 @@ function NotifyMasterRow() {
     if (v && permission === "default") {
       const next = await requestNotificationPermission();
       setPermission(next);
-      if (next === "granted") toast("알림 권한 허용됨 — native 알림 사용");
-      else if (next === "denied") toast("권한 거부 — in-app 배너로 안내");
+      if (next === "granted") toast("알림 권한 허용됨");
+      else if (next === "denied") toast("권한 거부 — 앱 안에서 보여줌");
       else toast("알림 ON");
     } else {
       toast(v ? "알림 ON" : "알림 OFF");
     }
   };
+  // PR-69 — master ON 시 active 알림 종류 카운터.
+  const KINDS = ["drop", "session", "mission", "treasure", "midnight"] as const;
+  const activeCount = KINDS.filter((k) => byKind[k] !== false).length;
   const subText = (() => {
-    if (permission === "granted") return "권한 OK — native 알림 사용";
-    if (permission === "denied") return "권한 거부 — in-app 배너 fallback";
-    if (permission === "unsupported")
-      return "Web Notification 미지원 — in-app 배너 fallback";
-    return "탭하면 권한 요청 (native 거부 시 in-app 배너 fallback)";
+    if (!masterEnabled) return "꺼짐";
+    if (permission === "granted") return `권한 OK · ${activeCount}개 활성`;
+    if (permission === "denied") return `권한 거부 — 앱 안에서 보여줌 · ${activeCount}개 활성`;
+    if (permission === "unsupported") return `미지원 — 앱 안에서 보여줌 · ${activeCount}개 활성`;
+    return `탭하면 권한 요청 · ${activeCount}개 활성`;
   })();
   return (
     <Row
@@ -600,13 +680,13 @@ function SfxMutedRow() {
   };
   return (
     <Row
-      label="농장 효과음"
-      sub="씨앗·물뿌리개·바구니 탭 사운드 — 마스터 볼륨에 곱해져 재생"
+      label="효과음"
+      sub="씨앗 · 물뿌리개 · 바구니 탭 사운드"
       right={
         <Switch
           checked={!sfxMuted}
           onChange={toggle}
-          label="농장 효과음"
+          label="효과음"
         />
       }
       testId="row-sfx-toggle"
@@ -650,7 +730,7 @@ function FarmBgmToggleRow() {
   return (
     <Row
       label="농장 BGM"
-      sub="하늘 슬롯 (낮/밤/비/눈) 에 따라 자동 트랙. mp3 없으면 무음."
+      sub="하늘에 맞춰 자동 재생"
       right={
         <Switch checked={enabled} onChange={toggle} label="농장 BGM" />
       }
@@ -695,17 +775,19 @@ function FarmBgmVolumeRow() {
 
 interface SettingsGroupProps {
   title: string;
+  /** PR-69 — 섹션 헤더 emoji prefix (시각 스캔 속도 ↑). */
+  emoji?: string;
   children: ReactNode;
 }
 
-function SettingsGroup({ title, children }: SettingsGroupProps) {
+function SettingsGroup({ title, emoji, children }: SettingsGroupProps) {
   return (
     <section style={{ marginBottom: 16 }}>
       <p
         className="t-micro"
         style={{ margin: "0 0 6px 12px", color: "var(--text-tertiary)" }}
       >
-        {title}
+        {emoji ? `${emoji} ${title}` : title}
       </p>
       <Card padded={false} style={{ overflow: "hidden", padding: 0 }}>
         {children}
@@ -881,7 +963,7 @@ function FarmBgAutoToggleRow() {
   return (
     <Row
       label="배경 자동 변경"
-      sub="아침·낮·저녁·밤에 따라 농장 배경이 자동으로 바뀝니다"
+      sub="아침 · 낮 · 저녁 · 밤 자동"
       right={
         <Switch checked={enabled} onChange={toggle} label="배경 자동 변경" />
       }

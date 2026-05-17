@@ -95,7 +95,7 @@ export function FriendInviteGroup() {
         className="t-micro"
         style={{ margin: "0 0 6px 12px", color: "var(--text-tertiary)" }}
       >
-        친구 초대
+        👥 친구 초대
       </p>
       <Card padded={false} style={{ overflow: "hidden", padding: 0 }}>
         {/* 내 코드 row */}
@@ -122,7 +122,7 @@ export function FriendInviteGroup() {
                 lineHeight: 1.3,
               }}
             >
-              친구에게 공유 → 양쪽 보상 (백엔드 wire 후 양방향)
+              친구에게 공유
             </p>
           </div>
           <div
@@ -209,9 +209,7 @@ export function FriendInviteGroup() {
                 lineHeight: 1.3,
               }}
             >
-              {usedCode
-                ? `사용 완료: ${usedCode}`
-                : "씨앗 +10, 보석 +5 (1회 한정)"}
+              {usedCode ? `사용 완료: ${usedCode}` : "보상 받기 (1회)"}
             </p>
           </div>
           <div
