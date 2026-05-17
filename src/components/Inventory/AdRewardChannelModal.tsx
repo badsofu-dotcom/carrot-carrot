@@ -42,6 +42,19 @@ function dayClaimedKey(c: Channel): string {
   return `cc.ad.${c}.${kstDayKey()}`;
 }
 
+// PR-141 (Round 21 베타7 피드백) — 베타 기간 광고 일일 한도 완전 해제.
+// 사용자: "오늘 볼 수 있는 광고가 다 소진됨" 로 베타 진행이 막힘.
+// 두 layer 의 cap 을 BETA_UNLIMITED_ADS 플래그로 일괄 우회:
+//   1) per-channel cap (`cc.ad.${c}.${ymd}`) — alreadyClaimed() 가 false 반환
+//   2) N-th daily counter (`cc.ad.dailyCount.${ymd}`) — readAdDailyCount() 가 0 반환
+//
+// 정식 출시 전 BETA_UNLIMITED_ADS=false 로 되돌릴 것. localStorage 의
+// 기존 값은 그대로 보존되어 플래그 OFF 시 복귀 정상.
+//
+// 주의: 선물상자(gift) 의 `claimDailyGift` 는 rewardsStore 의 자체 cap
+// 이라 이 플래그 영향 X — 의도적 (실 보상 한도 보존).
+const BETA_UNLIMITED_ADS = true;
+
 // PR-32 — daily ad-claim counter (any channel). safeStorage 의 키는
 // KST 일자별로 분리 → 자정 이후 자동 0 으로 리셋. Numeric coercion
 // 으로 corrupted JSON 도 안전.
@@ -49,12 +62,14 @@ function adDailyKey(day: string): string {
   return `cc.ad.dailyCount.${day}`;
 }
 function readAdDailyCount(day: string): number {
+  if (BETA_UNLIMITED_ADS) return 0;
   const raw = safeStorage.get(adDailyKey(day));
   if (!raw) return 0;
   const n = Number(raw);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
 function writeAdDailyCount(day: string, n: number): void {
+  if (BETA_UNLIMITED_ADS) return;
   try {
     safeStorage.set(adDailyKey(day), String(n));
   } catch {
@@ -63,6 +78,7 @@ function writeAdDailyCount(day: string, n: number): void {
 }
 
 function alreadyClaimed(c: Channel): boolean {
+  if (BETA_UNLIMITED_ADS) return false;
   return safeStorage.get(dayClaimedKey(c)) === "1";
 }
 
