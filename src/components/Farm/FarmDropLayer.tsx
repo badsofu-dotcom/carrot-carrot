@@ -51,8 +51,12 @@ import {
 } from "../../lib/farm/farmDropTable";
 void DROPS;
 
-const MIN_SPAWN_MS = 15_000;
-const MAX_SPAWN_MS = 60_000;
+// PR-142 (Round 21 베타7): spawn interval 2배 — 사용자가 "너무 잦다"
+// 보고. 15-60s → 30-120s 로 평균 약 50% 감소. DAILY_CAP (12) 는 가치
+// 보존을 위해 그대로 (cap 도 줄이면 interval 늘림 효과를 cap 이 또
+// 가둠 → 빈도만 줄이고 천장은 유지).
+const MIN_SPAWN_MS = 30_000;
+const MAX_SPAWN_MS = 120_000;
 const DAILY_CAP = 12; // PR-47: 30 → 12 (가치 보존)
 const CONCURRENT_CAP = 3; // PR-47: 동시 표시 max 3
 const SESSION_STORE_KEY = "cc.farmDrop.active.v1"; // PR-47 persistence
