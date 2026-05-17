@@ -202,22 +202,31 @@ export function InventoryModal({ open, onClose }: Props) {
               right: 0,
               marginLeft: "auto",
               marginRight: "auto",
-              bottom: 0,
+              // PR-68 — bottom 을 TabBar 위로 띄움. 기존 bottom:0 +
+              // 90vh maxHeight 조합에서 DetailPanel "획득 방법" 줄 +
+              // ActionBar 가 TabBar (z-index 100, parent stacking context
+              // 에 따라 위로 떠 보이는 케이스) 에 가려져 잘리는 회귀.
+              // --tabbar-reserved (height + offset*2 = 100px) + safe-area
+              // 만큼 띄우면 TabBar 완전 위에 위치.
+              bottom: "calc(var(--tabbar-reserved, 100px) + env(safe-area-inset-bottom))",
               zIndex: 1061,
               width: "100%",
               maxWidth: "var(--app-max-width, 480px)",
-              // PR-56 → PR-67 — height 고정 제거 후 maxHeight 만 두니
-              // 컨텐츠 적을 때 모달이 화면 70~80% 위치에서 멈추는 회귀.
-              // minHeight 70vh 추가해서 bottom-sheet 적정 높이 보장.
-              // 컨텐츠 많으면 maxHeight 90vh 까지 자람. 작은 viewport
-              // (iPhone SE 568) 에서도 DetailPanel + ActionBar 둘 다 표시.
-              minHeight: "70vh",
-              maxHeight: "90vh",
+              // PR-56 → PR-67 → PR-68 — bottom 이 위로 올라간 만큼
+              // 사용 가능한 세로 공간이 줄어듦. maxHeight 도 viewport -
+              // tabbar 영역 - safe area - 상단 여백 (12px) 로 동적 계산.
+              // 작은 viewport (iPhone SE 568) 에서도 DetailPanel +
+              // ActionBar 둘 다 표시되며 잘림 없음.
+              minHeight: "60vh",
+              maxHeight:
+                "calc(100dvh - var(--tabbar-reserved, 100px) - env(safe-area-inset-bottom) - 12px)",
               background: "#FFF8EE",
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
+              // PR-68 — padding-bottom 의 safe-area 제거 (bottom offset 에
+              // 이미 포함). 잔여 20px 만 컨텐츠 내부 여백으로.
               padding:
-                "12px calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left))",
+                "12px calc(20px + env(safe-area-inset-right)) 20px calc(20px + env(safe-area-inset-left))",
               boxShadow: "0 -8px 28px rgba(0,0,0,0.18)",
               display: "flex",
               flexDirection: "column",
