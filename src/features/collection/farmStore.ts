@@ -59,6 +59,13 @@ interface FarmState {
    */
   spendCarrots: (n: number) => boolean;
   /**
+   * R32 PR-181 — candy/golden in-app sink 인프라.
+   * spendCarrots 와 동일한 CAS 패턴. 신규 sink (프리미엄 가구 결제 /
+   * 가챠 pity) 가 잔액을 안전하게 차감하는 데 사용.
+   */
+  spendCandyCarrots: (n: number) => boolean;
+  spendGoldenCarrots: (n: number) => boolean;
+  /**
    * Grow every planted plot by `steps` (capped at stage 4).
    * `snapshotId` is the unique focus-complete snapshot id (e.g. lastSnapshot.at).
    * Pass it to guarantee idempotency: a repeated call with the same id is a
@@ -143,6 +150,24 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     const cur = get().carrots;
     if (cur < cost) return false;
     set({ carrots: cur - cost });
+    return true;
+  },
+
+  spendCandyCarrots: (n) => {
+    if (!Number.isFinite(n) || n <= 0) return false;
+    const cost = Math.floor(n);
+    const cur = get().candyCarrots;
+    if (cur < cost) return false;
+    set({ candyCarrots: cur - cost });
+    return true;
+  },
+
+  spendGoldenCarrots: (n) => {
+    if (!Number.isFinite(n) || n <= 0) return false;
+    const cost = Math.floor(n);
+    const cur = get().goldenCarrots;
+    if (cur < cost) return false;
+    set({ goldenCarrots: cur - cost });
     return true;
   },
 
