@@ -811,12 +811,61 @@ export function FarmHub({
           height: "100%",
         }}
       >
-        {/* R33 PR-196 — crop sprites 가 SVG <image> 에서 outer container
-            의 HTML <img> 오버레이로 이전 (아래 svg 닫힘 뒤 render). SVG
-            <image> 의 href swap 시 WKWebView 가 디코딩 race + GPU layer
-            cleanup race 로 1 frame 깜박임이 잔존했음. HTML <img> +
-            decoding="sync" + loading="eager" 가 가장 robust. polygons
-            만 SVG 에 남김 (click area + debug overlay). */}
+        {/* Crops rendered as SVG images so they share the polygon's
+            percent-space and scale perfectly with the bg.
+            PR-144 (Round 21 베타7) — stage 를 key 에 포함시켜 stage
+            전환 시 component 가 명시적으로 unmount → remount 한다.
+            이전 코드는 key={b.id} 라 stage 가 바뀌어도 같은 motion.image
+            인스턴스를 재활용했는데, framer-motion 내부 transform 잔여
+            상태 + SVG href 비동기 swap 이 겹쳐 새 sprite 위에 이전
+            sprite 가 잠시 겹쳐 보이는 "잔상" 으로 보고됨. stage 별 fresh
+            mount 면 initial/animate 가 다시 돌아 항상 0→1 페이드인.
+            harvest 시 (stage===0) asset null → null 반환 (unmount).
+
+            R27 PHASE 1 (PR-163) → R31 PR-179 → R33 PR-195 — 잔상 fix
+            점진 강화.
+              PR-163: AnimatePresence popLayout + exit (dev 양손 탭 fix
+                → AIT 에서 exit 가 시각 잔상으로 노출).
+              PR-179: popLayout + exit 제거. motion.image + spring 유지.
+                → AIT 에서 여전히 1 frame 깜박임 보고됨.
+              PR-195 (현재): framer-motion 완전 제거. 순수 SVG <image>
+                + 즉시 표시 (애니메이션 없음) + willChange 제거.
+                WKWebView 의 GPU layer race + framer-motion RAF 지연
+                두 source 를 한 번에 차단. preload + .decode() 보강 +
+                key 별 fresh mount 만으로 시각 잔상 0.
+                trade-off: 부드러운 spring scale 효과 사라짐 → 작물이
+                stage 전환 시 즉시 swap. 단조롭지만 시각 안정 우선.
+              PR-196 (HTML <img> overlay 시도): 좌표 / objectFit mapping
+                이 SVG preserveAspectRatio 와 달라 작물이 찌그러지고
+                위치 어긋남 — 사용자 보고 후 PR-197 에서 SVG <image>
+                로 즉시 롤백. 잔상 fix 는 별도 접근 필요. */}
+        {plotBounds.map((b) => {
+          const stage = stages[b.id];
+          const asset = stageAsset(stage);
+          if (!asset) return null;
+          const size = b.height * CROP_SIZE_RATIO;
+          const x = b.cx - size / 2;
+          const y = b.cy - size * 0.75;
+          return (
+            <image
+              key={`${b.id}-${stage}`}
+              href={asset}
+              x={x}
+              y={y}
+              width={size}
+              height={size}
+              preserveAspectRatio="xMidYMax meet"
+              style={{
+                pointerEvents: "none",
+                filter:
+                  stage === 4
+                    ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
+                    : "drop-shadow(0 0.15px 0.4px rgba(0,0,0,0.25))",
+              }}
+              aria-label={stageLabel(stage)}
+            />
+          );
+        })}
 
         {PLOT_POLYGONS.map((p) => {
           const isHovered = hoveredId === p.id;
@@ -848,66 +897,6 @@ export function FarmHub({
           );
         })}
       </svg>
-
-      {/* R33 PR-196 — crop sprites as HTML <img> overlay (no SVG <image>).
-          SVG <image> href swap 시 WKWebView 의 디코딩 race + GPU layer
-          cleanup race 로 1 frame 깜박임이 잔존. HTML <img> 는
-          decoding="sync" + loading="eager" 로 paint 직전 race 차단,
-          standard HTML compositing 으로 SVG-specific quirk 회피.
-
-          좌표는 SVG viewBox (100×100) 와 동일 percent space — outer
-          stage div 가 svg 와 같은 absolute inset:0 박스라 left/top/width/
-          height % 가 svg image 와 동일하게 mapping (preserveAspectRatio
-          ="none" 의 distortion 도 자연스럽게 일치).
-
-          objectFit:contain + objectPosition:"center bottom" 으로 SVG
-          preserveAspectRatio="xMidYMax meet" 동일 효과 (sprite 의
-          아래쪽 정렬). pointerEvents:none 으로 polygon click 통과. */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-        }}
-        aria-hidden
-      >
-        {plotBounds.map((b) => {
-          const stage = stages[b.id];
-          const asset = stageAsset(stage);
-          if (!asset) return null;
-          const size = b.height * CROP_SIZE_RATIO;
-          const x = b.cx - size / 2;
-          const y = b.cy - size * 0.75;
-          return (
-            <img
-              key={`${b.id}-${stage}`}
-              src={asset}
-              alt=""
-              decoding="sync"
-              loading="eager"
-              style={{
-                position: "absolute",
-                left: `${x}%`,
-                top: `${y}%`,
-                width: `${size}%`,
-                height: `${size}%`,
-                objectFit: "contain",
-                objectPosition: "center bottom",
-                pointerEvents: "none",
-                userSelect: "none",
-                filter:
-                  stage === 4
-                    ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
-                    : "drop-shadow(0 0.15px 0.4px rgba(0,0,0,0.25))",
-              }}
-              aria-label={stageLabel(stage)}
-              draggable={false}
-            />
-          );
-        })}
-      </div>
 
       {/* One-shot effects rendered as absolute-positioned HTML INSIDE
           the aspect-stage wrapper. The wrapper is locked to the bg's
