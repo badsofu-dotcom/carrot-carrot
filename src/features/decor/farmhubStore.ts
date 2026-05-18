@@ -162,21 +162,44 @@ export const useFarmhubStore = create<FarmhubState>((set, get) => {
       const cur = get();
       const dogamCount =
         useCollectionStore.getState().ownedCharacters.length;
-      const carrots = useFarmStore.getState().carrots;
+      const farm = useFarmStore.getState();
       const evalResult: BuyEval = evaluateBuyNextStep({
         step: cur.step,
         pendingFurnitureId: cur.pendingFurnitureId,
         dogamCount,
-        carrots,
+        carrots: farm.carrots,
+        candyCarrots: farm.candyCarrots,
+        goldenCarrots: farm.goldenCarrots,
       });
-      if (!evalResult.ok || !evalResult.furnitureId || !evalResult.price) {
+      if (
+        !evalResult.ok ||
+        !evalResult.furnitureId ||
+        !evalResult.price ||
+        !evalResult.currency
+      ) {
         return { ok: false, reason: evalResult.reason };
       }
-      // Atomic — spendCarrots 가 race 로 false 면 (불가 — 같은 tick),
-      // pending 도 설정 X.
-      const debited = useFarmStore.getState().spendCarrots(evalResult.price);
+      // R32 PR-182 — currency 별 spend dispatch. Atomic — race 로 false
+      // 면 (불가 — 같은 tick), pending 도 설정 X.
+      const farmActions = useFarmStore.getState();
+      const debited = (() => {
+        switch (evalResult.currency) {
+          case "carrot":
+            return farmActions.spendCarrots(evalResult.price);
+          case "candy":
+            return farmActions.spendCandyCarrots(evalResult.price);
+          case "golden":
+            return farmActions.spendGoldenCarrots(evalResult.price);
+        }
+      })();
       if (!debited) {
-        return { ok: false, reason: "insufficient_carrot" };
+        const fallback: BuyReason =
+          evalResult.currency === "candy"
+            ? "insufficient_candy"
+            : evalResult.currency === "golden"
+              ? "insufficient_golden"
+              : "insufficient_carrot";
+        return { ok: false, reason: fallback };
       }
       const next: PersistShape = {
         step: cur.step,

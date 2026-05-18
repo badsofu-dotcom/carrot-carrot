@@ -21,7 +21,21 @@
  * 자산: public/assets/decor/farmhub/
  *   bg/   — bg_farmhub_0..8.jpg (9 파일, 합 ~2.4MB)
  *   items/— farmhub_{name}_{step}.png (8 파일, 합 ~740KB)
+ *
+ * R32 PR-182 — 다통화 결제 인프라.
+ *   `price: { currency, amount }` 필드 추가. 기존 8개 가구는 모두
+ *   `currency: "carrot"` 으로 유지 (기존 선형 50~400 가격 그대로). 신규
+ *   프리미엄 가구 (candy/golden 결제) 는 추후 신규 맵 도입 시점에
+ *   `price: { currency: "candy", amount: ... }` 형태로 한 줄 추가만으로
+ *   buyNextStep / BuyFurnitureModal 이 자동 작동.
  */
+
+export type FarmhubCurrency = "carrot" | "candy" | "golden";
+
+export interface FarmhubPrice {
+  currency: FarmhubCurrency;
+  amount: number;
+}
 
 export interface FarmhubFurniture {
   /** 안정 식별자 (저장 / pendingFurnitureId). */
@@ -32,17 +46,24 @@ export interface FarmhubFurniture {
   step: number;
   /** 가구 누끼 PNG 경로 (BASE_URL prefix 없이 절대 — vite 가 호스팅). */
   sprite: string;
+  /**
+   * R32 PR-182 — 결제 통화 + 가격.
+   *   carrot : 일반 가구 (기존 8개)
+   *   candy  : 프리미엄 가구 (추후 신규 맵)
+   *   golden : 프리미엄 가구 (추후 신규 맵)
+   */
+  price: FarmhubPrice;
 }
 
 export const FARMHUB_FURNITURE: ReadonlyArray<FarmhubFurniture> = [
-  { id: "carpet",     name: "원형 카펫",       step: 1, sprite: "/assets/decor/farmhub/items/farmhub_carpet_1.png" },
-  { id: "bed",        name: "패치워크 침대",   step: 2, sprite: "/assets/decor/farmhub/items/farmhub_bed_2.png" },
-  { id: "table",      name: "원형 테이블",     step: 3, sprite: "/assets/decor/farmhub/items/farmhub_table_3.png" },
-  { id: "bookcase",   name: "책장",            step: 4, sprite: "/assets/decor/farmhub/items/farmhub_bookcase_4.png" },
-  { id: "pot",        name: "화분",            step: 5, sprite: "/assets/decor/farmhub/items/farmhub_pot_5.png" },
-  { id: "drawer",     name: "서랍장",          step: 6, sprite: "/assets/decor/farmhub/items/farmhub_drawer_6.png" },
-  { id: "storagebox", name: "장난감 상자",     step: 7, sprite: "/assets/decor/farmhub/items/farmhub_storagebox_7.png" },
-  { id: "stoolchair", name: "스툴 의자",       step: 8, sprite: "/assets/decor/farmhub/items/farmhub_stoolchair_8.png" },
+  { id: "carpet",     name: "원형 카펫",       step: 1, sprite: "/assets/decor/farmhub/items/farmhub_carpet_1.png",         price: { currency: "carrot", amount:  50 } },
+  { id: "bed",        name: "패치워크 침대",   step: 2, sprite: "/assets/decor/farmhub/items/farmhub_bed_2.png",            price: { currency: "carrot", amount: 100 } },
+  { id: "table",      name: "원형 테이블",     step: 3, sprite: "/assets/decor/farmhub/items/farmhub_table_3.png",          price: { currency: "carrot", amount: 150 } },
+  { id: "bookcase",   name: "책장",            step: 4, sprite: "/assets/decor/farmhub/items/farmhub_bookcase_4.png",       price: { currency: "carrot", amount: 200 } },
+  { id: "pot",        name: "화분",            step: 5, sprite: "/assets/decor/farmhub/items/farmhub_pot_5.png",            price: { currency: "carrot", amount: 250 } },
+  { id: "drawer",     name: "서랍장",          step: 6, sprite: "/assets/decor/farmhub/items/farmhub_drawer_6.png",         price: { currency: "carrot", amount: 300 } },
+  { id: "storagebox", name: "장난감 상자",     step: 7, sprite: "/assets/decor/farmhub/items/farmhub_storagebox_7.png",     price: { currency: "carrot", amount: 350 } },
+  { id: "stoolchair", name: "스툴 의자",       step: 8, sprite: "/assets/decor/farmhub/items/farmhub_stoolchair_8.png",     price: { currency: "carrot", amount: 400 } },
 ];
 
 /** step (0..8) → bg image URL. step 0 은 빈 방. */

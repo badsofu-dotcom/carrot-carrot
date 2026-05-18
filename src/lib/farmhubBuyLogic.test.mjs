@@ -12,7 +12,7 @@ const mod = await loadTs(
   "../features/decor/farmhubBuyLogic.ts",
   import.meta.url,
 );
-const { evaluateBuyNextStep } = mod;
+const { evaluateBuyNextStep, checkBalance } = mod;
 
 function ctx(over = {}) {
   return {
@@ -20,6 +20,8 @@ function ctx(over = {}) {
     pendingFurnitureId: null,
     dogamCount: 12,
     carrots: 9999,
+    candyCarrots: 0,
+    goldenCarrots: 0,
     ...over,
   };
 }
@@ -141,4 +143,80 @@ test("step 7 → step 8 (stoolchair) 가격 400", () => {
   assert.equal(r.targetStep, 8);
   assert.equal(r.price, 400);
   assert.equal(r.furnitureId, "stoolchair");
+});
+
+// ===== R32 PR-182 — 다통화 인프라 검증 =====
+
+test("R32 PR-182: 기존 8개 가구는 모두 currency='carrot'", () => {
+  for (let s = 0; s < 8; s++) {
+    const r = evaluateBuyNextStep(
+      ctx({ step: s, dogamCount: 12, carrots: 9999 }),
+    );
+    assert.equal(r.ok, true);
+    assert.equal(r.currency, "carrot", `step ${s + 1} currency`);
+  }
+});
+
+test("R32 PR-182: checkBalance — carrot 충분 → null", () => {
+  const r = checkBalance("carrot", 50, {
+    carrots: 50,
+    candyCarrots: 0,
+    goldenCarrots: 0,
+  });
+  assert.equal(r, null);
+});
+
+test("R32 PR-182: checkBalance — carrot 부족 → insufficient_carrot", () => {
+  const r = checkBalance("carrot", 50, {
+    carrots: 49,
+    candyCarrots: 999,
+    goldenCarrots: 999,
+  });
+  assert.equal(r, "insufficient_carrot");
+});
+
+test("R32 PR-182: checkBalance — candy 충분 → null (경계값)", () => {
+  const r = checkBalance("candy", 10, {
+    carrots: 0,
+    candyCarrots: 10,
+    goldenCarrots: 0,
+  });
+  assert.equal(r, null);
+});
+
+test("R32 PR-182: checkBalance — candy 부족 → insufficient_candy", () => {
+  const r = checkBalance("candy", 10, {
+    carrots: 9999,
+    candyCarrots: 9,
+    goldenCarrots: 9999,
+  });
+  assert.equal(r, "insufficient_candy");
+});
+
+test("R32 PR-182: checkBalance — golden 충분 → null (경계값)", () => {
+  const r = checkBalance("golden", 5, {
+    carrots: 0,
+    candyCarrots: 0,
+    goldenCarrots: 5,
+  });
+  assert.equal(r, null);
+});
+
+test("R32 PR-182: checkBalance — golden 부족 → insufficient_golden", () => {
+  const r = checkBalance("golden", 5, {
+    carrots: 9999,
+    candyCarrots: 9999,
+    goldenCarrots: 4,
+  });
+  assert.equal(r, "insufficient_golden");
+});
+
+test("R32 PR-182: checkBalance — 통화별 잔액은 서로 영향 없음", () => {
+  // candy 가구를 사려는데 carrots 가 아무리 많아도 candy 부족이면 fail.
+  const r = checkBalance("candy", 10, {
+    carrots: 100_000,
+    candyCarrots: 5,
+    goldenCarrots: 100_000,
+  });
+  assert.equal(r, "insufficient_candy");
 });
