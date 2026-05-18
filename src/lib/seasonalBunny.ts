@@ -32,6 +32,7 @@ export const HARVEST_GOLD = 0.006; // PR-32: 1% → 0.6%
 export const COMBO_BATCH_BONUS = 0.01; // +1%p per harvest while combo ≥ 5
 export const JUICE_CANDY_BONUS = 0.05; // +5%p next harvest after 당근 주스 사용
 export const SOUP_GOLDEN_BONUS = 0.05; // PR-92: +5%p next harvest after 당근 수프 사용 (golden 버전)
+export const HEART_CANDY_BONUS = 0.10; // R33 PR-191: +10%p next harvest after 하트 buff (candy candy +10%p)
 
 export interface HarvestOutcome {
   kind: "carrot" | "candy" | "golden" | "bunny";
@@ -62,6 +63,12 @@ export interface RollOpts {
    * 버전). Caller 가 한 번 roll 후 buff clear.
    */
   soupActive?: boolean;
+  /**
+   * R33 PR-191 — heart buff: 다음 수확 candy +10%p. juice 와 동일
+   * candy band 에 stack (juice +5%p × heart +10%p × dogam ±0.1%p 모두
+   * 가산). Caller 가 한 번 roll 후 buff clear.
+   */
+  heartActive?: boolean;
   /**
    * PR-38 — 도감 패시브 추가 %p. 캐스케이드 적용:
    *   candyBonusP  +0.1%p (1마리 이상)
@@ -138,6 +145,7 @@ export function rollHarvestGacha(opts: RollOpts = {}): HarvestOutcome {
   let candyP = opts.perfectCombo ? HARVEST_BOOST_CANDY : HARVEST_BASE_CANDY;
   if ((opts.comboStreak ?? 0) >= 5) candyP += COMBO_BATCH_BONUS;
   if (opts.juiceActive) candyP += JUICE_CANDY_BONUS;
+  if (opts.heartActive) candyP += HEART_CANDY_BONUS;
   candyP += Math.max(0, opts.candyBonusP ?? 0);
   if (r < HARVEST_BUNNY_RATE + goldP + candyP) {
     return { kind: "candy" };

@@ -58,6 +58,15 @@ export const BUFF_META: Record<BuffKind, BuffMeta> = {
     color: "#FF99CC",
     durationMs: 30 * 60_000,
   },
+  heart: {
+    // R33 PR-191 — heart 부스트. 하트 1개 사용 → 다음 수확 candy +10%p.
+    displayName: "하트 버프",
+    description: "다음 수확 한 번 캔디 당근 확률 +10%p",
+    trigger: "다음 수확 시 자동 발동",
+    emoji: "💗",
+    color: "#FF9DBE",
+    durationMs: 30 * 60_000,
+  },
 };
 
 /** mm:ss 라벨. 음수면 "00:00". */

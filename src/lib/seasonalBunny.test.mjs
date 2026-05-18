@@ -16,6 +16,7 @@ const {
   HARVEST_GOLD,
   JUICE_CANDY_BONUS,
   SOUP_GOLDEN_BONUS,
+  HEART_CANDY_BONUS,
 } = mod;
 
 test("seasonForMonth covers all 12", () => {
@@ -192,4 +193,47 @@ test("rollHarvestGacha: soup + juice 동시 적용 — 각자 자기 bucket 만 
   });
   // 0.04 → bunny(0.005)+gold(0.006)+soup(0.05)=0.061 안에 → golden.
   assert.equal(both.kind, "golden");
+});
+
+// ===== R33 PR-191 — heart buff (candy +10%p) =====
+
+test("R33 PR-191: HEART_CANDY_BONUS === 0.10", () => {
+  assert.equal(HEART_CANDY_BONUS, 0.10);
+});
+
+test("R33 PR-191: heart buff 가 candy bucket 확장 (+10%p)", () => {
+  // Base candy 범위: [bunny+gold=0.011, +base=0.081) = [0.011, 0.081)
+  // heart 적용: candyP = 0.07 + 0.10 = 0.17 → [0.011, 0.181).
+  // r = 0.15 → base 만이면 carrot, heart 있으면 candy.
+  const baseline = rollHarvestGacha({ rng: () => 0.15 });
+  const hearted = rollHarvestGacha({ rng: () => 0.15, heartActive: true });
+  assert.equal(baseline.kind, "carrot");
+  assert.equal(hearted.kind, "candy");
+});
+
+test("R33 PR-191: heart 는 juice 와 stack (둘 다 candy band)", () => {
+  // candyP = base(0.07) + juice(0.05) + heart(0.10) = 0.22
+  // cumulative: bunny(0.005) + gold(0.006) + 0.22 = 0.231
+  // r = 0.20 → juice 만 있으면 carrot (0.131 < 0.20), 둘 다 있으면 candy.
+  const juiced = rollHarvestGacha({ rng: () => 0.20, juiceActive: true });
+  const both = rollHarvestGacha({
+    rng: () => 0.20,
+    juiceActive: true,
+    heartActive: true,
+  });
+  assert.equal(juiced.kind, "carrot");
+  assert.equal(both.kind, "candy");
+});
+
+test("R33 PR-191: heart 는 bunny / golden bucket 영향 없음", () => {
+  // r = 0.003 < bunny rate → bunny.
+  const bunny = rollHarvestGacha({
+    rng: () => 0.003,
+    heartActive: true,
+    month: 3,
+  });
+  assert.equal(bunny.kind, "bunny");
+  // r = 0.008 → golden bucket [0.005, 0.011) — heart 무관.
+  const gold = rollHarvestGacha({ rng: () => 0.008, heartActive: true });
+  assert.equal(gold.kind, "golden");
 });

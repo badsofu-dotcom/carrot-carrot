@@ -11,9 +11,10 @@ const mod = await loadTs(
 );
 const { BUFF_META, formatRemaining, isFinalCountdown } = mod;
 
-test("BUFF_META — 3 종 정의 (juice/soup/cake)", () => {
-  assert.equal(Object.keys(BUFF_META).length, 3);
-  for (const k of ["juice", "soup", "cake"]) {
+test("BUFF_META — 4 종 정의 (juice/soup/cake/heart)", () => {
+  // R33 PR-191 — heart buff 추가.
+  assert.equal(Object.keys(BUFF_META).length, 4);
+  for (const k of ["juice", "soup", "cake", "heart"]) {
     const m = BUFF_META[k];
     assert.ok(m, `${k} entry missing`);
     assert.ok(m.displayName.includes("버프"), `${k} displayName missing "버프"`);

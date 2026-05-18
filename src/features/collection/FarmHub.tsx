@@ -37,6 +37,7 @@ import {
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { BunnyPityModal } from "../../components/Inventory/BunnyPityModal";
+import { HeartUseModal } from "../../components/Inventory/HeartUseModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffChipsRow } from "../buffs/BuffChipsRow";
@@ -581,12 +582,15 @@ export function FarmHub({
         const juiceActive = useBuffsStore.getState().consume("juice");
         // PR-92 — soup 재설계: 다음 수확 황금당근 +5%p.
         const soupActive = useBuffsStore.getState().consume("soup");
+        // R33 PR-191 — heart 부스트: 다음 수확 candy +10%p.
+        const heartActive = useBuffsStore.getState().consume("heart");
         // PR-38 — 도감 패시브 (캔디 +0.1%p / 황금 +0.1%p) 적용.
         const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
         const passives = passivesFromOwned(dogamOwned);
         const outcome = rollHarvestGacha({
           juiceActive,
           soupActive,
+          heartActive,
           candyBonusP: passives.candyBonusP,
           goldenBonusP: passives.goldenBonusP,
         });
@@ -990,6 +994,10 @@ export function FarmHub({
           리스너. R32 PR-185 의 RewardsPanel "친구 만나기" CTA 가
           dispatch. */}
       <BunnyPityModal />
+
+      {/* R33 PR-191 — 하트 부스트 모달. cc:heart-use:open 리스너.
+          R33 PR-192 InventoryModal heart "사용하기" 액션이 dispatch. */}
+      <HeartUseModal />
 
       {/* PR-152 (Round 25) — 데코 v2 MushroomHouseRoom. RewardsPanel
           "🍄 버섯집 들어가기" 카드 + cc:mushroom-house:open 이벤트로

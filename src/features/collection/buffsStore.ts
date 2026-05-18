@@ -20,7 +20,7 @@ import { create } from "zustand";
 import { safeStorage } from "../../lib/safeStorage";
 import { BUFF_META } from "../buffs/buffEffects";
 
-export type BuffKind = "juice" | "soup" | "cake";
+export type BuffKind = "juice" | "soup" | "cake" | "heart";
 
 const STORAGE_KEY = "cc.buffs.v2";
 
@@ -29,6 +29,8 @@ interface BuffsState {
   juiceExpiresAt: number;
   soupExpiresAt: number;
   cakeExpiresAt: number;
+  /** R33 PR-191 — heart buff: 다음 수확 candy +10%p. */
+  heartExpiresAt: number;
 
   activate: (kind: BuffKind) => void;
   /** Atomically read+clear. active 면 true + clear; expired 면 false + clear. */
@@ -44,6 +46,7 @@ interface Persisted {
   je?: number;
   se?: number;
   ce?: number;
+  he?: number;
 }
 
 function load(): Persisted {
@@ -63,6 +66,7 @@ function save(state: BuffsState) {
     je: state.juiceExpiresAt || undefined,
     se: state.soupExpiresAt || undefined,
     ce: state.cakeExpiresAt || undefined,
+    he: state.heartExpiresAt || undefined,
   };
   try {
     safeStorage.set(STORAGE_KEY, JSON.stringify(out));
@@ -73,10 +77,11 @@ function save(state: BuffsState) {
 
 function fieldOf(
   kind: BuffKind,
-): "juiceExpiresAt" | "soupExpiresAt" | "cakeExpiresAt" {
+): "juiceExpiresAt" | "soupExpiresAt" | "cakeExpiresAt" | "heartExpiresAt" {
   if (kind === "juice") return "juiceExpiresAt";
   if (kind === "soup") return "soupExpiresAt";
-  return "cakeExpiresAt";
+  if (kind === "cake") return "cakeExpiresAt";
+  return "heartExpiresAt";
 }
 
 export const useBuffsStore = create<BuffsState>((set, get) => {
@@ -86,10 +91,12 @@ export const useBuffsStore = create<BuffsState>((set, get) => {
   const safeJ = init.je && init.je > now ? init.je : 0;
   const safeS = init.se && init.se > now ? init.se : 0;
   const safeC = init.ce && init.ce > now ? init.ce : 0;
+  const safeH = init.he && init.he > now ? init.he : 0;
   return {
     juiceExpiresAt: safeJ,
     soupExpiresAt: safeS,
     cakeExpiresAt: safeC,
+    heartExpiresAt: safeH,
 
     activate: (kind) => {
       const expiresAt = Date.now() + BUFF_META[kind].durationMs;
@@ -135,6 +142,8 @@ export const useBuffsStore = create<BuffsState>((set, get) => {
         patch.soupExpiresAt = 0;
       if (s.cakeExpiresAt && s.cakeExpiresAt <= now)
         patch.cakeExpiresAt = 0;
+      if (s.heartExpiresAt && s.heartExpiresAt <= now)
+        patch.heartExpiresAt = 0;
       if (Object.keys(patch).length > 0) {
         set(patch);
         save(get());
@@ -142,7 +151,12 @@ export const useBuffsStore = create<BuffsState>((set, get) => {
     },
 
     reset: () => {
-      set({ juiceExpiresAt: 0, soupExpiresAt: 0, cakeExpiresAt: 0 });
+      set({
+        juiceExpiresAt: 0,
+        soupExpiresAt: 0,
+        cakeExpiresAt: 0,
+        heartExpiresAt: 0,
+      });
       save(get());
     },
   };
