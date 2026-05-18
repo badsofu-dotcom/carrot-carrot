@@ -177,20 +177,27 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       case "treasure": {
         // PR-48 — 보물 진행 +1 + 랜덤 보상 풀 1개.
         useRewardsStore.getState().addTreasureProgress(1);
-        // PR-152 (Round 25) — fragment entry 제거 (v1 archive). 비율 R21
-        // 원형으로 복원: star 0.35 / gem 0.25 / candy 0.25 / bolt 0.10 /
-        // golden 0.05. sum = 1.00.
+        // R32 PR-186 — candy/golden 의 in-app sink (가구 + 가챠 pity)
+        // 도입 반영, 두 통화의 비중을 약간 상향:
+        //   candy  0.25 → 0.30 (+0.05)
+        //   golden 0.05 → 0.10 (+0.05, 2x)
+        //   star   0.35 → 0.28 (-0.07)  // 100 stars 가챠는 시간 더 걸림
+        //   gem    0.25 → 0.22 (-0.03)
+        //   bolt   0.10 → 0.10 (동일)
+        // sum = 1.00. 일일 1회 평균 claim 기준: candy +0.05/day, golden
+        // +0.05/day → 1주에 candy 1.4개 / golden 0.7개 추가. golden 5개
+        // pity 1회분에 ~7주, harvest 0.6% 와 합산하면 의미 있는 가속.
         const rewards = [
-          { p: 0.35, label: "⭐ 별 +1", apply: () => addItem("star", 1) },
-          { p: 0.25, label: "💎 보석 +1", apply: () => addItem("gem", 1) },
+          { p: 0.28, label: "⭐ 별 +1", apply: () => addItem("star", 1) },
+          { p: 0.22, label: "💎 보석 +1", apply: () => addItem("gem", 1) },
           {
-            p: 0.25,
+            p: 0.3,
             label: "🍬 캔디당근 +1",
             apply: () => useFarmStore.getState().incCandyCarrots(1),
           },
           { p: 0.1, label: "⚡ 번개 +1", apply: () => addItem("bolt", 1) },
           {
-            p: 0.05,
+            p: 0.1,
             label: "✨ 황금당근 +1",
             apply: () => useFarmStore.getState().incGoldenCarrots(1),
           },
