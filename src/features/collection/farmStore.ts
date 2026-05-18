@@ -92,10 +92,40 @@ interface FarmState {
 
 const empty = (): CropStage[] => Array(9).fill(0) as CropStage[];
 
-function applyRemote(set: (p: Partial<FarmState>) => void, r: FarmSyncResult) {
+/**
+ * R33 PR-199 — 빠른 multi-tap (1~2초 내 3+ 식기) 시 잔상 fix.
+ *
+ * 시퀀스:
+ *   tap 0 → set local stages[0]=1, plantOnServer(0) 전송 (async)
+ *   tap 1 → set local stages[1]=1, plantOnServer(1) 전송
+ *   tap 2 → set local stages[2]=1, plantOnServer(2) 전송
+ *   resp 0 도착 → applyRemote 가 전체 stages 를 server snapshot 으로
+ *     교체. server 는 아직 1,2 모름 → plot 1,2 가 0 으로 revert →
+ *     visibility hidden 토글 → "한 번 깜박" 시각화
+ *
+ * Fix: per-plot in-flight 트래킹. plant/harvest 가 plot id 를 inflight
+ * 에 추가, 서버 응답 후 제거. applyRemote 가 inflight 인 plot 의 stage
+ * 는 local 유지, 그 외 plot 만 remote 적용.
+ *
+ * harvest race 도 동일 패턴으로 보호 (local 0, remote 4 의 revert
+ * 방지).
+ */
+const inflightPlots = new Set<number>();
+
+function applyRemote(
+  set: (p: Partial<FarmState>) => void,
+  get: () => FarmState,
+  r: FarmSyncResult,
+) {
   if (!r.ok || r.mode !== "remote") return;
-  const next = stagesFromRemote(r.state) as CropStage[];
-  set({ stages: next, carrots: r.state.carrots });
+  const remote = stagesFromRemote(r.state) as CropStage[];
+  const local = get().stages;
+  // inflight 인 plot 은 local 유지 (사용자 의도가 server snapshot 보다
+  // 최신). carrots 는 항상 remote (수확 카운트 권위는 server).
+  const merged = remote.map((rs, i) =>
+    inflightPlots.has(i) ? local[i] : rs,
+  ) as CropStage[];
+  set({ stages: merged, carrots: r.state.carrots });
 }
 
 export const useFarmStore = create<FarmState>((set, get) => ({
@@ -112,7 +142,11 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     const next = s.stages.slice();
     next[id] = 1;
     set({ stages: next });
-    void plantOnServer(id).then((r) => applyRemote(set, r));
+    inflightPlots.add(id);
+    void plantOnServer(id).then((r) => {
+      inflightPlots.delete(id);
+      applyRemote(set, get, r);
+    });
     return true;
   },
 
@@ -122,7 +156,11 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     const next = s.stages.slice();
     next[id] = 0;
     set({ stages: next, carrots: s.carrots + 1 });
-    void harvestOnServer(id).then((r) => applyRemote(set, r));
+    inflightPlots.add(id);
+    void harvestOnServer(id).then((r) => {
+      inflightPlots.delete(id);
+      applyRemote(set, get, r);
+    });
     return true;
   },
 
@@ -209,7 +247,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     if (grown > 0) {
       set({ stages: next, lastGrowthSnapshotId: snapshotId });
       // PR-109 — seedDelta 제거. growOnServer 의 3번째 param 도 0.
-      void growOnServer(steps, snapshotId, 0).then((r) => applyRemote(set, r));
+      void growOnServer(steps, snapshotId, 0).then((r) => applyRemote(set, get, r));
     } else if (snapshotId !== null) {
       set({ lastGrowthSnapshotId: snapshotId });
     }
@@ -227,7 +265,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
 
   hydrate: async () => {
     const r = await loadFarmState();
-    applyRemote(set, r);
+    applyRemote(set, get, r);
     set({ hydrated: true });
   },
 }));
