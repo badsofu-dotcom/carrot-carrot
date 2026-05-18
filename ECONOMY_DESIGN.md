@@ -1,42 +1,59 @@
-# 버니타임 v2 — Economy Design (v2 — PR-31~38)
+# 버니타임 v2 — Economy Design (v3 — R32 / PR-180~187)
 
 > **공시 (PR-51 / GRAC 가드레일)**
 > 본 앱은 게임물이 아닌 **집중 / 생산성 도구** 입니다. 농장 시각화 +
-> 보상은 사용자의 집중 활동에 대한 인센티브입니다. **일일 환산 한도
-> 100 P** (광고 5회 + 농장 활동 + 도감 100마리 보너스 +10) 이며 광고
-> 수익을 기반으로 한 적립 모델을 따릅니다. 확률형 보상 (보너스 드랍 /
-> 친구 만나기) 는 `src/legal/reward-disclosure.md` 에서 공시.
+> 보상은 사용자의 집중 활동에 대한 인센티브입니다. 확률형 보상 (보너스
+> 드랍 / 친구 만나기) 는 `src/legal/reward-disclosure.md` 에서 공시.
 
+> **R32 economy 재편 (2026-05-18)**
+> 베타 단계 결정에 따라 **토스포인트 환산 (`executePromotion`) 은 dormant
+> 상태로 보존** 합니다. 정식 출시 시점에 재활성화 정책을 별도 공시
+> 갱신과 함께 다시 결정합니다.
+>
+> 그 사이 candy carrot / golden carrot 은 다음 **in-app sink** 로
+> 사용됩니다:
+>
+> 1. **프리미엄 가구 라인** (`farmhubCatalog.ts`) — 일반 가구는 carrot,
+>    프리미엄 가구는 candy 또는 golden 결제. R32 PR-182 에서 다통화
+>    인프라 도입, 실제 프리미엄 가구 자산은 신규 맵 도입 시점에 추가
+>    예정 (인프라만 reserved).
+> 2. **가챠 pity 보조 통화** (`BunnyGachaModal`) — candy 10개로 rare
+>    이상 보장 가챠, golden 5개로 epic 이상 보장 가챠 1회. legendary
+>    100 stars 는 그대로 (희소성 유지).
+> 3. **(기존)** `addPoints` server-side 일일 캡 카운터 — daily-cap
+>    abuse 차단용 audit 트레일만 유지. 사용자가 실제로 환산받지는 못함.
 
-This document captures the BunnyTime v2 reward economy: how a focus
-session converts into Toss points, what caps and audit trails protect
-us against abuse, and what is currently **live** vs **scaffolded**.
+This document captures the BunnyTime v2 reward economy: focus sessions
+into carrot harvest, what caps and audit trails protect us against
+abuse, what sinks consume carrots, and what is currently **live** vs
+**dormant**.
+
+> 본 문서 안의 "P" 표기는 자원 간 **상대 가치 단위 (in-app value
+> unit)** 입니다. 토스포인트 환산은 dormant 이므로 실제 환산되지
+> 않지만, 자원 EV 비교 / 일일 캡 산정 / 미래 재활성화 시 그대로
+> 활용 가능한 internal accounting unit 으로 유지합니다.
 
 ## v2 자원 분류 (PR-31)
 
 `itemsStore.ItemCategory` 4 종 + 별도 stores 2 surface:
 
-| 카테고리 | 항목 | 목적 |
+| 카테고리 | 항목 | 목적 (R32) |
 | --- | --- | --- |
-| **currency** | carrot / candy / golden | P 직접 변환 (1 / 5 / 10 P) |
-| **soft_currency** | seed / carrot_coin | 게임내 재화 (씨앗 sink 미정 — PR-32 후속 검토 / 50 coin → 캔디 1) |
+| **currency** | carrot / candy / golden | 1 / 5 / 10 P 가치 단위. 일반 가구 = carrot, 프리미엄 가구 = candy/golden, 가챠 pity = candy/golden |
+| **soft_currency** | seed / carrot_coin | 씨앗 = 심기 재료, 50 coin → 캔디 1 |
 | **consumable** | hourglass / bolt / juice / soup / cake | 도구 아이템 (사용 시 1회 효과) |
-| **token** | star / gem / heart | 특수 토큰 (star=레전더리 / gem=trade modal / heart=광고 시청 토큰) |
+| **token** | star / gem / heart | star=레전더리 가챠 (100개), gem=GemTradeModal, heart=광고 시청 토큰 |
 | **honor** (별도 store) | medal × 11 | 도전 과제 (rewardsStore.medals Set, AchievementsCard) |
 | **dex** (별도 store) | bunny × 25 | 도감 (collectionStore.ownedCharacters, CollectionPage) |
 
-> Status: **live (gated by secrets)**.
-> The `executePromotion` call path is wired in `routes/economy.ts` →
-> `/economy/withdraw` (PR-2). It activates only when both
-> `TOSS_PROMOTION_API_BASE` and `TOSS_PROMOTION_API_KEY` are registered
-> via `wrangler secret put`. Until those secrets exist the route
-> short-circuits with 503 CONFIG_REQUIRED — same surface as before, so
-> the frontend keeps showing the "준비 중" placeholder.
->
-> Migrations `0003_economy.sql` (pending_points + audit ledger) and
-> `0006_items.sql` (ad_redeem_nonces) must both be applied before the
-> path can succeed end-to-end. See the apply checklist at the bottom
-> of this doc — only a human runs `wrangler d1 migrations apply`.
+> Status: **dormant (R32)**.
+> 워커의 `executePromotion` call path (`routes/economy.ts` →
+> `/economy/withdraw`) 와 D1 migrations 0003 / 0006 은 **그대로 보존**
+> 됩니다 — 정식 출시 시점에 재활성화 가능하도록. 베타 단계에서는
+> 시크릿 미등록 상태 (`TOSS_PROMOTION_API_BASE` / `TOSS_PROMOTION_API_KEY`
+> 비어 있음) 라 503 CONFIG_REQUIRED 로 단락 — 사용자가 환산 신청을
+> 시도해도 차단됩니다. R32 PR-185 에서 RewardsPanel 의 "토스포인트
+> 환산" UI 도 제거되어 사용자가 시도할 수 있는 진입점 자체가 없습니다.
 
 ## Conversion table
 
@@ -49,6 +66,60 @@ us against abuse, and what is currently **live** vs **scaffolded**.
 | 데일리 출석 보너스 | once / KST day | 3 P | (server-side audit) |
 
 Roll table lives in `src/lib/seasonalBunny.ts` — see the `HARVEST_*` constants. Header currency chips read directly from `useFarmStore` so the player sees their candy/golden inventory grow live. The roll percentages are clamped server-side by the daily cap so a single lucky run does not blow past the anti-abuse limit. Note: this PR resolves the historical mismatch between the original economy doc (7 % / 0.6 %) and the implemented roll table (4 % / 1 %) — the implemented values win because they match the unit tests in `seasonalBunny.test.mjs`.
+
+## In-App Sinks (R32 — 신규)
+
+토스포인트 환산이 dormant 인 만큼, candy / golden 의 가치는 다음 두
+in-app sink 로 실현됩니다.
+
+### Sink 1 — 프리미엄 가구 라인 (R32 PR-182~183)
+
+`farmhubCatalog.ts` 의 `FarmhubFurniture` 인터페이스가 다통화 결제를
+지원하도록 확장:
+
+```ts
+interface FarmhubFurniture {
+  id: string;
+  name: string;
+  step: number;
+  sprite: string;
+  price: { currency: "carrot" | "candy" | "golden"; amount: number };
+}
+```
+
+| 통화 | 가격대 (가이드) | 가치 (P 단위) |
+| --- | --- | --- |
+| carrot | 50 ~ 400 | 50 ~ 400 P |
+| candy | 10 ~ 50 | 50 ~ 250 P |
+| golden | 5 ~ 30 | 50 ~ 300 P |
+
+기존 8개 가구는 carrot 통화로 그대로. 프리미엄 가구 실제 자산은 추후
+신규 맵 도입 시점에 추가 — R32 에서는 **다통화 인프라만 reserved**.
+`buyNextStep()` 이 `currency` 별로 `spendCarrots / spendCandyCarrots /
+spendGoldenCarrots` 를 dispatch.
+
+### Sink 2 — 가챠 pity 보조 통화 (R32 PR-184)
+
+`bunnyGacha.ts` 의 `drawBunny()` 에 `boostTier?: "rare" | "epic"` 옵션
+추가. boost 적용 시 해당 tier 이상이 보장되도록 weight 재가중.
+
+| pity 옵션 | 비용 | 효과 |
+| --- | --- | --- |
+| candy → rare pity | candy 10개 | rare 이상 보장 (rare 100% / epic 2x / legendary 그대로 0%) |
+| golden → epic pity | golden 5개 | epic 이상 보장 (epic 87.5% / legendary 12.5% — 100 star 와 별도 path) |
+| star → legendary (기존) | star 100개 | legendary 보장 (변경 없음) |
+
+`BunnyGachaModal` 에 위 두 옵션 추가 + 잔액 부족 시 비활성 + 결제 시
+spendCandy/spendGolden CAS dispatch.
+
+### Sink 가치 검증
+
+평균 활성 사용자 (집중 4 세션 × 25 carrots 가정) 일일 EV:
+- candy 가챠 7% × 100 harvests = 7개/일 → 캔디 가구 1개 (10개) 약 1.4일
+- golden 0.6% × 100 = 0.6개/일 → 골든 가구 1개 (5개) 약 8일 / 골든 pity 약 8일
+- 일일 선물 / 주간 보물 / 광고 보상에서도 candy/golden 추가 grant
+- → 너무 빠르지도 너무 느리지도 않은 sink 속도 (인플레이션 ↔ 도달감
+  균형)
 
 ## Currency icons (header)
 
@@ -226,7 +297,13 @@ See `migrations/0003_economy.sql` for the full schema. Five tables:
 5. **`promotion_withdrawals`** — every executePromotion request and
    response. Reconciliation trail.
 
-## Server endpoints (scaffold)
+## Server endpoints (scaffold — R32 기준 dormant)
+
+> R32 (2026-05-18) — `/economy/balance` 의 `withdrawEnabled` 은 항상
+> `false` 로 반환되며, `/economy/withdraw` 는 시크릿 미등록 상태에서
+> 503 CONFIG_REQUIRED 로 단락. 프론트엔드는 R32 PR-185 에서 출금
+> 진입점을 제거 — 사용자가 환산 시도 자체를 못 합니다. 본 섹션의
+> 스펙은 정식 출시 시점의 재활성화를 위해 그대로 보존됩니다.
 
 All endpoints require Bearer JWT auth (`requireUser`). See
 `cloudflare/workers/carrot-carrot-api/src/routes/economy.ts`.
