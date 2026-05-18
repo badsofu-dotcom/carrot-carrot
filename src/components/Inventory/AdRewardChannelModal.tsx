@@ -16,7 +16,7 @@
  * Daily cap: at most one ad reward per channel per KST day. Tracked
  * locally in safeStorage with the day key as suffix.
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToolStore } from "../../features/collection/toolStore";
 import { useRewardsStore } from "../../features/collection/rewardsStore";
@@ -28,6 +28,7 @@ import { safeStorage } from "../../lib/safeStorage";
 import { kstDayKey } from "../../lib/kst";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
+import { watchRewardedAd } from "../../lib/tossRewardedAd";
 import {
   safeAreaBackdropStyle,
   safeAreaModalStyle,
@@ -97,6 +98,9 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
   const giftDay = useRewardsStore((s) => s.giftClaimedDay);
   const addItem = useItemsStore((s) => s.add);
 
+  // R30 PR-174 — 광고 재생 중 채널 버튼 비활성 (중복 호출 차단).
+  const [watching, setWatching] = useState(false);
+
   /** Per-open ad-watched nonce. Real ad SDK should sign this before
    *  the redeem POST hits /economy/ad-view. */
   const nonce = useMemo(
@@ -118,7 +122,8 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
 
   const giftAlreadyClaimed = giftDay === kstDayKey();
 
-  const claim = (c: Channel) => {
+  const claim = async (c: Channel) => {
+    if (watching) return;
     if (alreadyClaimed(c)) {
       toast("이 보상은 오늘 이미 받았어요");
       return;
@@ -131,6 +136,23 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       return;
     }
     haptic("medium");
+
+    // R30 PR-174 — 광고 재생 누락 회귀 fix. 이전 코드는 SDK 호출 없이
+    // 곧장 보상을 지급해 사용자 체감상 "광고가 재생되지 않음" 이었음.
+    // 토스 보상형 SDK 호출 → granted/simulated 일 때만 보상 지급.
+    setWatching(true);
+    toast("📺 광고 재생 중…");
+    const adResult = await watchRewardedAd();
+    setWatching(false);
+    if (adResult.kind === "cancelled") {
+      toast("광고가 취소돼서 보상이 지급되지 않았어요");
+      return;
+    }
+    if (adResult.kind === "failed" || adResult.kind === "unsupported") {
+      toast("광고를 재생할 수 없어요 — 잠시 후 다시 시도해 주세요");
+      return;
+    }
+    // granted (실 광고 시청 완료) 또는 simulated (mock env) → 보상 지급
     switch (c) {
       case "watering": {
         // PR-92 — soup 재설계로 +1 차지 combo 제거. 단순 +3 charge.
@@ -248,7 +270,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          onClick={onClose}
+          onClick={watching ? undefined : onClose}
           style={{
             // PR-42 — outer fixed inset:0 + flex centering 패턴.
             // PR-79 — safeAreaBackdropStyle 로 공통화. zIndex 만 override.
@@ -294,31 +316,38 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
               <ChannelRow
                 icon={`${BASE}assets/farm/icons/icon_energy.png`}
                 label="물뿌리개 +3"
-                hint="오늘 물뿌리개를 다 썼을 때"
-                disabled={alreadyClaimed("watering")}
-                onClick={() => claim("watering")}
+                hint={watching ? "광고 재생 중…" : "오늘 물뿌리개를 다 썼을 때"}
+                disabled={watching || alreadyClaimed("watering")}
+                onClick={() => void claim("watering")}
                 testId="ad-channel-watering"
               />
               <ChannelRow
                 icon={`${BASE}assets/farm/rewards/gift_box.png`}
                 label="오늘의 선물상자"
-                hint={giftAlreadyClaimed ? "오늘은 이미 받음" : "한 번 더 굴리기"}
-                disabled={alreadyClaimed("gift") || giftAlreadyClaimed}
-                onClick={() => claim("gift")}
+                hint={
+                  watching
+                    ? "광고 재생 중…"
+                    : giftAlreadyClaimed
+                      ? "오늘은 이미 받음"
+                      : "한 번 더 굴리기"
+                }
+                disabled={watching || alreadyClaimed("gift") || giftAlreadyClaimed}
+                onClick={() => void claim("gift")}
                 testId="ad-channel-gift"
               />
               <ChannelRow
                 icon={`${BASE}assets/farm/rewards/treasure_chest.png`}
                 label="보물 진행 +1 (랜덤 보상)"
-                hint="별/보석/캔디/번개/황금 중 1종"
-                disabled={alreadyClaimed("treasure")}
-                onClick={() => claim("treasure")}
+                hint={watching ? "광고 재생 중…" : "별/보석/캔디/번개/황금 중 1종"}
+                disabled={watching || alreadyClaimed("treasure")}
+                onClick={() => void claim("treasure")}
                 testId="ad-channel-treasure"
               />
             </div>
             <button
               type="button"
-              onClick={onClose}
+              disabled={watching}
+              onClick={watching ? undefined : onClose}
               style={{
                 marginTop: 12,
                 width: "100%",
