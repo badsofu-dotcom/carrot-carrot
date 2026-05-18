@@ -124,6 +124,12 @@ export function TabBar() {
     >
       <div
         style={{
+          // R30 — 컴팩트 + 바닥 밀착. paddingTop 6 + paddingBottom
+          // (safe-area + 6) 로 icon/label 위아래 여백을 10px 수준 유지.
+          // safe-area-inset-bottom 은 inner div paddingBottom 안에서만
+          // 한 번 적용 (이중 차단). 고정 height 제거 → 컨텐츠 + padding
+          // 이 실제 바 높이를 결정. --tabbar-height(56) 는 content 영역
+          // padding 예약치(reserved)로만 계속 사용.
           width: "100%",
           maxWidth: "var(--app-max-width)",
           pointerEvents: "auto",
@@ -131,7 +137,9 @@ export function TabBar() {
           backdropFilter: "var(--backdrop-blur)",
           WebkitBackdropFilter: "var(--backdrop-blur)",
           borderTop: "1px solid var(--border-subtle)",
-          paddingBottom: "env(safe-area-inset-bottom)",
+          paddingTop: 6,
+          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)",
+          boxSizing: "border-box",
         }}
       >
       <LayoutGroup id="tabbar">
@@ -140,8 +148,7 @@ export function TabBar() {
             display: "grid",
             gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
             gap: 4,
-            padding: 6,
-            height: "var(--tabbar-height)",
+            padding: "0 6px",
           }}
         >
           {tabs.map((t) => {
