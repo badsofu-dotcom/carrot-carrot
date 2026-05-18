@@ -350,20 +350,6 @@ export function SkyView({ open, slot, onClose }: Props) {
             {message}
           </motion.p>
 
-          <span
-            aria-hidden
-            style={{
-              position: "absolute",
-              bottom: "calc(env(safe-area-inset-bottom) + 24px)",
-              color: "rgba(255,247,236,0.85)",
-              fontSize: 12,
-              textShadow: "0 1px 2px rgba(0,0,0,0.4)",
-              pointerEvents: "none",
-            }}
-          >
-            탭하면 다음 한 줄 · 길게 누르면 반짝 · 위/아래로 쓸면 닫혀요
-          </span>
-
           {/* Special-event banner */}
           {eventImg && (
             <span
