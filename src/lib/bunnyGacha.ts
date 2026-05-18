@@ -41,11 +41,19 @@ export const HARVEST_BUNNY_CHANCE = 0.005;
 /** Cost to buy a guaranteed legendary draw. */
 export const LEGENDARY_STAR_COST = 100;
 
-/** R32 PR-184 — 캔디당근 → rare 보장 가챠 1회 비용. */
-export const CANDY_RARE_PITY_COST = 10;
+/**
+ * 캔디당근 → rare 보장 가챠 1회 비용.
+ * R32 PR-184 — 10. R34 PR-202 — 도감 12 마리 완성을 30일×1-2h/day 안에
+ * 달성 가능하게 조정 (10 → 8).
+ */
+export const CANDY_RARE_PITY_COST = 8;
 
-/** R32 PR-184 — 황금당근 → epic 보장 가챠 1회 비용. */
-export const GOLDEN_EPIC_PITY_COST = 5;
+/**
+ * 황금당근 → epic 보장 가챠 1회 비용.
+ * R32 PR-184 — 5. R34 PR-202 — 조정 (5 → 3). 황금당근 자체가 0.6% 희소
+ * 자원이라 cost 낮춰도 abuse 위험 적음.
+ */
+export const GOLDEN_EPIC_PITY_COST = 3;
 
 /** R32 PR-184 — boostTier === "rare" 경우 epic 가중치 배수. */
 export const RARE_PITY_EPIC_MULTIPLIER = 2;

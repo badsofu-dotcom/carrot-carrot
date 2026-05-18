@@ -9,9 +9,9 @@
  *   3. forceUnlock(bunnyId)
  *   4. cc:bunny-gacha:show dispatch (BunnyGachaModal 셀러브레이션)
  *
- * 옵션:
- *   🍬 캔디당근 10 → rare 보장 가챠 (epic+ 확률 강화)
- *   ✨ 황금당근 5  → epic 보장 가챠 (legendary 12.5%)
+ * 옵션 (R34 PR-202 calibration):
+ *   🍬 캔디당근 8 → rare 보장 가챠 (epic+ 확률 강화)
+ *   ✨ 황금당근 3 → epic 보장 가챠 (legendary 12.5%)
  *
  * legendary 100% 보장은 기존 star 100 / gem 50 경로만 유지 — 본 모달은
  * legendary 직접 보장 없음 (희소성 보존).

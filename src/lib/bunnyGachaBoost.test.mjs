@@ -22,13 +22,13 @@ const {
   LEGENDARY_STAR_COST,
 } = mod;
 
-// 비용 상수 — R32 PR-184 결정.
-test("CANDY_RARE_PITY_COST === 10", () => {
-  assert.equal(CANDY_RARE_PITY_COST, 10);
+// 비용 상수 — R32 PR-184 결정 → R34 PR-202 조정 (30일 도감 완성 목표).
+test("CANDY_RARE_PITY_COST === 8 (R34 PR-202 조정: 10→8)", () => {
+  assert.equal(CANDY_RARE_PITY_COST, 8);
 });
 
-test("GOLDEN_EPIC_PITY_COST === 5", () => {
-  assert.equal(GOLDEN_EPIC_PITY_COST, 5);
+test("GOLDEN_EPIC_PITY_COST === 3 (R34 PR-202 조정: 5→3)", () => {
+  assert.equal(GOLDEN_EPIC_PITY_COST, 3);
 });
 
 test("RARE_PITY_EPIC_MULTIPLIER === 2", () => {

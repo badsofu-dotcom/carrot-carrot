@@ -527,7 +527,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                         color: "#6a6055",
                       }}
                     >
-                      🍬 10개 → rare 보장 · ✨ 5개 → epic 보장
+                      🍬 8개 → rare 보장 · ✨ 3개 → epic 보장
                     </div>
                   </span>
                   <span

@@ -17,9 +17,9 @@
 >    프리미엄 가구는 candy 또는 golden 결제. R32 PR-182 에서 다통화
 >    인프라 도입, 실제 프리미엄 가구 자산은 신규 맵 도입 시점에 추가
 >    예정 (인프라만 reserved).
-> 2. **가챠 pity 보조 통화** (`BunnyGachaModal`) — candy 10개로 rare
->    이상 보장 가챠, golden 5개로 epic 이상 보장 가챠 1회. legendary
->    100 stars 는 그대로 (희소성 유지).
+> 2. **가챠 pity 보조 통화** (`BunnyGachaModal`) — candy 8개로 rare
+>    이상 보장 가챠, golden 3개로 epic 이상 보장 가챠 1회 (R34 PR-202
+>    조정). legendary 100 stars 는 그대로 (희소성 유지).
 > 3. **(기존)** `addPoints` server-side 일일 캡 카운터 — daily-cap
 >    abuse 차단용 audit 트레일만 유지. 사용자가 실제로 환산받지는 못함.
 
@@ -123,8 +123,8 @@ spendGoldenCarrots` 를 dispatch.
 
 | pity 옵션 | 비용 | 효과 |
 | --- | --- | --- |
-| candy → rare pity | candy 10개 | rare 이상 보장 (rare 100% / epic 2x / legendary 그대로 0%) |
-| golden → epic pity | golden 5개 | epic 이상 보장 (epic 87.5% / legendary 12.5% — 100 star 와 별도 path) |
+| candy → rare pity | candy 8개 (R34 PR-202) | rare 이상 보장 (rare 100% / epic 2x / legendary 그대로 0%) |
+| golden → epic pity | golden 3개 (R34 PR-202) | epic 이상 보장 (epic 87.5% / legendary 12.5% — 100 star 와 별도 path) |
 | star → legendary (기존) | star 100개 | legendary 보장 (변경 없음) |
 
 `BunnyGachaModal` 에 위 두 옵션 추가 + 잔액 부족 시 비활성 + 결제 시
@@ -133,8 +133,13 @@ spendCandy/spendGolden CAS dispatch.
 ### Sink 가치 검증
 
 평균 활성 사용자 (집중 4 세션 × 25 carrots 가정) 일일 EV:
-- candy 가챠 7% × 100 harvests = 7개/일 → 캔디 가구 1개 (10개) 약 1.4일
-- golden 0.6% × 100 = 0.6개/일 → 골든 가구 1개 (5개) 약 8일 / 골든 pity 약 8일
+- candy 가챠 7% × 100 harvests = 7개/일 → candy pity 8개 약 1.1일 →
+  도감 + 프리미엄 가구 동시 진행 가능
+- golden 0.6% × 100 = 0.6개/일 → golden pity 3개 약 5일 / 황금 가구
+  3-30개 약 5-50일
+- R34 calibration target: 30일 × 1-2h/day = 도감 12 마리 완성 +
+  일반 가구 8 step (1800 carrots) 모두 획득. 광고 무제한 + harvest +
+  pity 조합으로 여유 있게 달성 가능.
 - 일일 선물 / 주간 보물 / 광고 보상에서도 candy/golden 추가 grant
 - → 너무 빠르지도 너무 느리지도 않은 sink 속도 (인플레이션 ↔ 도달감
   균형)
