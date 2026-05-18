@@ -964,8 +964,11 @@ function FarmView({
         // R28 PHASE 1 — safe-area-inset-bottom 도 빼서 farm card bottom 이
         // TabBar top 과 정확히 일치하게 함 (이전: safe-bottom 만큼 farm
         // card 가 TabBar zone 안으로 침범했음 → ToolDock 겹침).
+        // R30.5 PR-177 — env() → var(--safe-*). Apps in Toss SDK 측정값
+        // 이 :root 에 노출되어 정확한 inset 으로 farm card 가 TabBar
+        // top 에 딱 맞음.
         height:
-          "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - var(--tabbar-reserved, 84px))",
+          "calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - var(--tabbar-reserved, 84px))",
         maxWidth: 480,
         margin: "0 auto",
       }}

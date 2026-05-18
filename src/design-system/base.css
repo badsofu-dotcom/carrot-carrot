@@ -224,8 +224,9 @@ select {
   background: var(--bg-primary);
   position: relative;
   isolation: isolate;
-  /* TabBar 영역 + scrim 페이드 + safe-area 만큼 padding 확보 (콘텐츠가 탭바 뒤로 잘리지 않도록) */
-  padding-bottom: calc(var(--tabbar-reserved) + var(--tabbar-scrim) + env(safe-area-inset-bottom));
+  /* TabBar 영역 + scrim 페이드 + safe-area 만큼 padding 확보 (콘텐츠가 탭바 뒤로 잘리지 않도록).
+     R30.5 PR-177 — env() → var(--safe-bottom). */
+  padding-bottom: calc(var(--tabbar-reserved) + var(--tabbar-scrim) + var(--safe-bottom, 0px));
   overflow-x: hidden;
   transition: background 0.4s var(--ease-smooth);
 }
@@ -259,7 +260,7 @@ select {
   left: 0;
   right: 0;
   bottom: 0;
-  height: calc(var(--tabbar-reserved) + var(--tabbar-scrim) + env(safe-area-inset-bottom));
+  height: calc(var(--tabbar-reserved) + var(--tabbar-scrim) + var(--safe-bottom, 0px));
   background: linear-gradient(
     to bottom,
     color-mix(in oklab, var(--bg-primary) 0%, transparent) 0%,

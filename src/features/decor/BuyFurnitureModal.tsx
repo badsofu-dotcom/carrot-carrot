@@ -157,9 +157,12 @@ export function BuyFurnitureModal({
               // 패턴으로 transform 없이 가운데 정렬. box-sizing: border-box
               // 로 padding 이 폭에 포함되어 좁은 viewport 에서도 안전.
               position: "absolute",
-              left: "calc(env(safe-area-inset-left, 0px) + 12px)",
-              right: "calc(env(safe-area-inset-right, 0px) + 12px)",
-              bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+              // R30.5 PR-177 — env() → var(--safe-*). Apps in Toss WebView
+              // 에서는 SDK 측정값으로 정확한 inset, 일반 브라우저에서는
+              // env() 기본값으로 resolve.
+              left: "calc(var(--safe-left, 0px) + 12px)",
+              right: "calc(var(--safe-right, 0px) + 12px)",
+              bottom: "calc(var(--safe-bottom, 0px) + 16px)",
               marginInline: "auto",
               maxWidth: 360,
               padding: "18px 16px 16px",

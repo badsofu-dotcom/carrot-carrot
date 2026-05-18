@@ -15,6 +15,7 @@ import { useUserStore } from "./store/userStore";
 import { bunnyImages } from "./assets/characters";
 import { useTimerEngine } from "./features/timer/useTimerEngine";
 import { useSoundPlayer } from "./hooks/useSoundPlayer";
+import { useSafeAreaInsets } from "./hooks/useSafeAreaInsets";
 import { InAppBanner } from "./features/notifications/InAppBanner";
 import { FeedbackSheet } from "./features/feedback/FeedbackSheet";
 
@@ -138,6 +139,29 @@ export default function App() {
   // Phase 8.0-c — timer / sound 이 라우트와 무관하게 background 에서 계속 동작.
   useTimerEngine();
   useSoundPlayer();
+
+  // R30.5 PR-177 — Apps in Toss SDK 의 SafeAreaInsets 를 :root 의
+  // --safe-* CSS 변수로 노출. Apps in Toss WebView 에서는 SDK 측정값
+  // (예: iPhone notch 34px) 이 적용되고, 일반 브라우저에서는 SDK
+  // 호출이 throw 하여 setProperty 가 일어나지 않음 → tokens.css 의
+  // env(safe-area-inset-*) 기본값이 그대로 동작. var(--safe-*) 를
+  // 쓰는 컴포넌트(TabBar / BuyFurnitureModal 등) 가 자동으로 정확한
+  // 값으로 위치 잡힘.
+  const safeArea = useSafeAreaInsets();
+  useEffect(() => {
+    if (!safeArea.available) return;
+    const root = document.documentElement;
+    root.style.setProperty("--safe-top", `${safeArea.insets.top}px`);
+    root.style.setProperty("--safe-right", `${safeArea.insets.right}px`);
+    root.style.setProperty("--safe-bottom", `${safeArea.insets.bottom}px`);
+    root.style.setProperty("--safe-left", `${safeArea.insets.left}px`);
+  }, [
+    safeArea.available,
+    safeArea.insets.top,
+    safeArea.insets.right,
+    safeArea.insets.bottom,
+    safeArea.insets.left,
+  ]);
 
   const [splashDone, setSplashDone] = useState(false);
 

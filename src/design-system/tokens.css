@@ -228,4 +228,14 @@
   --tabbar-reserved: calc(var(--tabbar-height) + var(--tabbar-offset) * 2);
   /* Scrim height above the tab bar so content fades into the bg before sliding under */
   --tabbar-scrim: 56px;
+
+  /* R30.5 PR-177 — Apps in Toss SDK SafeAreaInsets 노출.
+     기본값은 CSS env(safe-area-inset-*) — 일반 브라우저 / preview /
+     dev 에서는 이 값이 그대로 사용됨. App.tsx 의 useSafeAreaInsets
+     훅이 Apps in Toss WebView 안에서 SDK 측정값으로 override 한다.
+     컴포넌트는 var(--safe-bottom) 등으로 일관 참조. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }

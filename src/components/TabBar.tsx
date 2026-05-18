@@ -115,7 +115,9 @@ export function TabBar() {
         // 수 없을 만큼 바닥에 근접 — --tabbar-offset (0px) 가 capsule
         // 과 safe-area top 사이 추가 gap. 0 이라 가장 낮은 위치.
         position: "fixed",
-        bottom: "calc(var(--tabbar-offset) + env(safe-area-inset-bottom, 0px))",
+        // R30.5 PR-177 — env() → var(--safe-bottom). Apps in Toss WebView
+        // 에서는 SDK 측정값, 일반 브라우저에서는 env() 기본값으로 resolve.
+        bottom: "calc(var(--tabbar-offset) + var(--safe-bottom, 0px))",
         left: 0,
         right: 0,
         display: "flex",
