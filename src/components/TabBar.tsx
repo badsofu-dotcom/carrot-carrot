@@ -108,32 +108,36 @@ export function TabBar() {
     <nav
       aria-label="주요 메뉴"
       style={{
-        // R30.5 PR-175 — 캡슐 복원. R28 PHASE 3 의 full-width frosted
-        // 바를 폐기하고, PR-170 이전의 floating capsule (radius-pill +
-        // 좌우 16px margin + shadow) 로 회귀. iOS 홈 인디케이터 영역
-        // (env(safe-area-inset-bottom)) 위에 정확히 얹혀 더 이상 내려갈
-        // 수 없을 만큼 바닥에 근접 — --tabbar-offset (0px) 가 capsule
-        // 과 safe-area top 사이 추가 gap. 0 이라 가장 낮은 위치.
+        // R31 PR-178 — capsule 폐기, 사각 + 좌우 fullbleed. R30.5 의
+        // safe-bottom 정밀 정렬은 유지하지만 capsule 의 16px margin /
+        // radius-pill / shadow-lg 가 시각적으로 떠있는 인상을 줘 R31
+        // 디자인 가이드: 모서리 top-only 16px + 좌우 viewport 끝까지
+        // + 1px top hairline + 약한 top shadow. safe-bottom 영역은
+        // inner div 의 paddingBottom 안에서 frosted bg 가 덮음.
         position: "fixed",
-        // R30.5 PR-177 — env() → var(--safe-bottom). Apps in Toss WebView
-        // 에서는 SDK 측정값, 일반 브라우저에서는 env() 기본값으로 resolve.
-        bottom: "calc(var(--tabbar-offset) + var(--safe-bottom, 0px))",
+        bottom: 0,
         left: 0,
         right: 0,
-        display: "flex",
-        justifyContent: "center",
-        pointerEvents: "none",
         zIndex: 100,
       }}
     >
       <div
         style={{
-          // 좌우 16px gap (32px = 16 + 16). pointerEvents auto 로 capsule
-          // 안에서만 탭 이벤트 받음. 바깥 nav 는 pointerEvents none 이라
-          // 빈 좌우 영역 클릭은 page 로 패스스루.
-          width: "calc(100% - 32px)",
-          maxWidth: "calc(var(--app-max-width) - 32px)",
-          pointerEvents: "auto",
+          // R31 — fullbleed. width 100% + maxWidth 없음 → viewport 좌우
+          // 끝까지. paddingBottom 안에 safe-bottom 흡수 + 6px 상단 패딩.
+          width: "100%",
+          paddingTop: 6,
+          paddingBottom: "calc(var(--safe-bottom, 0px) + 6px)",
+          boxSizing: "border-box",
+          background: "color-mix(in oklab, var(--bg-elevated) 92%, transparent)",
+          backdropFilter: "var(--backdrop-blur)",
+          WebkitBackdropFilter: "var(--backdrop-blur)",
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          // 위 가장자리만 hairline + 약한 lift shadow — content 와의
+          // 분리감만 살리고 capsule float 느낌은 제거.
+          boxShadow:
+            "0 -1px 0 0 var(--border-subtle), 0 -8px 24px -16px rgba(0,0,0,0.12)",
         }}
       >
       <LayoutGroup id="tabbar">
@@ -142,13 +146,7 @@ export function TabBar() {
             display: "grid",
             gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
             gap: 4,
-            padding: 6,
-            borderRadius: "var(--radius-pill)",
-            background: "color-mix(in oklab, var(--bg-elevated) 78%, transparent)",
-            backdropFilter: "var(--backdrop-blur)",
-            WebkitBackdropFilter: "var(--backdrop-blur)",
-            border: "1px solid var(--border-subtle)",
-            boxShadow: "var(--shadow-lg)",
+            padding: "0 6px",
             height: "var(--tabbar-height)",
           }}
         >

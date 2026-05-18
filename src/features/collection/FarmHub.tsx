@@ -723,17 +723,16 @@ export function FarmHub({
       onTouchEnd={onFarmTouchEnd}
       onWheel={onFarmWheel}
       style={{
-        // Visible card: fills the FarmView flex column. Width clamps at
-        // --app-max-width (480px); height fills available space.
+        // R31 PR-178 — fullbleed. maxWidth 480 / margin auto / borderRadius
+        // 16 / boxShadow card 폐기. 부모 main 이 maxWidth 720 + 가운데
+        // 정렬을 담당. width 100% 로 부모 폭에 stretch → 9칸 SVG (viewBox
+        // 100x100 + preserveAspectRatio none) + 배경 image (objectFit fill)
+        // 가 자동으로 비례 scale. CLAUDE.md §6 PLOT_POLYGONS frozen 그대로.
         position: "relative",
         width: "100%",
         height: "100%",
-        maxWidth: 480,
-        margin: "0 auto",
-        borderRadius: 16,
         overflow: "hidden",
         background: "var(--surface-2, #f5e9d5)",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
       }}
     >
       {/* Aspect-stage wrapper. Locked to the bg image's natural aspect

@@ -955,7 +955,11 @@ function FarmView({
       className="app-screen"
       data-testid="page-collection"
       style={{
-        padding: "8px 12px 0",
+        // R31 PR-178 — fullbleed. 좌우 padding 12 → 0, maxWidth 480 →
+        // 720 (mobile 100% 채우고 태블릿/landscape 만 안전선). 헤더는
+        // 위 padding 8 + 좌우 12 로 살짝 유지 (당근/도감 아이콘이
+        // 가장자리에 붙지 않게).
+        padding: 0,
         display: "flex",
         flexDirection: "column",
         // Take the full viewport minus the safe-area top + bottom and the
@@ -969,13 +973,18 @@ function FarmView({
         // top 에 딱 맞음.
         height:
           "calc(100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - var(--tabbar-reserved, 84px))",
-        maxWidth: 480,
+        width: "100%",
+        maxWidth: 720,
         margin: "0 auto",
       }}
     >
       <header
         data-testid="farm-compact-header"
         style={{
+          // R31 PR-178 — main padding 을 0 으로 빼서 farm card fullbleed
+          // 가능하게 했고, header 만 좌우 12 + 위 8 padding 으로 carrot/
+          // dogam 아이콘이 viewport 가장자리에 붙지 않게 보호.
+          padding: "8px 12px 0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
