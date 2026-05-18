@@ -43,34 +43,31 @@ function dayClaimedKey(c: Channel): string {
   return `cc.ad.${c}.${kstDayKey()}`;
 }
 
-// PR-141 (Round 21 베타7 피드백) — 베타 기간 광고 일일 한도 완전 해제.
-// 사용자: "오늘 볼 수 있는 광고가 다 소진됨" 로 베타 진행이 막힘.
-// 두 layer 의 cap 을 BETA_UNLIMITED_ADS 플래그로 일괄 우회:
-//   1) per-channel cap (`cc.ad.${c}.${ymd}`) — alreadyClaimed() 가 false 반환
-//   2) N-th daily counter (`cc.ad.dailyCount.${ymd}`) — readAdDailyCount() 가 0 반환
+// R33 PR-190 — 광고 시청 완전 무제한. PR-141 의 BETA_UNLIMITED_ADS 가
+// 베타 임시 우회였으나 R33 에서 정식 정책으로 채택. heart gate / per-
+// channel cap 모두 제거. daily cap (자원 합산) 도 R33 PR-189 의
+// addPointsUncapped 로 광고 source 면제 — incCarrots/Candy/Golden 호출
+// 시 { bypassDailyCap: true } 전달.
 //
-// 정식 출시 전 BETA_UNLIMITED_ADS=false 로 되돌릴 것. localStorage 의
-// 기존 값은 그대로 보존되어 플래그 OFF 시 복귀 정상.
-//
-// 주의: 선물상자(gift) 의 `claimDailyGift` 는 rewardsStore 의 자체 cap
-// 이라 이 플래그 영향 X — 의도적 (실 보상 한도 보존).
-const BETA_UNLIMITED_ADS = true;
+// N-th tier 카운터는 실제로 tracking (보상 곡선 적용 + 무한 진행).
+// 1~5회 carrot 차등 / 6~10회 토큰 / 11+회 carrot +1 small (지속
+// incentive). KST 자정 자동 reset.
+const BYPASS_PER_CHANNEL_CAP = true;
 
-// PR-32 — daily ad-claim counter (any channel). safeStorage 의 키는
-// KST 일자별로 분리 → 자정 이후 자동 0 으로 리셋. Numeric coercion
-// 으로 corrupted JSON 도 안전.
+// PR-32 / R33 PR-190 — daily ad-claim counter (any channel). safeStorage
+// 의 키는 KST 일자별로 분리 → 자정 이후 자동 0 으로 리셋. Numeric
+// coercion 으로 corrupted JSON 도 안전. R33 부터 항상 실 카운터 사용
+// (N-th tier 보상 곡선 적용용).
 function adDailyKey(day: string): string {
   return `cc.ad.dailyCount.${day}`;
 }
 function readAdDailyCount(day: string): number {
-  if (BETA_UNLIMITED_ADS) return 0;
   const raw = safeStorage.get(adDailyKey(day));
   if (!raw) return 0;
   const n = Number(raw);
   return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
 }
 function writeAdDailyCount(day: string, n: number): void {
-  if (BETA_UNLIMITED_ADS) return;
   try {
     safeStorage.set(adDailyKey(day), String(n));
   } catch {
@@ -79,7 +76,7 @@ function writeAdDailyCount(day: string, n: number): void {
 }
 
 function alreadyClaimed(c: Channel): boolean {
-  if (BETA_UNLIMITED_ADS) return false;
+  if (BYPASS_PER_CHANNEL_CAP) return false;
   return safeStorage.get(dayClaimedKey(c)) === "1";
 }
 
@@ -128,13 +125,9 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       toast("이 보상은 오늘 이미 받았어요");
       return;
     }
-    // PR-24 — heart gate (no-consume yet). 잔여 0 이면 채널별 사이드
-    // 이펙트 시작 전에 abort. 성공 path 의 마지막에서 consume.
+    // R33 PR-190 — heart gate 제거. heart 자원은 부스트 자원으로
+    // 재정의 (PR-191 HeartUseModal 에서 sink 처리). 광고 시청은 무제한.
     const items = useItemsStore.getState();
-    if ((items.counts.heart ?? 0) <= 0) {
-      toast("하트가 부족해요 — 내일 자정에 다시 채워져요");
-      return;
-    }
     haptic("medium");
 
     // R30 PR-174 — 광고 재생 누락 회귀 fix. 이전 코드는 SDK 호출 없이
@@ -193,13 +186,21 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
           {
             p: 0.3,
             label: "🍬 캔디당근 +1",
-            apply: () => useFarmStore.getState().incCandyCarrots(1),
+            // R33 PR-190 — 광고 source 이므로 일일 캡 면제.
+            apply: () =>
+              useFarmStore
+                .getState()
+                .incCandyCarrots(1, { bypassDailyCap: true }),
           },
           { p: 0.1, label: "⚡ 번개 +1", apply: () => addItem("bolt", 1) },
           {
             p: 0.1,
             label: "✨ 황금당근 +1",
-            apply: () => useFarmStore.getState().incGoldenCarrots(1),
+            // R33 PR-190 — 광고 source 이므로 일일 캡 면제.
+            apply: () =>
+              useFarmStore
+                .getState()
+                .incGoldenCarrots(1, { bypassDailyCap: true }),
           },
         ];
         const r = Math.random();
@@ -217,14 +218,17 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
         break;
       }
     }
-    // PR-24 — heart consume + carrot_coin grant on success path.
-    items.consume("heart", 1);
+    // R33 PR-190 — heart consume 제거 (heart 는 부스트 자원으로 재정의).
+    // carrot_coin grant 는 그대로 (PR-24).
     items.add("carrot_coin", 5);
 
 
-    // PR-32 — N-th daily ad-claim bonus (carrot/token). KST 일자 별
-    // 카운터로 5회 까지 P 보장 (1/5/5/10/10/20 carrot), 6~10회 토큰만
-    // (gem or bolt random), 11회 이상 보너스 없음 (영구 cooldown).
+    // PR-32 / R33 PR-190 — N-th daily ad-claim bonus (carrot/token).
+    // KST 일자 별 카운터로 1~5회 carrot 차등 / 6~10회 토큰 / 11+회
+    // carrot +1 small (지속 incentive, R33 신규). 광고 무제한이므로
+    // 11회 이후도 작은 보상 계속 — abuse 자연 차단은 daily P cap 으로
+    // (단 광고 source 는 R33 PR-189 에서 cap 면제 → 광고 보상은 진짜
+    // 무한). KST 자정 카운터 reset.
     {
       const today = kstDayKey();
       const cur = readAdDailyCount(today);
@@ -236,13 +240,13 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       const dogamOwned = useCollectionStore.getState().ownedCharacters.length;
       const adBonus = passivesFromOwned(dogamOwned).adRewardBonusCarrot;
       if (n === 1 || n === 2) {
-        farm.incCarrots(5 + adBonus);
+        farm.incCarrots(5 + adBonus, { bypassDailyCap: true });
         toast(`🎬 광고 ${n}회 → 당근 +${5 + adBonus}`);
       } else if (n === 3 || n === 4) {
-        farm.incCarrots(10 + adBonus);
+        farm.incCarrots(10 + adBonus, { bypassDailyCap: true });
         toast(`🎬 광고 ${n}회 → 당근 +${10 + adBonus}`);
       } else if (n === 5) {
-        farm.incCarrots(20 + adBonus);
+        farm.incCarrots(20 + adBonus, { bypassDailyCap: true });
         toast(
           `🎬 광고 5회 달성 → 당근 +${20 + adBonus} (오늘 50 P 보장 완료)`,
         );
@@ -257,7 +261,10 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
           toast(`🎬 광고 ${n}회 → ⚡ 번개 +1`);
         }
       } else {
-        toast(`🎬 광고 ${n}회 — 오늘 한도 도달 (자정 리셋)`);
+        // R33 PR-190 — 11+회 small carrot bonus. 광고 무제한 정책의
+        // "지속 incentive" — heavy viewer 도 작은 보상 유지.
+        farm.incCarrots(1 + adBonus, { bypassDailyCap: true });
+        toast(`🎬 광고 ${n}회 → 당근 +${1 + adBonus} (계속 적립)`);
       }
     }
 
