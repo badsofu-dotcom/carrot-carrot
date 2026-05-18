@@ -121,15 +121,9 @@ export function ToolDock() {
   let speciesOwned = 0;
   for (const v of Object.values(itemCounts)) if (v > 0) speciesOwned++;
   // PR-109 — 씨앗 자원 폐기. 모종삽 = 무한 도구. 씨앗 badge 제거.
-  // R33 PR-191/192 — heart 의미 변경. 광고 시청 토큰 → 부스트 자원
-  // (다음 수확 candy +10%p / plot +1 stage 즉시 선택). 잔량 표시는
-  // 동일하지만 의미는 "사용 가능한 부스트 횟수". InventoryModal heart
-  // "사용하기" → HeartUseModal (cc:heart-use:open) 에서 옵션 선택.
-  // PR-98 — heart maxStack=5 인데 badge "N/3" 는 친구 wave bonus 후
-  // overflow ("4/3", "5/3") 표시 버그. 분모 제거 — wateringCan 의 PR-88
-  // 패턴 일관 적용. HEART_DAILY_MAX 상수는 의미 있는 분모 사용 케이스
-  // 위해 보존하지 않고 inline 제거.
-  const heartCount = itemCounts.heart ?? 0;
+  // R33 PR-196 — heart chip / disabled gate 제거. 광고 무제한이라 heart
+  // 와 광고는 무관. heart 는 InventoryModal heart "사용하기" 에서
+  // HeartUseModal 로 별도 sink.
 
   // Kick the rollover check on mount so the day key is fresh.
   rollover();
@@ -160,16 +154,9 @@ export function ToolDock() {
     }
   };
 
-  // PR-28 — 광고 슬롯 클릭. 하트 잔여 0 이면 안내 토스트 후 no-op.
-  // (PR-24 에서 AdRewardChannelModal 의 claim 측이 하트를 consume.)
+  // PR-28 → R33 PR-196 — 광고 슬롯 클릭. R33 광고 무제한이라 hearts
+  // gate 폐기. 항상 모달 진입 가능.
   const onOpenAdChannel = () => {
-    if (heartCount <= 0) {
-      // PR-107 — 하트 토큰 = 광고 시청 자격. 자정 리필 안내 일관.
-      void import("../../design-system/ui").then((m) =>
-        m.toast("🩷 하트가 없어요. 자정에 다시 채워져요"),
-      );
-      return;
-    }
     haptic("light");
     try {
       window.dispatchEvent(new CustomEvent("cc:ad-channel:open"));
@@ -395,25 +382,16 @@ export function ToolDock() {
         )}
       </button>
 
-      {/* PR-28 — 5번째 슬롯: 광고 (AdRewardChannelModal 진입).
-          Badge: heart 잔여 N/3. heart 0 일 때 disabled + 안내 토스트.
-          이전 PR-6 부터의 conditional "🎬 +3 충전" 버튼은 ad 슬롯이
-          광고 채널 진입을 항상 노출하므로 제거. */}
+      {/* PR-28 → R33 PR-196 — 5번째 슬롯: 광고 (AdRewardChannelModal 진입).
+          R33 광고 무제한 정책 (PR-190) 으로 heart gate 폐기. 이전
+          PR-107 의 🩷 N 뱃지 + heart=0 disabled 모두 제거 — heart 는
+          이제 부스트 자원이라 광고와 무관. */}
       <button
         type="button"
         onClick={onOpenAdChannel}
-        disabled={heartCount <= 0}
         data-testid="tool-ad"
-        aria-label={
-          heartCount > 0
-            ? `광고 시청 (하트 ${heartCount}개 보유)`
-            : "광고 시청 — 하트 부족, 자정에 다시 채워져요"
-        }
-        title={
-          heartCount > 0
-            ? `광고 시청 (하트 ${heartCount}개)`
-            : "하트 부족"
-        }
+        aria-label="광고 시청"
+        title="광고 시청"
         style={{
           position: "relative",
           width: SLOT_SIZE,
@@ -422,11 +400,11 @@ export function ToolDock() {
           alignItems: "center",
           justifyContent: "center",
           borderRadius: 12,
-          background: heartCount > 0 ? ACCENT : "rgba(0,0,0,0.08)",
-          color: heartCount > 0 ? "#fff" : "#888",
+          background: ACCENT,
+          color: "#fff",
           border: "1px solid rgba(0,0,0,0.08)",
           transition: "transform 0.18s ease, background 0.18s ease",
-          cursor: heartCount > 0 ? "pointer" : "not-allowed",
+          cursor: "pointer",
           padding: 0,
           overflow: "visible",
           fontSize: 26,
@@ -434,34 +412,6 @@ export function ToolDock() {
         }}
       >
         <span aria-hidden>🎬</span>
-        <span
-          aria-hidden
-          data-testid="tool-ad-badge"
-          style={{
-            position: "absolute",
-            bottom: -3,
-            right: -3,
-            // PR-107 — 🩷 + 숫자 badge 위해 minWidth 확대 (이전 22 → 32).
-            minWidth: 32,
-            height: 16,
-            borderRadius: 999,
-            background: "#fff",
-            color: heartCount > 0 ? "#222" : "#888",
-            fontSize: 10,
-            fontWeight: 800,
-            padding: "0 5px",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-            border: "1px solid rgba(0,0,0,0.08)",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
-          }}
-        >
-          {/* PR-107 — 광고 칩 = 하트 토큰 표기 일치. 🩷 + N 으로 토큰
-              카드 (InventoryModal heart) 와 시각 통일. */}
-          🩷 {heartCount}
-        </span>
       </button>
     </div>
   );

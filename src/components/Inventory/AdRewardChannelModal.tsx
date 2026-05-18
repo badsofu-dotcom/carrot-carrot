@@ -324,7 +324,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
                 textAlign: "center",
               }}
             >
-              하나만 골라요 · 채널별 하루 1회
+              하나만 골라요
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <ChannelRow
