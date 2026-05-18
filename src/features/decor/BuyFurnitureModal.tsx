@@ -150,11 +150,18 @@ export function BuyFurnitureModal({
             exit={{ opacity: 0, y: 16 }}
             transition={{ duration: 0.22 }}
             style={{
+              // R29 hotfix — transform translateX(-50%) 는 framer-motion 의
+              // y 애니메이션(`initial={{ y: 24 }}`)이 만들어 쓰는
+              // transform 에 덮여 사라져, 모달이 left:50% 에서 오른쪽으로
+              // 흘러 잘렸음. left/right + margin-inline:auto + max-width
+              // 패턴으로 transform 없이 가운데 정렬. box-sizing: border-box
+              // 로 padding 이 폭에 포함되어 좁은 viewport 에서도 안전.
               position: "absolute",
-              left: "50%",
+              left: "calc(env(safe-area-inset-left, 0px) + 12px)",
+              right: "calc(env(safe-area-inset-right, 0px) + 12px)",
               bottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
-              transform: "translateX(-50%)",
-              width: "min(360px, calc(100% - 24px))",
+              marginInline: "auto",
+              maxWidth: 360,
               padding: "18px 16px 16px",
               borderRadius: 18,
               background: "#fffaf2",
@@ -164,6 +171,8 @@ export function BuyFurnitureModal({
               flexDirection: "column",
               alignItems: "center",
               gap: 10,
+              boxSizing: "border-box",
+              overflow: "hidden",
             }}
           >
             <button
@@ -376,6 +385,8 @@ export function BuyFurnitureModal({
                   marginTop: 4,
                   borderRadius: 12,
                   border: "none",
+                  boxSizing: "border-box",
+                  wordBreak: "keep-all",
                   background: !dogamOk
                     ? "#e6dccc"
                     : !carrotOk
