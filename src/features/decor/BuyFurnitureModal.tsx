@@ -1,24 +1,30 @@
 /**
- * BuyFurnitureModal (R27 PHASE 2.C) — 보관함 strip 의 자물쇠 슬롯
- * 탭 시 열리는 가구 구매 모달.
+ * BuyFurnitureModal (R27 PHASE 2.C → R32 PR-183) — 보관함 strip 의
+ * 자물쇠 슬롯 탭 시 열리는 가구 구매 모달.
  *
  * MushroomHouseRoom 풀스크린 (z 1100) 안에서 absolute overlay 로
  * 렌더 (Portal X). 자체 backdrop scrim + 카드 + CTA 버튼.
  *
+ * R32 PR-183 — 다통화 결제 UI. 가구의 `price.currency` 에 따라:
+ *   - carrot : 🥕 / 당근 / farmStore.carrots
+ *   - candy  : 🍬 / 캔디당근 / farmStore.candyCarrots
+ *   - golden : ✨ / 황금당근 / farmStore.goldenCarrots
+ * 통화별 잔액 / 부족 메시지 / 결제 confirm copy 모두 동적 분기.
+ *
  * CTA 분기:
  *   - 도감 자격 X (dogamCount < targetStep) → "도감 N마리 더 모으기" 비활성
- *   - 도감 OK + 당근 부족 → "🥕 부족 — 농장에서 수확하기" (모달 닫기 only)
- *   - 도감 OK + 당근 OK → "✨ 구매하기" (primary, 100당근 이상은 confirm)
+ *   - 도감 OK + 잔액 부족 → "{emoji} 부족 — ..." (모달 닫기 only)
+ *   - 도감 OK + 잔액 OK → "✨ 구매하기" (primary, 100당근 가치 이상은 confirm)
  *
  * confirm skip: localStorage cc.farmhub.skip_confirm = "1".
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   FARMHUB_BY_STEP,
   FARMHUB_FINAL_STEP,
+  type FarmhubCurrency,
 } from "./farmhubCatalog";
-import { getFurniturePrice } from "./farmhubFurniturePrices";
 import { useFarmhubStore } from "./farmhubStore";
 import { useFarmStore } from "../collection/farmStore";
 import { useCollectionStore } from "../collection/collectionStore";
@@ -28,7 +34,36 @@ import { safeStorage } from "../../lib/safeStorage";
 import { logFarmhubBuy } from "../../lib/analytics";
 
 const SKIP_CONFIRM_KEY = "cc.farmhub.skip_confirm";
-const CONFIRM_THRESHOLD = 100;
+// 100 P 가치 기준 confirm. currency 별 amount → P 환산:
+//   carrot 100 / candy 20 / golden 10.
+const CONFIRM_P_VALUE_THRESHOLD = 100;
+const CURRENCY_P_VALUE: Record<FarmhubCurrency, number> = {
+  carrot: 1,
+  candy: 5,
+  golden: 10,
+};
+
+interface CurrencyMeta {
+  emoji: string;
+  label: string;
+}
+const CURRENCY_META: Record<FarmhubCurrency, CurrencyMeta> = {
+  carrot: { emoji: "🥕", label: "당근" },
+  candy: { emoji: "🍬", label: "캔디당근" },
+  golden: { emoji: "✨", label: "황금당근" },
+};
+
+const INSUFFICIENT_LABEL: Record<string, string> = {
+  insufficient_carrot: "🥕 당근이 모자라요",
+  insufficient_candy: "🍬 캔디당근이 모자라요",
+  insufficient_golden: "✨ 황금당근이 모자라요",
+};
+
+const FALLBACK_REASON: Record<string, string> = {
+  max_step: "이미 모든 가구를 모았어요",
+  already_pending: "보관함에 도착한 가구를 먼저 배치해요",
+  step_locked: "도감을 더 모아야 해요",
+};
 
 export interface BuyFurnitureModalProps {
   /** open 시 보여줄 targetStep (1..8). null 이면 닫힘. */
@@ -41,6 +76,8 @@ export function BuyFurnitureModal({
   onClose,
 }: BuyFurnitureModalProps) {
   const carrots = useFarmStore((s) => s.carrots);
+  const candyCarrots = useFarmStore((s) => s.candyCarrots);
+  const goldenCarrots = useFarmStore((s) => s.goldenCarrots);
   const dogamCount = useCollectionStore((s) => s.ownedCharacters.length);
   const currentStep = useFarmhubStore((s) => s.step);
   const buyNextStep = useFarmhubStore((s) => s.buyNextStep);
@@ -50,15 +87,33 @@ export function BuyFurnitureModal({
 
   const open = targetStep !== null;
   const def = targetStep !== null ? FARMHUB_BY_STEP[targetStep] : null;
-  const price = useMemo(
-    () => (targetStep !== null ? getFurniturePrice(targetStep) : null),
-    [targetStep],
-  );
+  const price = def?.price ?? null;
+  const currency: FarmhubCurrency | null = price?.currency ?? null;
+  const amount = price?.amount ?? null;
 
-  const dogamOk =
-    targetStep !== null && dogamCount >= targetStep;
-  const carrotOk = price !== null && carrots >= price;
+  const balance =
+    currency === "carrot"
+      ? carrots
+      : currency === "candy"
+        ? candyCarrots
+        : currency === "golden"
+          ? goldenCarrots
+          : 0;
+  const meta: CurrencyMeta =
+    currency !== null
+      ? CURRENCY_META[currency]
+      : { emoji: "🥕", label: "당근" };
+
+  const dogamOk = targetStep !== null && dogamCount >= targetStep;
+  const balanceOk = amount !== null && balance >= amount;
   const isNextStep = targetStep === currentStep + 1;
+
+  // P 가치 환산 후 confirm 임계 비교 (carrot 100 / candy 20 / golden 10
+  // 모두 동일하게 100 P 가치 이상에서 confirm).
+  const confirmRequired =
+    amount !== null && currency !== null
+      ? amount * CURRENCY_P_VALUE[currency] >= CONFIRM_P_VALUE_THRESHOLD
+      : false;
 
   const close = () => {
     setConfirming(false);
@@ -66,38 +121,39 @@ export function BuyFurnitureModal({
   };
 
   const doBuy = () => {
-    if (price === null || def === null) return;
+    if (amount === null || def === null || currency === null) return;
     logFarmhubBuy("attempt", {
       step: def.step,
-      price,
-      balance: carrots,
+      price: amount,
+      balance,
+      currency,
       ok: false,
     });
     const r = buyNextStep();
     if (!r.ok) {
       haptic("warning");
-      const reasonLabel: Record<string, string> = {
-        max_step: "이미 모든 가구를 모았어요",
-        already_pending: "보관함에 도착한 가구를 먼저 배치해요",
-        step_locked: "도감을 더 모아야 해요",
-        insufficient_carrot: "🥕 당근이 모자라요",
-      };
-      toast(reasonLabel[r.reason ?? ""] ?? "구매할 수 없어요");
+      const reasonLabel =
+        INSUFFICIENT_LABEL[r.reason ?? ""] ??
+        FALLBACK_REASON[r.reason ?? ""] ??
+        "구매할 수 없어요";
+      toast(reasonLabel);
       logFarmhubBuy("attempt", {
         step: def.step,
-        price,
-        balance: carrots,
+        price: amount,
+        balance,
+        currency,
         ok: false,
         reason: r.reason ?? "unknown",
       });
       return;
     }
     haptic("success");
-    toast(`🥕 ${price} → ${def.name} 보관함 도착!`);
+    toast(`${meta.emoji} ${amount} → ${def.name} 보관함 도착!`);
     logFarmhubBuy("success", {
       step: def.step,
-      price,
-      balance: carrots - price,
+      price: amount,
+      balance: balance - amount,
+      currency,
       ok: true,
     });
     if (skipConfirm) {
@@ -111,9 +167,9 @@ export function BuyFurnitureModal({
   };
 
   const handleBuyClick = () => {
-    if (!def || price === null) return;
+    if (!def || amount === null) return;
     const alreadySkip = safeStorage.get(SKIP_CONFIRM_KEY) === "1";
-    if (price >= CONFIRM_THRESHOLD && !alreadySkip && !confirming) {
+    if (confirmRequired && !alreadySkip && !confirming) {
       setConfirming(true);
       return;
     }
@@ -122,7 +178,7 @@ export function BuyFurnitureModal({
 
   return (
     <AnimatePresence>
-      {open && def && price !== null && (
+      {open && def && amount !== null && currency !== null && (
         <>
           <motion.div
             key="buy-backdrop"
@@ -267,18 +323,18 @@ export function BuyFurnitureModal({
             ) : (
               <div style={{ textAlign: "center", lineHeight: 1.5 }}>
                 <div style={{ fontSize: 14, color: "#2b1810" }}>
-                  🥕 <strong>{price}</strong> 당근으로 구매할까요?
+                  {meta.emoji} <strong>{amount}</strong> {meta.label}으로 구매할까요?
                 </div>
                 <div
                   style={{
                     marginTop: 4,
                     fontSize: 12,
-                    color: carrotOk ? "#5c4a3a" : "#c05a3a",
-                    fontWeight: carrotOk ? 500 : 700,
+                    color: balanceOk ? "#5c4a3a" : "#c05a3a",
+                    fontWeight: balanceOk ? 500 : 700,
                   }}
                 >
-                  보유 {carrots} 당근
-                  {!carrotOk && ` (${price - carrots} 부족)`}
+                  보유 {balance} {meta.label}
+                  {!balanceOk && ` (${amount - balance} 부족)`}
                 </div>
               </div>
             )}
@@ -314,7 +370,7 @@ export function BuyFurnitureModal({
                     textAlign: "center",
                   }}
                 >
-                  정말 {price} 당근을 사용할까요?
+                  정말 {amount} {meta.label}을 사용할까요?
                 </div>
                 <label
                   style={{
@@ -372,11 +428,11 @@ export function BuyFurnitureModal({
               <button
                 type="button"
                 data-testid="buy-furniture-cta"
-                disabled={!dogamOk || !carrotOk || !isNextStep}
+                disabled={!dogamOk || !balanceOk || !isNextStep}
                 onClick={
                   !dogamOk
                     ? undefined
-                    : !carrotOk
+                    : !balanceOk
                       ? close
                       : !isNextStep
                         ? undefined
@@ -392,7 +448,7 @@ export function BuyFurnitureModal({
                   wordBreak: "keep-all",
                   background: !dogamOk
                     ? "#e6dccc"
-                    : !carrotOk
+                    : !balanceOk
                       ? "#f5b39c"
                       : !isNextStep
                         ? "#e6dccc"
@@ -406,8 +462,12 @@ export function BuyFurnitureModal({
               >
                 {!dogamOk
                   ? `도감 ${def.step - dogamCount}마리 더 모으기`
-                  : !carrotOk
-                    ? "🥕 부족 — 농장에서 수확하기"
+                  : !balanceOk
+                    ? `${meta.emoji} 부족 — ${
+                        currency === "carrot"
+                          ? "농장에서 수확하기"
+                          : "더 모아 보세요"
+                      }`
                     : !isNextStep
                       ? `먼저 STEP ${currentStep + 1} 부터`
                       : "✨ 구매하기"}

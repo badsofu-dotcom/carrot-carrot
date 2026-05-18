@@ -16,6 +16,8 @@ export interface FarmhubBuyEvent {
   balance: number;
   ok: boolean;
   reason?: string;
+  /** R32 PR-183 — 결제 통화 (carrot|candy|golden). 기본 carrot. */
+  currency?: "carrot" | "candy" | "golden";
 }
 
 export type FarmhubBuyKind = "attempt" | "success";
