@@ -105,6 +105,17 @@ export function InventoryModal({ open, onClose }: Props) {
       }
       return;
     }
+    // R33 PR-192 — heart 는 HeartUseModal 가 2 옵션 처리 (candy +10%p
+    // / plot +1 stage). gem 과 동일 패턴 — consume 안 하고 dispatch 만,
+    // 모달이 옵션 선택 시 자기 비용으로 consume.
+    if (code === "heart") {
+      try {
+        window.dispatchEvent(new CustomEvent("cc:heart-use:open"));
+      } catch {
+        /* SSR */
+      }
+      return;
+    }
     // PR-91 — 모래시계 pre-check. consume 전에 사용 가능 여부 검증해서
     // 효과 없는 케이스에서 아이템 낭비 방지.
     if (code === "hourglass") {

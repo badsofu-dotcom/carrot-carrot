@@ -121,7 +121,10 @@ export function ToolDock() {
   let speciesOwned = 0;
   for (const v of Object.values(itemCounts)) if (v > 0) speciesOwned++;
   // PR-109 — 씨앗 자원 폐기. 모종삽 = 무한 도구. 씨앗 badge 제거.
-  // PR-28 — heart 토큰은 광고 시청 가능 잔여 횟수.
+  // R33 PR-191/192 — heart 의미 변경. 광고 시청 토큰 → 부스트 자원
+  // (다음 수확 candy +10%p / plot +1 stage 즉시 선택). 잔량 표시는
+  // 동일하지만 의미는 "사용 가능한 부스트 횟수". InventoryModal heart
+  // "사용하기" → HeartUseModal (cc:heart-use:open) 에서 옵션 선택.
   // PR-98 — heart maxStack=5 인데 badge "N/3" 는 친구 wave bonus 후
   // overflow ("4/3", "5/3") 표시 버그. 분모 제거 — wateringCan 의 PR-88
   // 패턴 일관 적용. HEART_DAILY_MAX 상수는 의미 있는 분모 사용 케이스

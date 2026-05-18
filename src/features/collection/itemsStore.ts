@@ -220,11 +220,13 @@ export const ITEMS: readonly ItemDef[] = [
     tab: "tokens",
     category: "token",
     iconRel: "assets/farm/icons/icon_heart_hp.png",
-    // PR-24 — 광고 시청 토큰. KST 자정 리필 (현재 < 3 이면 3 으로
-    // 채움, 이상이면 유지). 친구 wave +1 (cap 5). AdRewardChannel
-    // claim 시 1 consume.
-    effect: "광고 시청 토큰 (최대 5개, 자정 리필 3개)",
-    usable: false,
+    // R33 PR-191/192 — 광고 시청 토큰 → 부스트 자원 재정의. 광고
+    // 무제한 정책 (PR-190) 으로 ad gate 폐기. 1개 사용 시 HeartUseModal
+    // 에서 다음 수확 candy +10%p 또는 plot +1 stage 즉시 선택.
+    // KST 자정 리필 (현재 < 3 이면 3 으로 채움) + 친구 wave +1 +
+    // 농장 드랍 source 모두 유지.
+    effect: "부스트 자원 — 다음 수확 캔디 +10%p 또는 작물 +1단계 (선택)",
+    usable: true,
     acquisition: "자정 리필 + 이웃 토끼 wave / 농장 드랍",
     maxStack: 5,
   },
