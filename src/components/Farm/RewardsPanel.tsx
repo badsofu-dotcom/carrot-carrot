@@ -26,9 +26,9 @@ import {
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
-// PR-145 (Round 22) — 토스포인트 / 출금 흐름 제거. canWithdraw /
-// MIN_PAYOUT / totalPoints + apiCall 출금 호출 모두 미사용. helper 들은
-// lib/points.ts 에 그대로 남아있어 정식 출시 시 재활성 가능.
+// PR-145 (Round 22) — 토스포인트 / 출금 흐름 제거. R34 PR-203 —
+// deprecated helpers (pointsFor / totalPoints / canWithdraw) 모두
+// 제거. POINT_VALUES + MIN_PAYOUT 만 lib/points.ts 에 보존.
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { playSfx } from "../../lib/soundFx";
