@@ -811,50 +811,80 @@ export function FarmHub({
           height: "100%",
         }}
       >
-        {/* Crops rendered as SVG images so they share the polygon's
-            percent-space and scale perfectly with the bg.
-            PR-144 (Round 21 베타7) — stage 를 key 에 포함시켜 stage
-            전환 시 component 가 명시적으로 unmount → remount 한다.
-            이전 코드는 key={b.id} 라 stage 가 바뀌어도 같은 motion.image
-            인스턴스를 재활용했는데, framer-motion 내부 transform 잔여
-            상태 + SVG href 비동기 swap 이 겹쳐 새 sprite 위에 이전
-            sprite 가 잠시 겹쳐 보이는 "잔상" 으로 보고됨. stage 별 fresh
-            mount 면 initial/animate 가 다시 돌아 항상 0→1 페이드인.
-            harvest 시 (stage===0) asset null → null 반환 (unmount).
+        {/* R33 PR-198 — SVG <defs> + <symbol> + <use> 패턴 (잔상 근본
+            fix).
 
-            R27 PHASE 1 (PR-163) → R31 PR-179 → R33 PR-195 — 잔상 fix
-            점진 강화.
-              PR-163: AnimatePresence popLayout + exit (dev 양손 탭 fix
-                → AIT 에서 exit 가 시각 잔상으로 노출).
-              PR-179: popLayout + exit 제거. motion.image + spring 유지.
-                → AIT 에서 여전히 1 frame 깜박임 보고됨.
-              PR-195 (현재): framer-motion 완전 제거. 순수 SVG <image>
-                + 즉시 표시 (애니메이션 없음) + willChange 제거.
-                WKWebView 의 GPU layer race + framer-motion RAF 지연
-                두 source 를 한 번에 차단. preload + .decode() 보강 +
-                key 별 fresh mount 만으로 시각 잔상 0.
-                trade-off: 부드러운 spring scale 효과 사라짐 → 작물이
-                stage 전환 시 즉시 swap. 단조롭지만 시각 안정 우선.
-              PR-196 (HTML <img> overlay 시도): 좌표 / objectFit mapping
-                이 SVG preserveAspectRatio 와 달라 작물이 찌그러지고
-                위치 어긋남 — 사용자 보고 후 PR-197 에서 SVG <image>
-                로 즉시 롤백. 잔상 fix 는 별도 접근 필요. */}
+            기존 SVG <image> + href swap 의 잔상 원인 정리:
+              (a) stage 전환 시 React unmount + remount → GPU layer
+                  cleanup race (1 frame 잔여)
+              (b) href async decode → paint 직전 race (1 frame 깜박임)
+
+            본 PR 의 fix:
+              - 4 stage sprite 를 <defs> 안의 <symbol> 로 정의 (mount 시
+                한 번 decode, 영구 보유).
+              - 9 plot 의 <use> 를 항상 mount 시켜놓음 (stage 0 일 때도
+                visibility=hidden 으로 숨김, unmount X).
+              - stage 변경 시 <use> 의 href + visibility attribute 만
+                toggle. DOM node 재생성 없음 → GPU layer cleanup race
+                source 자체 제거.
+              - <symbol> 안의 image 는 이미 decoded → href swap 시 추가
+                decode 없음 → decode race 도 제거.
+
+            정렬: symbol viewBox 100×100 + preserveAspectRatio
+              "xMidYMax meet" 가 기존 <image> 의 preserveAspectRatio
+              와 동일 효과 (sprite 의 아래쪽 정렬). use 의 x/y/width/
+              height 는 기존 image 와 동일하게 polygonBounds 기반.
+
+            PR 히스토리 (참고):
+              PR-163: popLayout + exit → PR-179 에서 제거
+              PR-195: framer-motion + willChange 제거
+              PR-196: HTML <img> overlay 시도 → 좌표 어긋남으로 롤백
+              PR-198 (현재): defs + symbol + use — 잔상 근본 fix 시도 */}
+
+        {/* 4 stage sprite 정의 (mount 시 1회 decode, defs 안에서 영구
+            보유). use 가 href 로 참조. */}
+        <defs>
+          {([1, 2, 3, 4] as const).map((s) => {
+            const asset = stageAsset(s as CropStage);
+            if (!asset) return null;
+            return (
+              <symbol
+                key={s}
+                id={`crop-symbol-${s}`}
+                viewBox="0 0 100 100"
+                preserveAspectRatio="xMidYMax meet"
+              >
+                <image
+                  href={asset}
+                  x={0}
+                  y={0}
+                  width={100}
+                  height={100}
+                  preserveAspectRatio="xMidYMax meet"
+                />
+              </symbol>
+            );
+          })}
+        </defs>
+
         {plotBounds.map((b) => {
           const stage = stages[b.id];
-          const asset = stageAsset(stage);
-          if (!asset) return null;
           const size = b.height * CROP_SIZE_RATIO;
           const x = b.cx - size / 2;
           const y = b.cy - size * 0.75;
+          // stage 0 일 때도 element 는 mount 유지, visibility 만 hidden.
+          // href 는 안전한 stage 1 reference (보이지 않으므로 무관).
+          const visible = stage >= 1 && stage <= 4;
+          const refStage = visible ? stage : 1;
           return (
-            <image
-              key={`${b.id}-${stage}`}
-              href={asset}
+            <use
+              key={b.id}
+              href={`#crop-symbol-${refStage}`}
               x={x}
               y={y}
               width={size}
               height={size}
-              preserveAspectRatio="xMidYMax meet"
+              visibility={visible ? "visible" : "hidden"}
               style={{
                 pointerEvents: "none",
                 filter:
