@@ -16,7 +16,7 @@ import { useFarmStore } from "../features/collection/farmStore";
 import { FarmOnboarding } from "../features/collection/FarmOnboarding";
 import { RewardsPanel } from "../components/Farm/RewardsPanel";
 import { InventoryModal } from "../components/Inventory/InventoryModal";
-import { useRewardsStore } from "../features/collection/rewardsStore";
+import { useRewardsStore, WEEKLY_TREASURE_GOAL } from "../features/collection/rewardsStore";
 import { AchievementsCard } from "../features/collection/AchievementsCard";
 import { useSoundStore } from "../store/soundStore";
 import { bgmEngine, consumeFirstVisit } from "../lib/bgmEngine";
@@ -848,6 +848,23 @@ function FarmView({
     dailyMissions.filter((m) => !dailyClaimed.has(m.type)).length +
     weeklyMissions.filter((m) => !weeklyClaimed.has(m.type)).length;
 
+  // R34 PR-201 — 🎁 보상함 빨간 점 badge. 수령 가능 보상 있으면 표시:
+  //   1) 오늘의 선물상자 미수령 (giftClaimedDay !== KST today)
+  //   2) 주간 보물상자 ready (treasureProgress >= WEEKLY_TREASURE_GOAL)
+  const giftClaimedDay = useRewardsStore((s) => s.giftClaimedDay);
+  const treasureProgress = useRewardsStore((s) => s.treasureProgress);
+  const rewardsAvailable = (() => {
+    const today = new Date();
+    const kst = new Date(today.getTime() + 9 * 3600 * 1000);
+    const y = kst.getUTCFullYear();
+    const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(kst.getUTCDate()).padStart(2, "0");
+    const todayKey = `${y}-${m}-${d}`;
+    const giftReady = giftClaimedDay !== todayKey;
+    const treasureReady = treasureProgress >= WEEKLY_TREASURE_GOAL;
+    return giftReady || treasureReady;
+  })();
+
   // The bag button now lives in ToolDock (PR-6 moved it off the header).
   // Listen for its cc:bag:open dispatch so we can open the modal.
   useEffect(() => {
@@ -1094,15 +1111,23 @@ function FarmView({
               />
             )}
           </button>
+          {/* R34 PR-201 — 🎁 보상함 빨간 점 badge. 오늘의 선물 미수령
+              OR 주간 보물상자 ready 시 표시. 🎯 missions badge 와 동일
+              시각 패턴. */}
           <button
             type="button"
             data-testid="farm-header-rewards"
-            aria-label="보상함 열기"
+            aria-label={
+              rewardsAvailable
+                ? "보상함 열기 — 수령 가능한 보상이 있어요"
+                : "보상함 열기"
+            }
             onClick={() => {
               haptic("light");
               setRewardsOpen(true);
             }}
             style={{
+              position: "relative",
               width: 32,
               height: 32,
               padding: 0,
@@ -1117,6 +1142,22 @@ function FarmView({
             }}
           >
             🎁
+            {rewardsAvailable && (
+              <span
+                aria-hidden
+                data-testid="rewards-available-badge"
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  right: 2,
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#ff4d4f",
+                  boxShadow: "0 0 0 2px var(--bg-elevated, #fff)",
+                }}
+              />
+            )}
           </button>
           {/* PR-21 — settings 톱니바퀴 제거. 하단 네비 → 내 정보 → 설정
               경로가 이미 있으므로 헤더 진입점 중복 제거. 헤더 우측은
