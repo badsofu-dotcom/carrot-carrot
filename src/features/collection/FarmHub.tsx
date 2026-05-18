@@ -810,44 +810,50 @@ export function FarmHub({
             mount 면 initial/animate 가 다시 돌아 항상 0→1 페이드인.
             harvest 시 (stage===0) asset null → null 반환 (unmount).
 
-            R27 PHASE 1 — AnimatePresence mode="popLayout" 로 감싸 exit
-            transition 을 명시. 이전 sprite 가 invisible (opacity 0) 까지
-            깔끔히 페이드아웃 후 사라지므로 양손 탭 / 1초 4+ plot 빠른
-            연속 탭 시 RAF cleanup 사이 1~2 frame 잔상 제거. */}
-        <AnimatePresence mode="popLayout" initial={false}>
-          {plotBounds.map((b) => {
-            const stage = stages[b.id];
-            const asset = stageAsset(stage);
-            if (!asset) return null;
-            const size = b.height * CROP_SIZE_RATIO;
-            const x = b.cx - size / 2;
-            const y = b.cy - size * 0.75;
-            return (
-              <motion.image
-                key={`${b.id}-${stage}`}
-                href={asset}
-                x={x}
-                y={y}
-                width={size}
-                height={size}
-                preserveAspectRatio="xMidYMax meet"
-                initial={{ opacity: 0, scale: 0.7 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.12 } }}
-                transition={{ type: "spring", stiffness: 360, damping: 22 }}
-                style={{
-                  pointerEvents: "none",
-                  willChange: "opacity, transform",
-                  filter:
-                    stage === 4
-                      ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
-                      : "drop-shadow(0 0.15px 0.4px rgba(0,0,0,0.25))",
-                }}
-                aria-label={stageLabel(stage)}
-              />
-            );
-          })}
-        </AnimatePresence>
+            R27 PHASE 1 (PR-163) — AnimatePresence mode="popLayout" +
+            120ms exit 로 빠른 연속 탭 시 1~2 frame 잔상을 제거했으나,
+            R31 PR-179 에서 AIT (WKWebView / Android WebView) 실기 테스트
+            중 정반대 회귀가 보고됨: 씨앗 심기 / 수확 시 이전 sprite 가
+            exit 애니메이션 동안 시각적으로 다시 나타났다 사라지는
+            "잔상" 으로 보임. dev / preview Chrome 은 합성이 1 frame 안에
+            끝나 invisible 이지만, WKWebView 는 GPU layer cache + SVG
+            <image> href async decode 타이밍 차이로 popLayout 의 overlap
+            구간이 그대로 노출됨.
+            → AnimatePresence + exit 자체를 제거. key 별 fresh mount
+            (PR-144) + preload (위 useEffect) + willChange 만으로 충분.
+            원본 PR-163 의 "양손 탭 잔상" 은 dev-only edge case 였고,
+            현재의 universal AIT 회귀가 우선순위 상위. */}
+        {plotBounds.map((b) => {
+          const stage = stages[b.id];
+          const asset = stageAsset(stage);
+          if (!asset) return null;
+          const size = b.height * CROP_SIZE_RATIO;
+          const x = b.cx - size / 2;
+          const y = b.cy - size * 0.75;
+          return (
+            <motion.image
+              key={`${b.id}-${stage}`}
+              href={asset}
+              x={x}
+              y={y}
+              width={size}
+              height={size}
+              preserveAspectRatio="xMidYMax meet"
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 360, damping: 22 }}
+              style={{
+                pointerEvents: "none",
+                willChange: "opacity, transform",
+                filter:
+                  stage === 4
+                    ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
+                    : "drop-shadow(0 0.15px 0.4px rgba(0,0,0,0.25))",
+              }}
+              aria-label={stageLabel(stage)}
+            />
+          );
+        })}
 
         {PLOT_POLYGONS.map((p) => {
           const isHovered = hoveredId === p.id;
