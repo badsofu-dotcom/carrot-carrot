@@ -30,7 +30,7 @@ import {
   stagesFromRemote,
   type FarmSyncResult,
 } from "./farmSync";
-import { addPoints } from "../../lib/economy/dailyCap";
+import { addPoints, addPointsUncapped } from "../../lib/economy/dailyCap";
 
 export type CropStage = 0 | 1 | 2 | 3 | 4;
 
@@ -47,11 +47,18 @@ interface FarmState {
   plant: (id: number) => boolean;
   harvest: (id: number) => boolean;
   cycleDebug: (id: number) => void;
-  /** Increment the candy/golden bonus carrot inventory (local-only). */
-  incCandyCarrots: (n?: number) => void;
-  incGoldenCarrots: (n?: number) => void;
+  /**
+   * Increment the candy/golden bonus carrot inventory (local-only).
+   *
+   * R33 PR-189 — opts.bypassDailyCap: 광고 source 면제용. true 면
+   * addPointsUncapped 로 routing 되어 일일 캡 무시 + earned 카운터
+   * 영향 X. AdRewardChannelModal 의 N-th tier 보상 / 보물 채널
+   * 보상 path 에서 사용.
+   */
+  incCandyCarrots: (n?: number, opts?: { bypassDailyCap?: boolean }) => void;
+  incGoldenCarrots: (n?: number, opts?: { bypassDailyCap?: boolean }) => void;
   /** Direct-grant carrot count (PR-17b weekly treasure rewards). */
-  incCarrots: (n?: number) => void;
+  incCarrots: (n?: number, opts?: { bypassDailyCap?: boolean }) => void;
   /**
    * Atomic carrot debit. Returns true if `carrots >= n` and decrement
    * applied, false otherwise. Server sync is NOT triggered — callers
@@ -128,20 +135,35 @@ export const useFarmStore = create<FarmState>((set, get) => ({
     set({ stages: next });
   },
 
-  incCandyCarrots: (n = 1) => {
+  incCandyCarrots: (n = 1, opts) => {
     if (!Number.isFinite(n) || n <= 0) return;
-    void addPoints("candy", Math.floor(n) * 5);
+    const grant = Math.floor(n) * 5;
+    if (opts?.bypassDailyCap) {
+      void addPointsUncapped("ad_candy", grant);
+    } else {
+      void addPoints("candy", grant);
+    }
     set({ candyCarrots: get().candyCarrots + Math.floor(n) });
   },
-  incGoldenCarrots: (n = 1) => {
+  incGoldenCarrots: (n = 1, opts) => {
     if (!Number.isFinite(n) || n <= 0) return;
-    void addPoints("golden", Math.floor(n) * 10);
+    const grant = Math.floor(n) * 10;
+    if (opts?.bypassDailyCap) {
+      void addPointsUncapped("ad_golden", grant);
+    } else {
+      void addPoints("golden", grant);
+    }
     set({ goldenCarrots: get().goldenCarrots + Math.floor(n) });
   },
-  incCarrots: (n = 1) => {
+  incCarrots: (n = 1, opts) => {
     if (!Number.isFinite(n) || n <= 0) return;
-    void addPoints("carrot", Math.floor(n));
-    set({ carrots: get().carrots + Math.floor(n) });
+    const grant = Math.floor(n);
+    if (opts?.bypassDailyCap) {
+      void addPointsUncapped("ad_carrot", grant);
+    } else {
+      void addPoints("carrot", grant);
+    }
+    set({ carrots: get().carrots + grant });
   },
 
   spendCarrots: (n) => {

@@ -91,10 +91,30 @@ export function todayEarned(): number {
 }
 
 /**
+ * R33 PR-189 — 광고 source 면제. addPointsUncapped 가 cap 검사 없이
+ * 전체 amount 를 grant + earned 카운터에 누적하지 않음. 광고 수익
+ * 기반 자원은 일일 캡과 무관하게 무제한 grant 가능.
+ *
+ * 호출 사이트: AdRewardChannelModal 의 N-th tier carrot 보상 (R33
+ * PR-190 wire). 다른 source 는 addPoints(...) 로 cap 적용 유지.
+ */
+export function addPointsUncapped(source: string, amount: number): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const grant = Math.floor(amount);
+  // server-side audit ledger 는 그대로 기록 (광고 noise 도 추적 가능).
+  // earned 카운터는 건드리지 않아 cap UI / cap-cross event 도 무영향.
+  grantOnServer(source, grant);
+  return grant;
+}
+
+/**
  * P 추가 시도. cap 내면 모두 grant + earned 증가. cap 초과면 부분
  * grant (cap 까지만) 또는 0. 반환값 = 실제 grant 된 P.
  *
  * `source` 는 logging / UI 안내용 (현재는 미사용, future hook).
+ *
+ * R33 PR-189 — 광고 source 는 addPointsUncapped 로 분리. 본 함수는
+ * 광고 외 source (수확 / 가챠 / 일일 선물 / 주간 보물) 만 처리.
  */
 export function addPoints(source: string, amount: number): number {
   void source;
