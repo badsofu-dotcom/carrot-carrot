@@ -226,6 +226,39 @@ export const CHARACTERS: CharacterDef[] = [
     threshold: 7,
     unlockHint: "7일 연속 집중 성공",
   },
+  // ============== R34 PR-205 — 23 신규 도감 entry ==============
+  // 기존 transparent 자산 (Round 17.5 import 됨) 의 unmapped 23개를
+  // dogam expansion 으로 wire. 모두 manual unlockKind — 가챠 풀에서만
+  // 등장 (CHARACTERS 가 자동 pickPool 에 포함됨). 12 common / 5 rare /
+  // 3 sr / 2 ssr / 1 legendary 분포로 가챠 가중치 균형.
+  // 일상 표정 12 — common
+  { id: "v2-happy", bunnyKey: "v2_happy", rarity: "common", name: "행복 토끼", quotes: ["헤헤 오늘도 행복해!", "당근 먹으면 다 잘될 거야."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-sleepy", bunnyKey: "v2_sleepy", rarity: "common", name: "졸린 토끼", quotes: ["흐아암... 5분만 더...", "당근 침대 어딨지..."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-shy", bunnyKey: "v2_shy", rarity: "common", name: "수줍 토끼", quotes: ["어... 안녕...?", "친구 해도 돼...?"], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-cool", bunnyKey: "v2_cool", rarity: "common", name: "쿨한 토끼", quotes: ["뭐 별거 없어. 그냥 집중.", "당근은 나의 스타일."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-scared", bunnyKey: "v2_scared", rarity: "common", name: "놀란 토끼", quotes: ["꺄악! 너 누구야!", "갑자기 나타나지 마..."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-surprised", bunnyKey: "v2_surprised", rarity: "common", name: "깜짝 토끼", quotes: ["헐?! 당근이 이렇게 큰 거였어?", "와우, 오늘은 진짜네."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-tired", bunnyKey: "v2_tired", rarity: "common", name: "지친 토끼", quotes: ["하... 오늘은 좀 쉬고 싶다.", "당근아 너도 같이 쉬자."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-confused", bunnyKey: "v2_confused", rarity: "common", name: "어리둥 토끼", quotes: ["어라? 여기 어디지?", "당근이 어디 갔지...?"], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-wink", bunnyKey: "v2_wink", rarity: "common", name: "윙크 토끼", quotes: ["휘잉~ 너만 알려줄게.", "비밀 당근 위치 알아."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-stretching", bunnyKey: "v2_stretching", rarity: "common", name: "스트레칭 토끼", quotes: ["으으~ 시원해라.", "집중 전에 몸 풀어야지."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-watering", bunnyKey: "v2_watering", rarity: "common", name: "물 주기 토끼", quotes: ["촉촉~ 잘 자라라.", "당근에는 사랑이 필요해."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-planting", bunnyKey: "v2_planting", rarity: "common", name: "심기 토끼", quotes: ["씨앗을 정성껏 심자.", "오늘도 한 뼘씩."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  // 감정 강조 5 — rare
+  { id: "v2-love", bunnyKey: "v2_love", rarity: "rare", name: "사랑 토끼", quotes: ["💗 너 진짜 좋아!", "당근보다 네가 더 좋아."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-laugh", bunnyKey: "v2_laugh", rarity: "rare", name: "웃음 토끼", quotes: ["하하하 이건 못 참지!", "농담 진짜 잘하네."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-excited", bunnyKey: "v2_excited", rarity: "rare", name: "신난 토끼", quotes: ["야호~ 신난다!", "오늘은 최고의 날!"], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-digging", bunnyKey: "v2_digging", rarity: "rare", name: "땅 파는 토끼", quotes: ["여기 보물이 있을 것 같아!", "굴 파는 건 자신 있어."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-farming-sweat", bunnyKey: "v2_farming_sweat", rarity: "rare", name: "구슬땀 토끼", quotes: ["휴... 농사 진짜 힘들어.", "그래도 보람은 있어."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  // 특수 직업 3 — sr
+  { id: "v2-detective", bunnyKey: "v2_detective", rarity: "sr", name: "탐정 토끼", quotes: ["흠... 단서를 발견했군.", "사라진 당근을 찾아드리지."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-samurai", bunnyKey: "v2_samurai", rarity: "sr", name: "사무라이 토끼", quotes: ["참(斬)! 잡초여 사라져라.", "검의 길은 곧 농부의 길이다."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-angry", bunnyKey: "v2_angry", rarity: "sr", name: "분노 토끼", quotes: ["당근을 훔쳤다고?!", "용서 못 해, 절대로!"], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  // 한정 직업 2 — ssr
+  { id: "v2-astronaut", bunnyKey: "v2_astronaut", rarity: "ssr", name: "우주 토끼", quotes: ["달의 당근 맛도 궁금해.", "0G 에서 당근 키우면 어떨까?"], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  { id: "v2-angel", bunnyKey: "v2_angel", rarity: "ssr", name: "천사 토끼", quotes: ["✨ 평화로운 농장 되어라.", "축복받은 당근만 자라요."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
+  // legendary 1 (계절 한정 느낌)
+  { id: "v2-santa", bunnyKey: "v2_santa", rarity: "legendary", name: "산타 토끼", quotes: ["호호호 메리 캐럿마스!", "착한 농부에게만 황금 당근."], unlockKind: "manual", unlockHint: "친구 만나기에서 획득" },
 ];
 
 /**

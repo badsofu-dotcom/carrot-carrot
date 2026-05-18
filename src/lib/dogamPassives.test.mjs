@@ -70,7 +70,7 @@ test("nextPassiveLabel: 임계 직전 라벨", () => {
   assert.equal(nextPassiveLabel(8), "9마리: 오늘의 선물 보너스 +50%");
   assert.equal(
     nextPassiveLabel(11),
-    "12마리: 일일 P 캡 100 → 110 (도감 완성)",
+    "12마리: 일일 P 캡 100 → 110 (모든 패시브 활성)",
   );
   assert.equal(nextPassiveLabel(12), null);
 });

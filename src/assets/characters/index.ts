@@ -56,6 +56,33 @@ export const bunnyImages = {
   rare_wizard: pair(bunny_rare_wizard_1x, bunny_rare_wizard_2x),
   sleep: pair(bunny_sleep_1x, bunny_sleep_2x),
   success: pair(bunny_success_1x, bunny_success_2x),
+  // R34 PR-205 — 23 신규 도감 entry. 기존 transparent set (Round 17.5
+  // 에서 import 됨) 의 unmapped 항목을 dogam 카드용으로 노출. 단색 bg
+  // 없이 cutout 으로 렌더되지만 도감 그리드 시각 일관성 큰 문제 없음.
+  // 가챠 풀에 자동 포함 (pickPool 이 CHARACTERS 순회).
+  v2_happy: transparentBunnyImages.happy,
+  v2_sleepy: transparentBunnyImages.sleepy,
+  v2_shy: transparentBunnyImages.shy,
+  v2_cool: transparentBunnyImages.cool,
+  v2_scared: transparentBunnyImages.scared,
+  v2_surprised: transparentBunnyImages.surprised,
+  v2_tired: transparentBunnyImages.tired,
+  v2_confused: transparentBunnyImages.confused,
+  v2_wink: transparentBunnyImages.wink,
+  v2_stretching: transparentBunnyImages.stretching,
+  v2_watering: transparentBunnyImages.watering,
+  v2_planting: transparentBunnyImages.planting,
+  v2_love: transparentBunnyImages.love,
+  v2_laugh: transparentBunnyImages.laugh,
+  v2_excited: transparentBunnyImages.excited,
+  v2_digging: transparentBunnyImages.digging,
+  v2_farming_sweat: transparentBunnyImages.farming_sweat,
+  v2_detective: transparentBunnyImages.detective,
+  v2_samurai: transparentBunnyImages.samurai,
+  v2_angry: transparentBunnyImages.angry,
+  v2_astronaut: transparentBunnyImages.astronaut,
+  v2_angel: transparentBunnyImages.angel,
+  v2_santa: transparentBunnyImages.santa,
 } as const;
 
 export type BunnyKey = keyof typeof bunnyImages;
@@ -133,4 +160,29 @@ export const BUNNY_TRANSPARENT: Partial<Record<BunnyKey, BunnyAsset>> = {
   rare_king: transparentBunnyImages.pirate,
   rare_wizard: transparentBunnyImages.scientist,
   legendary_demon: transparentBunnyImages.vampire,
+  // R34 PR-205 — 23 신규 도감 entry 의 transparent 매핑 (VisitorBunny
+  // 등 cutout 사용 사이트에서 동일하게 표시).
+  v2_happy: transparentBunnyImages.happy,
+  v2_sleepy: transparentBunnyImages.sleepy,
+  v2_shy: transparentBunnyImages.shy,
+  v2_cool: transparentBunnyImages.cool,
+  v2_scared: transparentBunnyImages.scared,
+  v2_surprised: transparentBunnyImages.surprised,
+  v2_tired: transparentBunnyImages.tired,
+  v2_confused: transparentBunnyImages.confused,
+  v2_wink: transparentBunnyImages.wink,
+  v2_stretching: transparentBunnyImages.stretching,
+  v2_watering: transparentBunnyImages.watering,
+  v2_planting: transparentBunnyImages.planting,
+  v2_love: transparentBunnyImages.love,
+  v2_laugh: transparentBunnyImages.laugh,
+  v2_excited: transparentBunnyImages.excited,
+  v2_digging: transparentBunnyImages.digging,
+  v2_farming_sweat: transparentBunnyImages.farming_sweat,
+  v2_detective: transparentBunnyImages.detective,
+  v2_samurai: transparentBunnyImages.samurai,
+  v2_angry: transparentBunnyImages.angry,
+  v2_astronaut: transparentBunnyImages.astronaut,
+  v2_angel: transparentBunnyImages.angel,
+  v2_santa: transparentBunnyImages.santa,
 };
