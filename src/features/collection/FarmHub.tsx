@@ -38,6 +38,7 @@ import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
 import { BunnyPityModal } from "../../components/Inventory/BunnyPityModal";
 import { HeartUseModal } from "../../components/Inventory/HeartUseModal";
+import { useStreakStore } from "./streakStore";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffChipsRow } from "../buffs/BuffChipsRow";
@@ -294,6 +295,17 @@ export function FarmHub({
     // idempotent 호출. 최초 사용자는 day key 비어 있어 즉시 +3 부여
     // → ad 슬롯이 처음부터 활성 상태.
     rolloverHearts();
+    // R34 PR-204 — 일일 출석 streak claim. 오늘 첫 진입 시 자동 carrot
+    // 보너스 + toast. 이미 수령했으면 no-op.
+    const streakResult = useStreakStore.getState().claimDaily();
+    if (streakResult.ok && streakResult.reward > 0) {
+      // streak grant 는 광고 source 아님 → 일반 cap 적용.
+      useFarmStore.getState().incCarrots(streakResult.reward);
+      toast(
+        `🔥 ${streakResult.streak}일 연속 출석 — 당근 +${streakResult.reward}`,
+        { duration: 3500 },
+      );
+    }
     const onVisible = () => {
       if (document.visibilityState === "visible") rolloverHearts();
     };

@@ -23,6 +23,7 @@ import {
   WEEKLY_TREASURE_GOAL,
   type GiftReward,
 } from "../../features/collection/rewardsStore";
+import { useStreakStore } from "../../features/collection/streakStore";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
 import { passivesFromOwned } from "../../lib/dogamPassives";
@@ -291,6 +292,7 @@ export function RewardsPanel({ open, onClose }: Props) {
                 후에도 의미 있음) 라 별도 section 으로 유지. */}
             <Section title="🥕 오늘 진행">
               <DailyCapProgress />
+              <StreakChip />
             </Section>
 
             {/* Daily gift */}
@@ -593,6 +595,59 @@ function treasureToText(t: { kind: string; amount: number; points: number }): st
     default:
       return `+${t.amount} ${t.kind}`;
   }
+}
+
+// R34 PR-204 — 출석 streak chip. FarmHub mount 시 claimDaily() 가
+// 이미 carrot 보너스 + toast 처리. 본 chip 은 누적 상태 표시만.
+function StreakChip() {
+  const streak = useStreakStore((s) => s.streak);
+  const best = useStreakStore((s) => s.best);
+  if (streak <= 0 && best <= 0) return null;
+  return (
+    <div
+      data-testid="streak-chip"
+      style={{
+        marginTop: 8,
+        padding: "8px 10px",
+        background: "rgba(255,123,97,0.06)",
+        border: "1px solid rgba(255,123,97,0.14)",
+        borderRadius: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#2b2b2b" }}>
+          🔥 {streak}일 연속 출석
+        </span>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#6a6055",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          최고 {best}일
+        </span>
+      </div>
+      <div
+        style={{
+          marginTop: 4,
+          fontSize: 10,
+          color: "#9a8870",
+          lineHeight: 1.4,
+        }}
+      >
+        매일 농장 첫 진입 시 자동 당근 보너스 (5~10개, 7일+ 부터 최대치)
+      </div>
+    </div>
+  );
 }
 
 // R32 PR-185 — candy/golden 보유 chip (자원 사용 섹션).
