@@ -253,10 +253,12 @@ export function FarmHub({
     if (msg) toast(msg, { duration: 4000 });
   }, []);
 
-  // R27 PHASE 1 — 4 stage sprite preload. 빠른 연속 탭 (양손 / 1초 4+ plot)
-  // 시 새 stage 의 sprite href 가 비동기 로딩 → 1~2 frame "잔상" 으로
-  // 보고됨. mount 시 모든 stage 자산을 디코더 캐시에 미리 올려둔다.
-  // new Image() 는 가벼움; 4개 webp, ~80KB.
+  // R27 PHASE 1 (PR-163) → R33 PR-195 — 4 stage sprite preload + decode.
+  // 빠른 연속 탭 시 새 stage 의 sprite href 가 비동기 로딩 → 1~2 frame
+  // "잔상" 으로 보고됨. mount 시 모든 stage 자산을 디코더 캐시에 올려
+  // 둠 + .decode() 호출로 픽셀까지 메모리에 완전 디코딩 (HTTP 캐시 만
+  // 채우는 것보다 강함 — WKWebView SVG <image> 의 href swap 시 paint
+  // 직전 ms 단위 race 차단).
   useEffect(() => {
     const urls = [
       CROP_ASSETS.seed,
@@ -268,6 +270,11 @@ export function FarmHub({
     for (const u of urls) {
       const img = new Image();
       img.src = u;
+      // .decode() Promise — 디코딩 완료까지 대기. WKWebView 의 GPU
+      // 합성 시 즉시 paint 가능한 상태. 실패해도 throw 안 함 (silent).
+      img.decode?.().catch(() => {
+        /* ignore — best-effort warmup */
+      });
       imgs.push(img);
     }
     return () => {
@@ -815,19 +822,19 @@ export function FarmHub({
             mount 면 initial/animate 가 다시 돌아 항상 0→1 페이드인.
             harvest 시 (stage===0) asset null → null 반환 (unmount).
 
-            R27 PHASE 1 (PR-163) — AnimatePresence mode="popLayout" +
-            120ms exit 로 빠른 연속 탭 시 1~2 frame 잔상을 제거했으나,
-            R31 PR-179 에서 AIT (WKWebView / Android WebView) 실기 테스트
-            중 정반대 회귀가 보고됨: 씨앗 심기 / 수확 시 이전 sprite 가
-            exit 애니메이션 동안 시각적으로 다시 나타났다 사라지는
-            "잔상" 으로 보임. dev / preview Chrome 은 합성이 1 frame 안에
-            끝나 invisible 이지만, WKWebView 는 GPU layer cache + SVG
-            <image> href async decode 타이밍 차이로 popLayout 의 overlap
-            구간이 그대로 노출됨.
-            → AnimatePresence + exit 자체를 제거. key 별 fresh mount
-            (PR-144) + preload (위 useEffect) + willChange 만으로 충분.
-            원본 PR-163 의 "양손 탭 잔상" 은 dev-only edge case 였고,
-            현재의 universal AIT 회귀가 우선순위 상위. */}
+            R27 PHASE 1 (PR-163) → R31 PR-179 → R33 PR-195 — 잔상 fix
+            점진 강화.
+              PR-163: AnimatePresence popLayout + exit (dev 양손 탭 fix
+                → AIT 에서 exit 가 시각 잔상으로 노출).
+              PR-179: popLayout + exit 제거. motion.image + spring 유지.
+                → AIT 에서 여전히 1 frame 깜박임 보고됨.
+              PR-195 (현재): framer-motion 완전 제거. 순수 SVG <image>
+                + 즉시 표시 (애니메이션 없음) + willChange 제거.
+                WKWebView 의 GPU layer race + framer-motion RAF 지연
+                두 source 를 한 번에 차단. preload + .decode() 보강 +
+                key 별 fresh mount 만으로 시각 잔상 0.
+                trade-off: 부드러운 spring scale 효과 사라짐 → 작물이
+                stage 전환 시 즉시 swap. 단조롭지만 시각 안정 우선. */}
         {plotBounds.map((b) => {
           const stage = stages[b.id];
           const asset = stageAsset(stage);
@@ -836,7 +843,7 @@ export function FarmHub({
           const x = b.cx - size / 2;
           const y = b.cy - size * 0.75;
           return (
-            <motion.image
+            <image
               key={`${b.id}-${stage}`}
               href={asset}
               x={x}
@@ -844,12 +851,10 @@ export function FarmHub({
               width={size}
               height={size}
               preserveAspectRatio="xMidYMax meet"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 360, damping: 22 }}
               style={{
                 pointerEvents: "none",
-                willChange: "opacity, transform",
+                // R33 PR-195 — willChange 제거. GPU layer 분리가 WKWebView
+                // 에서 layer race 의 핵심 원인. inline 합성으로 race 차단.
                 filter:
                   stage === 4
                     ? "drop-shadow(0 0.4px 0.7px rgba(255,160,60,0.45))"
