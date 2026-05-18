@@ -108,12 +108,14 @@ export function TabBar() {
     <nav
       aria-label="주요 메뉴"
       style={{
-        // R28 PHASE 3 — 캡슐 (radius pill + 좌우 16px margin) 폐기.
-        // 하단 edge 에 딱 붙는 full-width bar. safe-area-inset-bottom 은
-        // bar 내부 padding 으로 흡수 → 시스템 gesture 영역까지 frosted
-        // background 가 덮음 (콘솔의 hairline 만 가시).
+        // R30.5 PR-175 — 캡슐 복원. R28 PHASE 3 의 full-width frosted
+        // 바를 폐기하고, PR-170 이전의 floating capsule (radius-pill +
+        // 좌우 16px margin + shadow) 로 회귀. iOS 홈 인디케이터 영역
+        // (env(safe-area-inset-bottom)) 위에 정확히 얹혀 더 이상 내려갈
+        // 수 없을 만큼 바닥에 근접 — --tabbar-offset (0px) 가 capsule
+        // 과 safe-area top 사이 추가 gap. 0 이라 가장 낮은 위치.
         position: "fixed",
-        bottom: 0,
+        bottom: "calc(var(--tabbar-offset) + env(safe-area-inset-bottom, 0px))",
         left: 0,
         right: 0,
         display: "flex",
@@ -124,22 +126,12 @@ export function TabBar() {
     >
       <div
         style={{
-          // R30 — 컴팩트 + 바닥 밀착. paddingTop 6 + paddingBottom
-          // (safe-area + 6) 로 icon/label 위아래 여백을 10px 수준 유지.
-          // safe-area-inset-bottom 은 inner div paddingBottom 안에서만
-          // 한 번 적용 (이중 차단). 고정 height 제거 → 컨텐츠 + padding
-          // 이 실제 바 높이를 결정. --tabbar-height(56) 는 content 영역
-          // padding 예약치(reserved)로만 계속 사용.
-          width: "100%",
-          maxWidth: "var(--app-max-width)",
+          // 좌우 16px gap (32px = 16 + 16). pointerEvents auto 로 capsule
+          // 안에서만 탭 이벤트 받음. 바깥 nav 는 pointerEvents none 이라
+          // 빈 좌우 영역 클릭은 page 로 패스스루.
+          width: "calc(100% - 32px)",
+          maxWidth: "calc(var(--app-max-width) - 32px)",
           pointerEvents: "auto",
-          background: "color-mix(in oklab, var(--bg-elevated) 92%, transparent)",
-          backdropFilter: "var(--backdrop-blur)",
-          WebkitBackdropFilter: "var(--backdrop-blur)",
-          borderTop: "1px solid var(--border-subtle)",
-          paddingTop: 6,
-          paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6px)",
-          boxSizing: "border-box",
         }}
       >
       <LayoutGroup id="tabbar">
@@ -148,7 +140,14 @@ export function TabBar() {
             display: "grid",
             gridTemplateColumns: `repeat(${tabs.length}, 1fr)`,
             gap: 4,
-            padding: "0 6px",
+            padding: 6,
+            borderRadius: "var(--radius-pill)",
+            background: "color-mix(in oklab, var(--bg-elevated) 78%, transparent)",
+            backdropFilter: "var(--backdrop-blur)",
+            WebkitBackdropFilter: "var(--backdrop-blur)",
+            border: "1px solid var(--border-subtle)",
+            boxShadow: "var(--shadow-lg)",
+            height: "var(--tabbar-height)",
           }}
         >
           {tabs.map((t) => {
