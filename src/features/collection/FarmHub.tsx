@@ -36,6 +36,7 @@ import {
 } from "../../lib/notify/focusGate";
 import { BunnyGachaModal } from "../../components/Inventory/BunnyGachaModal";
 import { GemTradeModal } from "../../components/Inventory/GemTradeModal";
+import { BunnyPityModal } from "../../components/Inventory/BunnyPityModal";
 import { AdRewardChannelModal } from "../../components/Inventory/AdRewardChannelModal";
 import { ToolDock, TOOL_SELECTED_EVENT } from "../../components/Farm/ToolDock";
 import { BuffChipsRow } from "../buffs/BuffChipsRow";
@@ -984,6 +985,11 @@ export function FarmHub({
 
       {/* PR-33 — 보석 사용 5 옵션 모달. cc:gem-trade:open 리스너. */}
       <GemTradeModal />
+
+      {/* R32 PR-184 — 캔디/황금당근 가챠 pity 모달. cc:bunny-pity:open
+          리스너. R32 PR-185 의 RewardsPanel "친구 만나기" CTA 가
+          dispatch. */}
+      <BunnyPityModal />
 
       {/* PR-152 (Round 25) — 데코 v2 MushroomHouseRoom. RewardsPanel
           "🍄 버섯집 들어가기" 카드 + cc:mushroom-house:open 이벤트로
