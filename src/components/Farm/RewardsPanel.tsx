@@ -1,13 +1,16 @@
 /**
- * RewardsPanel — bottom-sheet style modal that surfaces three things:
- *   1. **Toss points** — totalled from carrot/candy/golden inventory.
- *      Withdraw button calls `/economy/withdraw` (worker route already
- *      exists). Disabled below MIN_PAYOUT or while the server reports
- *      `withdrawEnabled=false` (= `CONFIG_REQUIRED`).
- *   2. **Daily gift box** — one claim per KST day. Roll table in
- *      `rewardsStore.ts → rollGift`. Reward is granted locally + (when
- *      candy/golden) reflected in the farm inventory.
- *   3. **Medals** — stars/seal-shaped badges for milestones reached.
+ * RewardsPanel — bottom-sheet style modal.
+ *
+ * R32 PR-185 — 토스포인트 환산 dormant 후 4 섹션 구성:
+ *   1. **🥕 오늘 진행** — DailyCapProgress (일일 자원 캡 진행도).
+ *   2. **🎁 오늘의 선물상자** — KST 자정 1회 claim. rewardsStore.rollGift.
+ *   3. **🎁 주간 보물상자** — 진행도 7 충족 시 1회 open.
+ *   4. **🐰 자원 사용 (R32 신규)** — candy/golden 보유 chip + "친구
+ *      만나기 (pity)" CTA → BunnyPityModal (cc:bunny-pity:open dispatch).
+ *      가구 상점은 농장의 "🍄 집 들어가기" 라벨로 진입 — 중복 제거.
+ *
+ * gift / treasure 라벨에서 "P 환산" 멘트 제거 (PR-180 docs 결정 반영,
+ * candy/golden 은 in-app sink 로 직접 소비).
  *
  * Mounted from CollectionPage's farm header (🎁 button next to gear).
  * Closed by backdrop tap, X, or escape key.
@@ -51,6 +54,9 @@ export function RewardsPanel({ open, onClose }: Props) {
   const incCandy = useFarmStore((s) => s.incCandyCarrots);
   const incGolden = useFarmStore((s) => s.incGoldenCarrots);
   const incCarrots = useFarmStore((s) => s.incCarrots);
+  // R32 PR-185 — 자원 사용 섹션의 candy/golden 보유 표시.
+  const candyCarrots = useFarmStore((s) => s.candyCarrots);
+  const goldenCarrots = useFarmStore((s) => s.goldenCarrots);
 
   const claimedDay = useRewardsStore((s) => s.giftClaimedDay);
   const claimDailyGift = useRewardsStore((s) => s.claimDailyGift);
@@ -460,9 +466,97 @@ export function RewardsPanel({ open, onClose }: Props) {
               </div>
             </Section>
 
+            {/* R32 PR-185 — 자원 사용 섹션. candy/golden 의 in-app sink
+                (가챠 pity / 프리미엄 가구) 진입점. 가구 상점은 농장 화면
+                "🍄 집 들어가기" 라벨로 진입하므로 여기선 친구 만나기
+                pity 만 노출. */}
+            <Section title="🐰 자원 사용">
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 16,
+                  padding: 14,
+                  boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 12,
+                    marginBottom: 10,
+                  }}
+                >
+                  <BalanceChip emoji="🍬" label="캔디당근" value={candyCarrots} />
+                  <BalanceChip emoji="✨" label="황금당근" value={goldenCarrots} />
+                </div>
+                <button
+                  type="button"
+                  data-testid="open-bunny-pity"
+                  onClick={() => {
+                    haptic("light");
+                    try {
+                      window.dispatchEvent(new CustomEvent("cc:bunny-pity:open"));
+                    } catch {
+                      /* SSR */
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,123,97,0.35)",
+                    background: "#FFF8EE",
+                    color: "#2b2b2b",
+                    fontSize: 13,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <span aria-hidden style={{ fontSize: 22 }}>🐰</span>
+                  <span style={{ flex: 1 }}>
+                    친구 만나기 (보장 가챠)
+                    <div
+                      style={{
+                        marginTop: 2,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "#6a6055",
+                      }}
+                    >
+                      🍬 10개 → rare 보장 · ✨ 5개 → epic 보장
+                    </div>
+                  </span>
+                  <span
+                    aria-hidden
+                    style={{
+                      fontSize: 14,
+                      color: "#FF7B61",
+                      fontWeight: 800,
+                    }}
+                  >
+                    →
+                  </span>
+                </button>
+                <p
+                  style={{
+                    margin: "8px 4px 0",
+                    fontSize: 10,
+                    color: "#9a8870",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  프리미엄 가구는 농장 → 🍄 집 들어가기 에서 구매할 수
+                  있어요.
+                </p>
+              </div>
+            </Section>
+
             {/* PR-26 — 훈장 섹션이 도감 페이지 (CollectionPage 의
-                AchievementsCard) 로 이동. RewardsPanel 은 광고/포인트
-                허브 (토스포인트 + 오늘의 선물 + 주간 보물) 만 남김. */}
+                AchievementsCard) 로 이동. */}
             </div>
           </motion.div>
         </>
@@ -473,14 +567,14 @@ export function RewardsPanel({ open, onClose }: Props) {
 
 // PR-26 — medalAsset 이 AchievementsCard 로 이동.
 
-// PR-109 — seed kind 제거. giftToText/treasureToText 둘 다 seed case
-// 제거.
+// PR-109 — seed kind 제거. R32 PR-185 — "+X P" 환산 라벨 제거 (토스
+// 포인트 환산 dormant, candy/golden 은 in-app sink 로 직접 소비).
 function giftToText(g: GiftReward): string {
   switch (g.kind) {
     case "candy":
-      return `🍬 캔디 당근 +${g.amount} (+${g.amount * 5} P)`;
+      return `🍬 캔디 당근 +${g.amount}`;
     case "golden":
-      return `✨ 황금 당근 +${g.amount} (+${g.amount * 10} P)`;
+      return `✨ 황금 당근 +${g.amount}`;
     case "gem":
       return `💎 보석 +${g.amount}`;
   }
@@ -489,16 +583,56 @@ function giftToText(g: GiftReward): string {
 function treasureToText(t: { kind: string; amount: number; points: number }): string {
   switch (t.kind) {
     case "candy":
-      return `🍬 캔디 당근 +${t.amount} (+${t.points} P)`;
+      return `🍬 캔디 당근 +${t.amount}`;
     case "golden":
-      return `✨ 황금 당근 +${t.amount} (+${t.points} P)`;
+      return `✨ 황금 당근 +${t.amount}`;
     case "carrot":
-      return `🥕 당근 +${t.amount} (+${t.points} P)`;
+      return `🥕 당근 +${t.amount}`;
     case "star":
       return `⭐ 별 +${t.amount}`;
     default:
       return `+${t.amount} ${t.kind}`;
   }
+}
+
+// R32 PR-185 — candy/golden 보유 chip (자원 사용 섹션).
+function BalanceChip({
+  emoji,
+  label,
+  value,
+}: {
+  emoji: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        padding: "8px 10px",
+        borderRadius: 10,
+        background: "rgba(255,123,97,0.08)",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <span aria-hidden style={{ fontSize: 18 }}>{emoji}</span>
+      <div style={{ minWidth: 0, lineHeight: 1.2 }}>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 800,
+            color: "#2b2b2b",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {value}
+        </div>
+        <div style={{ fontSize: 10, color: "#6a6055" }}>{label}</div>
+      </div>
+    </div>
+  );
 }
 
 function Section({
