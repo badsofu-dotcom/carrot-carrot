@@ -248,7 +248,7 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
       } else if (n === 5) {
         farm.incCarrots(20 + adBonus, { bypassDailyCap: true });
         toast(
-          `🎬 광고 5회 달성 → 당근 +${20 + adBonus} (오늘 50 P 보장 완료)`,
+          `🎬 광고 5회 달성 → 당근 +${20 + adBonus} (오늘 보장 보상 완료)`,
         );
       } else if (n <= 10) {
         // 6~10: 토큰 (gem or bolt 50/50)

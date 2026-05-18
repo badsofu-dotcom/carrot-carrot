@@ -64,7 +64,7 @@ export function DailyMissionsCard({
     if (reward > 0) {
       incCarrots(reward);
       haptic("success");
-      toast(`🎯 미션 완료 — 당근 +${reward} (+${reward} P)`);
+      toast(`🎯 미션 완료 — 당근 +${reward}`);
     }
   };
 
@@ -73,7 +73,7 @@ export function DailyMissionsCard({
     if (bonus > 0) {
       incCarrots(bonus);
       haptic("success");
-      toast(`🏆 모든 미션 클리어 — 보너스 +${bonus} P`);
+      toast(`🏆 모든 미션 클리어 — 보너스 당근 +${bonus}`);
     }
   };
 
@@ -274,7 +274,7 @@ export function DailyMissionsCard({
             cursor: "pointer",
           }}
         >
-          🏆 모두 클리어 — 보너스 +5 P 받기
+          🏆 모두 클리어 — 보너스 당근 +5 받기
         </button>
       )}
     </section>

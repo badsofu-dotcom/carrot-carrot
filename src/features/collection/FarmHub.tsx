@@ -606,13 +606,13 @@ export function FarmHub({
           pushFx("sparkle", bounds);
           unlockMedal("first_candy");
 
-          toast("🍬 캔디 당근! +5 P");
+          toast("🍬 캔디 당근! +1");
         } else if (outcome.kind === "golden") {
           incGoldenCarrots(1);
           pushFx("sparkle", bounds);
           unlockMedal("first_golden");
 
-          toast("✨ 황금 당근! +10 P");
+          toast("✨ 황금 당근! +1");
         } else {
           pushFx("harvest_pop", bounds);
           toast("당근 +1");

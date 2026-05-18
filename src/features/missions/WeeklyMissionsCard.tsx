@@ -66,10 +66,10 @@ export function WeeklyMissionsCard({
       if (type === "weeklyAttendDays5") {
         addTreasureProgress(7);
         toast(
-          `🎯 주간 미션 완료 — 당근 +${reward} (+${reward} P) · 주간 보물상자 보장`,
+          `🎯 주간 미션 완료 — 당근 +${reward} · 주간 보물상자 보장`,
         );
       } else {
-        toast(`🎯 주간 미션 완료 — 당근 +${reward} (+${reward} P)`);
+        toast(`🎯 주간 미션 완료 — 당근 +${reward}`);
       }
     }
   };
@@ -79,7 +79,7 @@ export function WeeklyMissionsCard({
     if (bonus > 0) {
       incCarrots(bonus);
       haptic("success");
-      toast(`🏆 주간 모든 미션 클리어 — 보너스 +${bonus} P`);
+      toast(`🏆 주간 모든 미션 클리어 — 보너스 당근 +${bonus}`);
     }
   };
 

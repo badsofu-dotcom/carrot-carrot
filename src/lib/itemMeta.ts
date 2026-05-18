@@ -84,7 +84,7 @@ export const ITEM_META: Record<ItemCode, ItemMeta> = {
   },
   heart: {
     longDescription:
-      "광고 시청 토큰. 매일 자정 3개로 리필, 친구에게 인사 시 +1 (최대 5).",
+      "부스트 자원. 1개 사용 → 다음 수확 캔디 +10%p (30분 유효) 또는 심은 작물 +1단계 즉시. 매일 자정 3개 리필 + 친구 wave +1 + 농장 드랍 (최대 5).",
     emoji: "🩷",
   },
 };

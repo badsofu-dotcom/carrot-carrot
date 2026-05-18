@@ -105,12 +105,11 @@ export function HomePage() {
     prevStatusRef.current = status;
   }, [status]);
 
-  // PR-113 — 일일 P 캡 도달 1회 toast. cap cross 시 dailyCap 이 dispatch.
+  // PR-113 → R34 — 일일 자원 캡 도달 1회 toast. cap cross 시 dailyCap
+  // 이 dispatch. R33 광고 무제한 후 광고 source 면제 안내 추가.
   useEffect(() => {
     const onCapReached = () => {
-      // PR-145 (Round 22) — P 라벨 → 당근 단위. 일일 cap 100 그대로
-      // 의미 있는 보호 (가구 가격 가산 reuse).
-      toast("🌙 오늘 당근 100개 다 모았어요. 자정에 다시 시작!", {
+      toast("🌙 오늘 자원 한도 도달 — 광고 보상은 계속 받을 수 있어요", {
         duration: 4000,
       });
     };

@@ -135,7 +135,7 @@ export function ToolDock() {
     // 좌절하는 흐름. 칩 차원에서 차단해서 시각 신호 일관성.)
     if (t.id === "watering_can" && wateringLeft <= 0) {
       void import("../../design-system/ui").then((m) =>
-        m.toast("오늘 10회 다 썼어요. 자정에 다시 채워져요"),
+        m.toast("오늘 물뿌리개 충전을 다 썼어요. KST 자정에 다시 충전돼요"),
       );
       return;
     }

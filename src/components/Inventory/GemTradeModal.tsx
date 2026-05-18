@@ -87,9 +87,10 @@ export function GemTradeModal() {
     haptic("medium");
     switch (opt.id) {
       case "candy3":
-        // PR-109 — seeds9 대체. 캔디당근 3개 grant (+15 P).
+        // PR-109 — seeds9 대체. 캔디당근 3개 grant. R34 — "+15 P" 라벨
+        // 제거 (토스포인트 환산 dormant).
         incCandy(3);
-        toast("💎 보석 5개 → 캔디당근 +3 (+15 P)");
+        toast("💎 보석 5개 → 캔디당근 +3");
         break;
       case "grow":
         growAllPlanted(1, Date.now());
