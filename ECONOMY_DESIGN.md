@@ -1,4 +1,4 @@
-# 버니타임 v2 — Economy Design (v3 — R32 / PR-180~187)
+# 버니타임 v2 — Economy Design (v3.1 — R33 / PR-188~193)
 
 > **공시 (PR-51 / GRAC 가드레일)**
 > 본 앱은 게임물이 아닌 **집중 / 생산성 도구** 입니다. 농장 시각화 +
@@ -33,6 +33,24 @@ abuse, what sinks consume carrots, and what is currently **live** vs
 > 않지만, 자원 EV 비교 / 일일 캡 산정 / 미래 재활성화 시 그대로
 > 활용 가능한 internal accounting unit 으로 유지합니다.
 
+> **R33 광고 무제한 + heart 재정의 (2026-05-18)**
+>
+> 사용자 결정 — 광고 시청을 통한 당근 grant 는 **일일 한도 면제**.
+> heart 자원의 광고 gate 역할 폐기 → 부스트 자원으로 재정의.
+>
+> 1. **광고 source 만 daily cap 면제** — `addPoints("ad", N)` 는 일일
+>    100 P 가치 캡 무시. 광고를 무한히 봐도 carrot/token grant 계속.
+>    그 외 source (수확 / 가챠 / 선물 / 보물) 는 100 P 캡 그대로
+>    적용 — abuse 자연 차단.
+> 2. **광고 N-th tier 무한화** — 기존 1~5회 carrot 5/5/10/10/20 보장,
+>    6~10회 토큰 (gem/bolt) 만 → R33 부터 11+회 도 carrot +1 small
+>    보너스 (지속 incentive). KST 자정 카운터 reset.
+> 3. **heart 재정의** — 광고 gate 자원 → **부스트 자원**. 1개 사용 시
+>    다음 수확 candy +10%p (1회) 또는 심은 plot 모두 +1 stage 즉시
+>    선택. source (자정 +3 / 친구 wave +1 / 농장 드랍) 그대로 유지.
+> 4. **AdRewardChannelModal heart gate 제거** — 광고 무제한이므로
+>    잔액 검사 폐기.
+
 ## v2 자원 분류 (PR-31)
 
 `itemsStore.ItemCategory` 4 종 + 별도 stores 2 surface:
@@ -42,7 +60,7 @@ abuse, what sinks consume carrots, and what is currently **live** vs
 | **currency** | carrot / candy / golden | 1 / 5 / 10 P 가치 단위. 일반 가구 = carrot, 프리미엄 가구 = candy/golden, 가챠 pity = candy/golden |
 | **soft_currency** | seed / carrot_coin | 씨앗 = 심기 재료, 50 coin → 캔디 1 |
 | **consumable** | hourglass / bolt / juice / soup / cake | 도구 아이템 (사용 시 1회 효과) |
-| **token** | star / gem / heart | star=레전더리 가챠 (100개), gem=GemTradeModal, heart=광고 시청 토큰 |
+| **token** | star / gem / heart | star=레전더리 가챠 (100개), gem=GemTradeModal, **heart=부스트 자원 (R33 PR-191)** |
 | **honor** (별도 store) | medal × 11 | 도전 과제 (rewardsStore.medals Set, AchievementsCard) |
 | **dex** (별도 store) | bunny × 25 | 도감 (collectionStore.ownedCharacters, CollectionPage) |
 
@@ -131,13 +149,13 @@ spendCandy/spendGolden CAS dispatch.
 
 Header chips render the PNG icon at 18×18 with `object-fit: contain`. If the asset fails to load on the deploy host (nested-proxy path issues), the chip falls back to the emoji glyph through an `onError` handler.
 
-## Anti-abuse caps (KST per day, per user) — PR-32 보정
+## Anti-abuse caps (KST per day, per user) — R33 PR-188 갱신
 
-| Counter | Cap | 비고 |
+| Counter | Cap (R33) | 비고 |
 | --- | --- | --- |
 | `carrot_count` (당근 수확 횟수) | 100 | 2 hr 풀 활용 = 4 세션 × 25 carrots (PR-32 보정) |
-| `reward_points_total` (포인트 합계) | **100** | EV 110 P, anti-abuse 자연 차단 (PR-32 보정 50 → 100) |
-| `ad_views_today` (광고 시청 횟수) | 10 | 5회 P 보상 + 5회 토큰 보상 |
+| `reward_points_total` (수확/가챠/선물/보물 source) | **100** | dogam 100% 보너스 +10 → 110. EV 자연 차단. **광고 source 면제 (R33 PR-189)** |
+| `ad_views_today` (광고 시청 횟수) | **무제한 (R33 PR-190)** | 1~5회 carrot 보장, 6~10회 토큰, 11+회 carrot +1 small — 지속 incentive |
 
 ## 일일 미션 (PR-52)
 
