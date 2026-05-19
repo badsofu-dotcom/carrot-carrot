@@ -993,24 +993,33 @@ function FarmView({
         width: "100%",
         maxWidth: 720,
         margin: "0 auto",
+        position: "relative",
       }}
     >
       <header
         data-testid="farm-compact-header"
         style={{
-          // R31 PR-178 — main padding 을 0 으로 빼서 farm card fullbleed
-          // 가능하게 했고, header 만 좌우 12 + 위 8 padding 으로 carrot/
-          // dogam 아이콘이 viewport 가장자리에 붙지 않게 보호.
+          // R35 — bg 위에 떠있는 overlay 헤더. position:absolute 로 flex
+          // 흐름에서 빠지면서 FarmHub 가 main 전체 세로를 차지 → bg 자연
+          // 비율로 거의 풀화면 노출. 칩은 pill 배경 제거 + text-shadow 로
+          // 가독성 확보. pointer-events:none 컨테이너 + 자식들에만 auto
+          // 부여해서 칩 사이 빈 공간 클릭은 농장으로 통과.
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 5,
           padding: "8px 12px 0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
           minHeight: 36,
-          marginBottom: 6,
           fontSize: 14,
           fontWeight: 600,
-          color: "var(--text-primary, #2b2b2b)",
+          color: "#fff",
+          textShadow: "0 1px 2px rgba(0,0,0,0.55), 0 0 6px rgba(0,0,0,0.35)",
+          pointerEvents: "none",
         }}
       >
         <div
@@ -1053,14 +1062,16 @@ function FarmView({
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              padding: "6px 10px",
+              padding: "6px 8px",
               borderRadius: 999,
-              background: "rgba(0,0,0,0.04)",
-              color: "var(--text-primary, #2b2b2b)",
+              background: "transparent",
+              color: "#fff",
               border: "none",
               fontSize: 13,
               fontWeight: 600,
               cursor: "pointer",
+              pointerEvents: "auto",
+              textShadow: "0 1px 2px rgba(0,0,0,0.55), 0 0 6px rgba(0,0,0,0.35)",
             }}
           >
             📖 도감 {obtainedCount}/{DOGAM_TOTAL}
@@ -1088,10 +1099,12 @@ function FarmView({
               alignItems: "center",
               justifyContent: "center",
               borderRadius: 999,
-              background: "rgba(0,0,0,0.04)",
+              background: "transparent",
               border: "none",
-              fontSize: 16,
+              fontSize: 20,
               cursor: "pointer",
+              pointerEvents: "auto",
+              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
             }}
           >
             🎯
@@ -1135,10 +1148,12 @@ function FarmView({
               alignItems: "center",
               justifyContent: "center",
               borderRadius: 999,
-              background: "rgba(0,0,0,0.04)",
+              background: "transparent",
               border: "none",
-              fontSize: 16,
+              fontSize: 20,
               cursor: "pointer",
+              pointerEvents: "auto",
+              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.5))",
             }}
           >
             🎁
@@ -1228,7 +1243,9 @@ function CurrencyChip({
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        color: muted ? "var(--text-secondary, #5a5a5a)" : undefined,
+        // R35 — overlay header 에서 색상은 부모 (흰색) 상속. muted 는
+        // opacity 만 살짝 낮춰서 primary(당근) 와 시각 구분.
+        opacity: muted ? 0.78 : 1,
       }}
     >
       {imgOk ? (
