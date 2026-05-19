@@ -289,6 +289,16 @@ body[data-fullscreen-modal-open="1"] nav[aria-label="주요 메뉴"] {
   display: none !important;
 }
 
+/* R35 — 농장 칩 헤더 (당근/캔디/황금/도감/🎯/🎁) 는 FarmHub 가 z-index 0
+   stacking context 를 만들면서 그 안의 MushroomHouseRoom (z 1100) 보다
+   바깥쪽에 위치 → 집안에서도 칩이 위에 떠 보임. 풀스크린 모달이 열려
+   있으면 칩 자체를 숨겨서 농장 컨텍스트 UI 가 집/하늘/구매 등의
+   풀스크린 컨텍스트로 새지 않게 한다. sky+BGM pill 은 FarmHub 안에
+   있어 자연 stacking 으로 이미 가려짐. */
+body[data-fullscreen-modal-open="1"] [data-testid="farm-compact-header"] {
+  display: none !important;
+}
+
 .app-screen {
   padding: var(--space-5);
   padding-top: calc(env(safe-area-inset-top, 0px) + var(--space-5));

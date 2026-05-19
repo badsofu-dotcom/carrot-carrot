@@ -959,13 +959,13 @@ export function FarmHub({
       <MushroomHouseEntryLabel />
       </div>
 
-      {/* "하늘 보기" + BGM 빠른 토글 — frosted pill 2개. R35 — FarmHub
-          fixed-fullscreen 으로 top:10 = viewport-top → Toss 헤더 바로
-          아래 붙음. safe-top 보정. */}
+      {/* "하늘 보기" + BGM 빠른 토글 — frosted pill 2개. R35 — 칩 행이
+          최상단 (safe-top+8, 높이 36) → 그 아래 행에 sky+BGM 배치.
+          ~ safe-top + 52px 정도. */}
       <div
         style={{
           position: "absolute",
-          top: "calc(var(--safe-top, 0px) + 10px)",
+          top: "calc(var(--safe-top, 0px) + 52px)",
           left: "50%",
           transform: "translateX(-50%)",
           display: "inline-flex",

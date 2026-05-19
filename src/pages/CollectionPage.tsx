@@ -1000,13 +1000,14 @@ function FarmView({
         data-testid="farm-compact-header"
         style={{
           // R35 — bg 풀화면(fixed inset:0) 위에 떠있는 overlay 헤더.
-          // 칩과 sky+BGM 행이 겹쳐서 칩을 sky+BGM 아래로 내림.
-          // sky+BGM = top safe-top+10 + 높이 ~32 → ~42. 칩은 top safe-top+50.
+          // 칩이 최상단, sky+BGM 이 그 아래 행. base.css 규칙으로
+          // body[data-fullscreen-modal-open="1"] (MushroomHouseRoom 등
+          // 풀스크린 모달) 일 때는 자동으로 display:none.
           // 칩은 pill 배경 제거 + text-shadow 로 가독성 확보. pointer-events
           // :none 컨테이너 + 자식들에만 auto 부여해서 칩 사이 빈 공간
           // 클릭은 농장으로 통과.
           position: "absolute",
-          top: "calc(var(--safe-top, 0px) + 50px)",
+          top: "calc(var(--safe-top, 0px) + 8px)",
           left: 0,
           right: 0,
           zIndex: 5,
