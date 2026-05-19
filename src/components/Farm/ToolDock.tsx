@@ -173,12 +173,12 @@ export function ToolDock() {
       style={{
         position: "absolute",
         left: "50%",
-        // R28 PHASE 1 — R26.5 의 safe-area 보정 (calc(12px + env(
-        // safe-area-inset-bottom))) 롤백. CollectionPage farm 탭의 main
-        // height 계산이 safe-bottom 까지 빼도록 같이 수정되어 farm card
-        // bottom 이 곧 TabBar top 이 됨. 따라서 toolbox bottom 12 면 자연
-        // 스럽게 TabBar 위 12px 여백.
-        bottom: 12,
+        // R35 — FarmHub 가 fixed-fullscreen 으로 viewport 전체를 cover
+        // 하게 바뀌면서 bottom:12 = viewport bottom + 12 가 BottomNav 와
+        // 겹침. tabbar-reserved + safe-bottom 만큼 올려서 TabBar 위에 자연
+        // 스럽게 떠있게 한다.
+        bottom:
+          "calc(var(--tabbar-reserved, 84px) + var(--safe-bottom, 0px) + 12px)",
         transform: "translateX(-50%)",
         display: "flex",
         // PR-131 — 슬롯 사이 gap 6 → 8, padding 축소.

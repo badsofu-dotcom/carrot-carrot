@@ -747,16 +747,20 @@ export function FarmHub({
       onTouchEnd={onFarmTouchEnd}
       onWheel={onFarmWheel}
       style={{
-        // R31 PR-178 — fullbleed. maxWidth 480 / margin auto / borderRadius
-        // 16 / boxShadow card 폐기. 부모 main 이 maxWidth 720 + 가운데
-        // 정렬을 담당. width 100% 로 부모 폭에 stretch → 9칸 SVG (viewBox
-        // 100x100 + preserveAspectRatio none) + 배경 image (objectFit fill)
-        // 가 자동으로 비례 scale. CLAUDE.md §6 PLOT_POLYGONS frozen 그대로.
-        position: "relative",
-        width: "100%",
-        height: "100%",
+        // R35 — bg 풀화면 노출. SkyView 처럼 viewport 전체 cover.
+        //   - position:fixed inset:0 → safe-area / tabbar 영역까지 모두 bg.
+        //   - z-index 0 → TabBar (z:100) / 헤더 칩 (z:5) 아래.
+        //   - aspect-stage 의 min-width/min-height 100% + aspect-ratio 가
+        //     viewport 기준으로 재계산 → bg 가 자연 비율로 viewport cover.
+        //   - bg 아트와 정렬 필요한 UI (MushroomHouseHitRegion / Entry
+        //     Label) 는 aspect-stage 내부로 이동시켜 동일 좌표계 공유.
+        //   - chrome UI (ToolDock / sky+BGM pills) 는 viewport / safe-area
+        //     기준으로 다시 anchor.
+        position: "fixed",
+        inset: 0,
         overflow: "hidden",
         background: "var(--surface-2, #f5e9d5)",
+        zIndex: 0,
       }}
     >
       {/* Aspect-stage wrapper. Locked to the bg image's natural aspect
@@ -947,25 +951,21 @@ export function FarmHub({
           polygon does — but each effect renders at its own natural
           aspect, so circles stay circles and PNGs aren't stretched. */}
       <FxLayer events={fxEvents} />
-      </div>
 
-      {/* PR-145 (Round 22) — 야외 가구 슬롯 4개. PR-147 (Round 23) —
-          R25 데코 v2 archive — OutdoorSlots / FurnitureShopModal /
-          featureFlags 모두 _decor_v1_archive 로 이동. 농장 카드 자체에는
-          decor placeholder 없음. R26 PR-154 — 버섯집 그림 위에 투명
-          hit-region 추가. R26.1 PR-156 — 모자 위 frosted pill 라벨
-          (시각 단서). 보상함 진입점도 그대로 유지. */}
+      {/* R35 — bg 풀화면화 와 함께 aspect-stage 내부로 이동.
+          기존: section % 좌표계 → section 크기 변하면 bg 와 어긋남.
+          현재: aspect-stage % = bg 자연 좌표 % → bg 아트와 항상 정렬. */}
       <MushroomHouseHitRegion />
       <MushroomHouseEntryLabel />
+      </div>
 
-      {/* "하늘 보기" + BGM 빠른 토글 — 농장 카드 상단 중앙에 frosted
-          pill 2개. PR-137 (Round 19) — BGM 토글이 Settings 까지 안 가도
-          농장에서 바로 켜고 끌 수 있도록 옆에 추가. 같은 store key
-          (farmBgmEnabled) 라 single source of truth 유지. */}
+      {/* "하늘 보기" + BGM 빠른 토글 — frosted pill 2개. R35 — FarmHub
+          fixed-fullscreen 으로 top:10 = viewport-top → Toss 헤더 바로
+          아래 붙음. safe-top 보정. */}
       <div
         style={{
           position: "absolute",
-          top: 10,
+          top: "calc(var(--safe-top, 0px) + 10px)",
           left: "50%",
           transform: "translateX(-50%)",
           display: "inline-flex",
