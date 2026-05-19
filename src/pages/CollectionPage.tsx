@@ -1009,7 +1009,7 @@ function FarmView({
           position: "absolute",
           // R35 — AIT WebView 의 content 영역은 이미 토스 헤더 아래
           // 깨끗한 zone. 살짝(4px)만 내려 위쪽 breathing room.
-          top: 4,
+          top: 12,
           left: 0,
           right: 0,
           zIndex: 5,
