@@ -28,6 +28,7 @@ import { getFurniturePrice } from "./farmhubFurniturePrices";
 import { BuyFurnitureModal } from "./BuyFurnitureModal";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 export const MUSHROOM_HOUSE_OPEN_EVENT = "cc:mushroom-house:open";
 
@@ -151,6 +152,17 @@ export function MushroomHouseRoom() {
   };
 
   const closeRoom = () => setOpen(false);
+
+  // R35 — 토스 좌상단 back + Android 하드웨어 back 을 가로채서 토스 홈
+  // 으로 빠지지 않고 농장으로 복귀하게 한다. 스택: BuyFurnitureModal 이
+  // 위에 떠 있으면 그걸 먼저 닫고, 그렇지 않으면 집 자체를 닫는다.
+  useTossBackButton(() => {
+    if (buyTargetStep !== null) {
+      setBuyTargetStep(null);
+      return;
+    }
+    setOpen(false);
+  }, open);
 
   return (
     <AnimatePresence>
