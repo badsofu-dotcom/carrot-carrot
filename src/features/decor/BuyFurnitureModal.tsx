@@ -32,6 +32,7 @@ import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
 import { safeStorage } from "../../lib/safeStorage";
 import { logFarmhubBuy } from "../../lib/analytics";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 const SKIP_CONFIRM_KEY = "cc.farmhub.skip_confirm";
 // 100 P 가치 기준 confirm. currency 별 amount → P 환산:
@@ -86,6 +87,16 @@ export function BuyFurnitureModal({
   const [skipConfirm, setSkipConfirm] = useState(false);
 
   const open = targetStep !== null;
+  // R35 — 토스/하드웨어 back 시 가구 구매 모달만 닫고 집 화면 유지.
+  // 모듈 스택이 top 핸들러만 호출하므로 confirm 단계 (confirming) 면
+  // confirm 만 해제하고, 아니면 모달 자체 닫기.
+  useTossBackButton(() => {
+    if (confirming) {
+      setConfirming(false);
+      return;
+    }
+    onClose();
+  }, open);
   const def = targetStep !== null ? FARMHUB_BY_STEP[targetStep] : null;
   const price = def?.price ?? null;
   const currency: FarmhubCurrency | null = price?.currency ?? null;

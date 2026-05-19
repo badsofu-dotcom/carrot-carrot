@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { haptic } from "../../design-system/haptic";
 import { safeStorage } from "../../lib/safeStorage";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 const COOLDOWN_MIN = 5;
 const DAILY_CAP = 3;
@@ -126,6 +127,9 @@ export function AdSuggestionModal() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  // R35 — 토스/하드웨어 back 시 제안만 닫음.
+  useTossBackButton(() => setOpen(false), open);
 
   const onWatchAd = () => {
     haptic("medium");

@@ -32,6 +32,7 @@ import { passivesFromOwned } from "../../lib/dogamPassives";
 // 제거. POINT_VALUES + MIN_PAYOUT 만 lib/points.ts 에 보존.
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
+import { useTossBackButton } from "../../lib/tossBackButton";
 import { playSfx } from "../../lib/soundFx";
 import { useSoundStore } from "../../store/soundStore";
 import {
@@ -82,6 +83,9 @@ export function RewardsPanel({ open, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // R35 — 토스/하드웨어 back 시 보상함만 닫고 농장 화면 유지.
+  useTossBackButton(onClose, open);
 
   const todayClaimed = (() => {
     if (!claimedDay) return false;

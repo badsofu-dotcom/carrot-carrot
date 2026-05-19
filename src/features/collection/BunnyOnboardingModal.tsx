@@ -28,6 +28,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { safeStorage } from "../../lib/safeStorage";
 import { haptic } from "../../design-system/haptic";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 export const ONBOARDING_KEY = "onboarded:v1";
 
@@ -157,6 +158,18 @@ export function BunnyOnboardingModal({ forceOpen = false, onClose }: Props) {
   const goPrev = () => {
     setStep((s) => (s <= 0 ? 0 : s - 1));
   };
+
+  // R35 — 토스/하드웨어 back 시 이전 step 으로 (첫 step 이면 onboarding
+  // 마무리). 일반 모달과 달리 즉시 dismiss 하지 않는 이유: 온보딩 마지막
+  // 까지 본 적이 한 번도 없으면 다시 보여주는게 정상이라 finish 대신
+  // 단계 뒤로가기로 매핑.
+  useTossBackButton(() => {
+    if (step <= 0) {
+      finish();
+      return;
+    }
+    goPrev();
+  }, open);
 
   const onCta = () => {
     haptic("light");

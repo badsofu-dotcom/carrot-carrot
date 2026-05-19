@@ -18,6 +18,7 @@ import { Bunny } from "../../components/Bunny";
 import { Button, toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 import { watchRewardedAd } from "../../lib/tossRewardedAd";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 interface AdPassModalProps {
   open: boolean;
@@ -44,6 +45,13 @@ export function AdPassModal({ open, onClose, onGranted }: AdPassModalProps) {
       setStage("prompt");
     }
   }, [open]);
+
+  // R35 — 토스/하드웨어 back 시 광고 단계가 아닐 때만 닫기.
+  // 광고 재생 중에는 SDK 가 자체 close 흐름을 가짐.
+  useTossBackButton(() => {
+    if (stage === "ad") return;
+    onClose();
+  }, open);
 
   // 광고 단계 진입 시 실제 토스 보상형 광고(또는 simulation) 시도.
   useEffect(() => {

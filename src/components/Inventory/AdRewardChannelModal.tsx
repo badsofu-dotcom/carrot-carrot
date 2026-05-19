@@ -29,6 +29,7 @@ import { kstDayKey } from "../../lib/kst";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
 import { watchRewardedAd } from "../../lib/tossRewardedAd";
+import { useTossBackButton } from "../../lib/tossBackButton";
 import {
   safeAreaBackdropStyle,
   safeAreaModalStyle,
@@ -116,6 +117,13 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // R35 — 토스/하드웨어 back 시 채널 선택만 닫음. 광고 재생 중에는
+  // 무시 (재생 SDK 가 자체 close 흐름을 가짐).
+  useTossBackButton(() => {
+    if (watching) return;
+    onClose();
+  }, open);
 
   const giftAlreadyClaimed = giftDay === kstDayKey();
 

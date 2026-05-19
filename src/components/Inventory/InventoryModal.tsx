@@ -32,6 +32,7 @@ import { useToolStore, TOOL_CONSTANTS } from "../../features/collection/toolStor
 import { useBuffsStore } from "../../features/collection/buffsStore";
 import { toast } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -82,6 +83,9 @@ export function InventoryModal({ open, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // R35 — 토스/하드웨어 back 시 보관함만 닫고 농장 화면 유지.
+  useTossBackButton(onClose, open);
 
   // PR-41 — modal close + tab switch unselect.
   useEffect(() => {

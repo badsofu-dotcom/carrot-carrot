@@ -16,6 +16,7 @@ import {
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { haptic } from "./haptic";
+import { useTossBackButton } from "../lib/tossBackButton";
 
 function Portal({ children }: { children: ReactNode }) {
   if (typeof document === "undefined") return null;
@@ -340,6 +341,9 @@ export function BottomSheet({ open, onClose, title, children }: BottomSheetProps
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // R35 — 토스/하드웨어 back 시 sheet 만 닫고 농장 화면 유지.
+  useTossBackButton(onClose, open);
 
   return (
     <Portal>

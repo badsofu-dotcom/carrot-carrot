@@ -19,6 +19,7 @@ import {
   type CharacterDef,
 } from "../../features/collection/collectionData";
 import { bunnyImages } from "../../assets/characters";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 const BASE = import.meta.env.BASE_URL;
 const FX_RING = `${BASE}assets/farm/fx/fx_level_up_ring.png`;
@@ -41,6 +42,9 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // R35 — 토스/하드웨어 back 시 모달만 닫고 농장 화면 유지.
+  useTossBackButton(onClose, open && !!bunny);
 
   return (
     <AnimatePresence>

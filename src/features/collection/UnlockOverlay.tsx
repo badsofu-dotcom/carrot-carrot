@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bunny } from "../../components/Bunny";
 import { Button } from "../../design-system/ui";
 import { haptic } from "../../design-system/haptic";
+import { useTossBackButton } from "../../lib/tossBackButton";
 import {
   CHARACTER_BY_ID,
   RARITY_COLOR,
@@ -50,11 +51,6 @@ export function UnlockOverlay({ queue, onClose }: UnlockOverlayProps) {
     setIndex(0);
   }, [queue]);
 
-  if (!mounted || typeof document === "undefined") return null;
-  if (queue.length === 0) return null;
-
-  const currentId = queue[index];
-  const character = currentId ? CHARACTER_BY_ID[currentId] : null;
   const isLast = index >= queue.length - 1;
 
   const handleNext = () => {
@@ -64,6 +60,16 @@ export function UnlockOverlay({ queue, onClose }: UnlockOverlayProps) {
       setIndex((i) => i + 1);
     }
   };
+
+  // R35 — 토스/하드웨어 back 시 다음 unlock 으로 진행 (마지막이면 닫기).
+  // 다중 unlock queue 의 "탭하면 다음" 동작과 일치.
+  useTossBackButton(handleNext, mounted && queue.length > 0);
+
+  if (!mounted || typeof document === "undefined") return null;
+  if (queue.length === 0) return null;
+
+  const currentId = queue[index];
+  const character = currentId ? CHARACTER_BY_ID[currentId] : null;
 
   return createPortal(
     <AnimatePresence mode="wait">

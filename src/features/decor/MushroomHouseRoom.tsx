@@ -153,16 +153,10 @@ export function MushroomHouseRoom() {
 
   const closeRoom = () => setOpen(false);
 
-  // R35 — 토스 좌상단 back + Android 하드웨어 back 을 가로채서 토스 홈
-  // 으로 빠지지 않고 농장으로 복귀하게 한다. 스택: BuyFurnitureModal 이
-  // 위에 떠 있으면 그걸 먼저 닫고, 그렇지 않으면 집 자체를 닫는다.
-  useTossBackButton(() => {
-    if (buyTargetStep !== null) {
-      setBuyTargetStep(null);
-      return;
-    }
-    setOpen(false);
-  }, open);
+  // R35 — 토스 좌상단 back + Android 하드웨어 back 인터셉트. 모듈 스택이
+  // top 핸들러만 호출하므로 BuyFurnitureModal 이 위에 떠 있으면 그것이
+  // 먼저 닫히고, 다시 누르면 여기서 집을 닫는다.
+  useTossBackButton(closeRoom, open);
 
   return (
     <AnimatePresence>

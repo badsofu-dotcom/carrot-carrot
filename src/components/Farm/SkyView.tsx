@@ -27,6 +27,7 @@ import { Atmosphere, variantForSlot } from "./Atmosphere";
 import type { FarmBgSlot } from "../../lib/farmBackground";
 import { safeStorage } from "../../lib/safeStorage";
 import { useRewardsStore } from "../../features/collection/rewardsStore";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 const SWIPE_DISMISS_PX = 80;
 const LONG_PRESS_MS = 600;
@@ -117,6 +118,9 @@ export function SkyView({ open, slot, onClose }: Props) {
   const [longPressFx, setLongPressFx] = useState(0);
   const [eventImg, setEventImg] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  // R35 — 토스/하드웨어 back 시 하늘보기만 닫고 농장 화면 유지.
+  useTossBackButton(onClose, open);
 
   const touchStartY = useRef<number | null>(null);
   const touchStartT = useRef<number>(0);

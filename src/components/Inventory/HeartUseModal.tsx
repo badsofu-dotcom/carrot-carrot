@@ -18,6 +18,7 @@ import { useBuffsStore } from "../../features/collection/buffsStore";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { haptic } from "../../design-system/haptic";
 import { toast } from "../../design-system/ui";
+import { useTossBackButton } from "../../lib/tossBackButton";
 import {
   safeAreaBackdropStyle,
   safeAreaModalStyle,
@@ -68,6 +69,9 @@ export function HeartUseModal() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  // R35 — 토스/하드웨어 back 시 모달만 닫음.
+  useTossBackButton(() => setOpen(false), open);
 
   const apply = (opt: Option) => {
     if (!consume("heart", HEART_COST)) {

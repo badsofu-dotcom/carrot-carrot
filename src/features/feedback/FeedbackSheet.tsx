@@ -16,6 +16,7 @@ import {
   safeAreaModalStyle,
 } from "../../lib/ui/safeAreaModal";
 import { isFeedbackConfigured, sendFeedback } from "./feedbackChannel";
+import { useTossBackButton } from "../../lib/tossBackButton";
 
 export const FEEDBACK_OPEN_EVENT = "cc:feedback:open";
 
@@ -39,6 +40,9 @@ export function FeedbackSheet() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  // R35 — 토스/하드웨어 back 시 시트만 닫음.
+  useTossBackButton(() => setOpen(false), open);
 
   const onSubmit = async () => {
     if (busy) return;
