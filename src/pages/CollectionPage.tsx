@@ -1007,10 +1007,9 @@ function FarmView({
           // :none 컨테이너 + 자식들에만 auto 부여해서 칩 사이 빈 공간
           // 클릭은 농장으로 통과.
           position: "absolute",
-          // R35 — AIT WebView 의 content 영역은 이미 토스 헤더 아래 깨끗
-          // 한 zone 이라 safe-top 추가 없이 top:0. minHeight 도 28 로 더
-          // 압축해 viewport 맨 위에 칩이 정확히 붙도록.
-          top: 0,
+          // R35 — AIT WebView 의 content 영역은 이미 토스 헤더 아래
+          // 깨끗한 zone. 살짝(4px)만 내려 위쪽 breathing room.
+          top: 4,
           left: 0,
           right: 0,
           zIndex: 5,

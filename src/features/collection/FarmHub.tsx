@@ -959,13 +959,13 @@ export function FarmHub({
       <MushroomHouseEntryLabel />
       </div>
 
-      {/* "하늘 보기" + BGM 빠른 토글 — frosted pill 2개. R35 — 칩 행이
-          최상단 (top:0, 높이 28) → 그 아래 행에 sky+BGM 배치.
-          chip bottom 28 + 4px gap = top 32. */}
+      {/* "하늘 보기" + BGM 빠른 토글 — frosted pill 2개. R35 — 칩 행
+          (top:4, 실제 높이 ~32 = 🎯/🎁 32×32 아이콘 버튼 결정) → 그 아래
+          행에 sky+BGM. chip bottom 36 + 12px gap = top 48. */}
       <div
         style={{
           position: "absolute",
-          top: 32,
+          top: 48,
           left: "50%",
           transform: "translateX(-50%)",
           display: "inline-flex",
