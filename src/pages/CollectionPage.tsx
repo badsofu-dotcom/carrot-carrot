@@ -1007,7 +1007,9 @@ function FarmView({
           // :none 컨테이너 + 자식들에만 auto 부여해서 칩 사이 빈 공간
           // 클릭은 농장으로 통과.
           position: "absolute",
-          top: "calc(var(--safe-top, 0px) + 8px)",
+          // R35 — safe-top 만큼만 두고 추가 padding 0 → 시스템 status bar
+          // 보호 영역 바로 아래 붙음.
+          top: "var(--safe-top, 0px)",
           left: 0,
           right: 0,
           zIndex: 5,
@@ -1016,7 +1018,7 @@ function FarmView({
           alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
-          minHeight: 36,
+          minHeight: 32,
           fontSize: 14,
           fontWeight: 600,
           color: "#fff",
