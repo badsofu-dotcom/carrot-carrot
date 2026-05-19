@@ -122,6 +122,17 @@ export function SkyView({ open, slot, onClose }: Props) {
   // R35 — 토스/하드웨어 back 시 하늘보기만 닫고 농장 화면 유지.
   useTossBackButton(onClose, open);
 
+  // R35 — body[data-fullscreen-modal-open="1"] 표시 — base.css 규칙이
+  // 농장 칩 헤더 + TabBar 를 자동 숨김. MushroomHouseRoom 과 같은 패턴.
+  useEffect(() => {
+    if (!open) return;
+    if (typeof document === "undefined") return;
+    document.body.setAttribute("data-fullscreen-modal-open", "1");
+    return () => {
+      document.body.removeAttribute("data-fullscreen-modal-open");
+    };
+  }, [open]);
+
   const touchStartY = useRef<number | null>(null);
   const touchStartT = useRef<number>(0);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
