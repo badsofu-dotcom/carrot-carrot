@@ -17,6 +17,7 @@
  * locally in safeStorage with the day key as suffix.
  */
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useToolStore } from "../../features/collection/toolStore";
 import { useRewardsStore } from "../../features/collection/rewardsStore";
@@ -284,7 +285,9 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
     onClose();
   };
 
-  return (
+  // R35 — Portal: FarmHub stacking context 탈출 ([HeartUseModal] 참조).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -387,7 +390,8 @@ export function AdRewardChannelModal({ open, onClose }: Props) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

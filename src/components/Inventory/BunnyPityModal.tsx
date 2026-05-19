@@ -19,6 +19,7 @@
  * GemTradeModal 와 동일한 outer-flex + inner-motion 패턴.
  */
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useFarmStore } from "../../features/collection/farmStore";
 import { useCollectionStore } from "../../features/collection/collectionStore";
@@ -138,7 +139,9 @@ export function BunnyPityModal() {
     setOpen(false);
   };
 
-  return (
+  // R35 — Portal: FarmHub stacking context 탈출 ([HeartUseModal] 참조).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -348,6 +351,7 @@ export function BunnyPityModal() {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

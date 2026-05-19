@@ -13,6 +13,7 @@
  * 헬퍼로 노출 — 모달 자체는 비-가드 (open=true 면 항상 표시).
  */
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { haptic } from "../../design-system/haptic";
 import { safeStorage } from "../../lib/safeStorage";
@@ -146,7 +147,9 @@ export function AdSuggestionModal() {
     setOpen(false);
   };
 
-  return (
+  // R35 — Portal: FarmHub stacking context 탈출 ([HeartUseModal] 참조).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && detail && (
         <>
@@ -254,7 +257,8 @@ export function AdSuggestionModal() {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 

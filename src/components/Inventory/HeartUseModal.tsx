@@ -12,6 +12,7 @@
  * GemTradeModal / BunnyPityModal 와 동일 outer-flex + inner-motion 패턴.
  */
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useItemsStore } from "../../features/collection/itemsStore";
 import { useBuffsStore } from "../../features/collection/buffsStore";
@@ -97,7 +98,12 @@ export function HeartUseModal() {
     setOpen(false);
   };
 
-  return (
+  // R35 — Portal 로 document.body 에 직접 mount. FarmHub 가 z-index:0
+  // stacking context 를 만들기 때문에 그 안에 있으면 z:1090 이라도
+  // CollectionPage 의 InventoryModal (z:1060, body context) 보다 아래로
+  // 깔림. Portal 로 빼면 body context 의 z:1090 그대로 적용 → 위로 올라옴.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -277,6 +283,7 @@ export function HeartUseModal() {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

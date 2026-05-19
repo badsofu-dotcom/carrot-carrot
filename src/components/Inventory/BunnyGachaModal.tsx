@@ -10,6 +10,7 @@
  * pop.
  */
 import { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CHARACTERS,
@@ -46,7 +47,9 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
   // R35 — 토스/하드웨어 back 시 모달만 닫고 농장 화면 유지.
   useTossBackButton(onClose, open && !!bunny);
 
-  return (
+  // R35 — Portal: FarmHub stacking context 탈출 ([HeartUseModal] 참조).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {open && bunny && (
         <motion.div
@@ -188,7 +191,8 @@ export function BunnyGachaModal({ open, bunnyId, onClose }: Props) {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
