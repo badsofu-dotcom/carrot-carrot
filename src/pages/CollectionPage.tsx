@@ -1007,9 +1007,10 @@ function FarmView({
           // :none 컨테이너 + 자식들에만 auto 부여해서 칩 사이 빈 공간
           // 클릭은 농장으로 통과.
           position: "absolute",
-          // R35 — safe-top 만큼만 두고 추가 padding 0 → 시스템 status bar
-          // 보호 영역 바로 아래 붙음.
-          top: "var(--safe-top, 0px)",
+          // R35 — AIT WebView 의 content 영역은 이미 토스 헤더 아래 깨끗
+          // 한 zone 이라 safe-top 추가 없이 top:0. minHeight 도 28 로 더
+          // 압축해 viewport 맨 위에 칩이 정확히 붙도록.
+          top: 0,
           left: 0,
           right: 0,
           zIndex: 5,
@@ -1018,7 +1019,7 @@ function FarmView({
           alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
-          minHeight: 32,
+          minHeight: 28,
           fontSize: 14,
           fontWeight: 600,
           color: "#fff",

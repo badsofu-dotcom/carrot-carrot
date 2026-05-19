@@ -960,12 +960,12 @@ export function FarmHub({
       </div>
 
       {/* "하늘 보기" + BGM 빠른 토글 — frosted pill 2개. R35 — 칩 행이
-          최상단 (safe-top, 높이 32) → 그 아래 행에 sky+BGM 배치.
-          ~ safe-top + 36px (chip bottom + 4px gap). */}
+          최상단 (top:0, 높이 28) → 그 아래 행에 sky+BGM 배치.
+          chip bottom 28 + 4px gap = top 32. */}
       <div
         style={{
           position: "absolute",
-          top: "calc(var(--safe-top, 0px) + 36px)",
+          top: 32,
           left: "50%",
           transform: "translateX(-50%)",
           display: "inline-flex",
